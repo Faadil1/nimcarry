@@ -451,6 +451,16 @@ GitHub and Neon are directly manageable from this chat. Cloudflare dashboard/acc
 - No wallet action, send retry, broadcast, `FINAL`, or `ARRIVED` occurred.
 - Next exact action: `RUN_A_READ_ONLY_CONSENSUS_AND_BLOCK_HEIGHT_CHECK`.
 
+## Read-only A network preflight: consensus confirmed (2026-09-12)
+
+- Canonical version: `0.8.66`.
+- Wallet A provider initialized; exactly one account was visible with short fingerprint `A …CLQL`.
+- `isConsensusEstablished()` returned `true`; `getBlockNumber()` succeeded with observed height `61428302`; `block_number_available=true`.
+- No signing or transaction method was invoked. Lack of Nimiq network consensus is ruled out as the direct cause of the repeated sync failure.
+- Backend proof state is unchanged: mission `ACTIVE`, `current_sequence=0`, `finalized_hop_count=0`, invitation sequence `1` `EXPIRED`, pass intent sequence `1` `tx_hash=null`, `hop_count=0`, no `FINAL`, no `ARRIVED`.
+- This is a continuity-only record. No wallet action or send retry occurred.
+- Next exact action: `DIAGNOSE_TRANSACTION_CALL_CONTRACT_WITHOUT_SEND`.
+
 ## Safe provider diagnostics deployed (2026-09-12)
 
 - Canonical version: `0.8.64`.

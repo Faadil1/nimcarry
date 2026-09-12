@@ -3,7 +3,7 @@ former_public_name: Carry One
 competition: Nimiq Mini Apps Competition - Cycle II
 repository: Faadil1/nimcarry
 visibility: public
-state_version: 0.8.65
+state_version: 0.8.66
 date: 2026-09-12
 phase: REAL_TESTNET_PROOF_ATTEMPT_FAILED_NO_BROADCAST_EVIDENCE
 problem_locked: true
@@ -357,7 +357,7 @@ current_gate:
   legacy_relay_403: PASS
   same_origin_static_and_backend: PASS
   next_exact_actions:
-    - DIAGNOSE_RECURRING_NIMIQ_PAY_SYNC_FAILURE_BEFORE_RETRY
+    - DIAGNOSE_TRANSACTION_CALL_CONTRACT_WITHOUT_SEND
     - query_Neon_after_each_real_FINAL_for_durable_state_evidence
   topology: { A: creator_initial_holder, B: bridge, C: destination, wallets: 3, devices_preferred: 2 }
   target_proof: CREATE -> INVITE -> ACCEPT -> AUTHORIZE -> A_SENDS_1_NIM_TO_B -> FINAL -> B_HOLDER -> INVITE -> ACCEPT -> AUTHORIZE -> B_SENDS_1_NIM_TO_C -> FINAL -> ARRIVED -> VERIFIED_ROUTE_RECEIPT
