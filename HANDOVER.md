@@ -482,6 +482,14 @@ GitHub and Neon are directly manageable from this chat. Cloudflare dashboard/acc
 - No runtime changes were made. Fee, data, `validityStartHeight`, and transaction semantics are unchanged. No third send occurred.
 - Next exact action: `MONITOR_NIMIQ_PAY_TESTNET_FIX_OR_PLATFORM_CONFIRMATION`.
 
+## V1.0.0 Cycle II Preview packaging gate opened (2026-09-12)
+
+- Canonical version: `0.8.70`.
+- V1 packaging is now the active parallel gate. Release channel: `PUBLIC_PREVIEW`, not public early access.
+- Real A→B→C proof remains blocked by **LIKELY_EXTERNAL_NIMIQ_PAY_TESTNET_SUBMISSION_REGRESSION_NOT_YET_CONFIRMED**. There was no third send, no real `FINAL`, and no real `ARRIVED`.
+- Mainnet remains forbidden. This release must not imply completed real TESTNET E2E proof or resolution of the Nimiq Pay blocker.
+- Next exact action: `PREPARE_V1_0_0_PUBLIC_PREVIEW_PACKAGE`.
+
 ## Read-only planned transaction contract diagnostic deployed (2026-09-12)
 
 - Canonical version: `0.8.67`.
