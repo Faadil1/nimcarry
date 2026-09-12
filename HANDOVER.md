@@ -461,6 +461,17 @@ GitHub and Neon are directly manageable from this chat. Cloudflare dashboard/acc
 - This is a continuity-only record. No wallet action or send retry occurred.
 - Next exact action: `DIAGNOSE_TRANSACTION_CALL_CONTRACT_WITHOUT_SEND`.
 
+## Provider-ready repeated post-approval failures: external regression suspected (2026-09-12)
+
+- Canonical version: `0.8.68`.
+- A provider readiness is proven: one account, consensus `true`, and block height available. Two controlled NimCarry TESTNET sends reached native wallet approval and then failed; both were independently verified **NOT_BROADCAST**.
+- Latest durable pass intent has recipient present, opaque `co:v1:` commitment present, recipient data UTF-8 length `49` bytes, `tx_hash=null`, canonical value `100000` Luna, and requested fee `0`.
+- The official Nimiq provider contract treats `validityStartHeight` as optional; missing `validityStartHeight` is not claimed as the root cause.
+- External competition-community evidence reports Nimiq Pay `2.19.1` TESTNET plain wallet-to-wallet transfers also failing after approval without a Mini App involved, while testnet chain health was good.
+- Root-cause classification is intentionally limited to: **LIKELY_EXTERNAL_NIMIQ_PAY_TESTNET_SUBMISSION_REGRESSION_NOT_YET_CONFIRMED**.
+- No transaction semantics, data encoding, fee, or `validityStartHeight` behavior was changed. No third send occurred; no `FINAL` or `ARRIVED` occurred.
+- Next exact action: `VERIFY_NIMIQ_PAY_TESTNET_PLATFORM_STATUS_AND_LOCAL_APP_VERSION`.
+
 ## Read-only planned transaction contract diagnostic deployed (2026-09-12)
 
 - Canonical version: `0.8.67`.
