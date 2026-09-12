@@ -3,7 +3,7 @@ former_public_name: Carry One
 competition: Nimiq Mini Apps Competition - Cycle II
 repository: Faadil1/nimcarry
 visibility: public
-state_version: 0.8.73
+state_version: 0.8.74
 date: 2026-09-12
 phase: POST_V1_JUDGE_README_AND_SUBMISSION_POLISH
 problem_locked: true
@@ -410,4 +410,18 @@ post_v1_judge_readme_submission_polish:
   real_ARRIVED_observed: false
   testnet_blocker: OPEN_LIKELY_EXTERNAL_NIMIQ_PAY_TESTNET_SUBMISSION_REGRESSION_NOT_YET_CONFIRMED
   scope: DOCUMENTATION_PRESENTATION_ONLY
-  next_exact_action: REBUILD_README_AS_JUDGE_FACING_PRODUCT_STORY
+  next_exact_action: CAPTURE_AND_INSERT_FINAL_README_VISUALS
+
+
+judge_facing_readme_milestone:
+  status: COMPLETE
+  commit_sha: 3d9612e41a6e45dd204069dd3ba711c7077a402f
+  sections: [What_It_Does, How_We_Built_It, Challenges_We_Ran_Into, Accomplishments_We_Are_Proud_Of, What_We_Learned, Helpful_Resources]
+  architecture_diagram: MERMAID_ADDED
+  screenshot_placeholders: [docs/assets/readme/hero-product-screen.png, docs/assets/readme/route-receipt-demo-arrived.png]
+  links_verified: PASS
+  secret_scan: PASS
+  wallet_action: NONE
+  real_FINAL_observed: false
+  real_ARRIVED_observed: false
+  next_exact_action: CAPTURE_AND_INSERT_FINAL_README_VISUALS

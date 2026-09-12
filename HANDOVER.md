@@ -1,7 +1,7 @@
 # HANDOVER — NimCarry
 
 Date: 2026-09-12  
-Canonical version: **0.8.73**
+Canonical version: **0.8.74**
 State: `PROVIDER_PREFLIGHT_DEPLOYED_PRODUCTION_READY`
 
 ## Read first
@@ -538,3 +538,15 @@ GitHub and Neon are directly manageable from this chat. Cloudflare dashboard/acc
 - No transaction semantics change, wallet action, third send, real `FINAL`, or real `ARRIVED` is authorized.
 - The Nimiq Pay 2.19.1 TESTNET post-approval submission blocker remains open and unconfirmed.
 - Before README changes, canonical state was bumped to 0.8.73 and this handover records the exact next action: `REBUILD_README_AS_JUDGE_FACING_PRODUCT_STORY`.
+
+
+## Gate complete — judge-facing README polish (2026-09-12)
+
+- README restructure committed at `3d9612e41a6e45dd204069dd3ba711c7077a402f`.
+- Added/reworked the six judge-facing sections, compact status boundary, product journey, layer-by-layer architecture explanation, Mermaid diagram, five documented challenges, accomplishments, lessons, and verified resources.
+- Architecture diagram status: Mermaid added.
+- Exactly two commented screenshot placeholders remain: `docs/assets/readme/hero-product-screen.png` and `docs/assets/readme/route-receipt-demo-arrived.png`.
+- Links verified; secret scan passed; no exposed secrets, wallet addresses, private invite capabilities, or keys.
+- No wallet action, third send, transaction semantics change, real `FINAL`, or real `ARRIVED`.
+- V1.0.0 remains published and immutable; no v1.0.1 created.
+- Next exact action: `CAPTURE_AND_INSERT_FINAL_README_VISUALS`.
