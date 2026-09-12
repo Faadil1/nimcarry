@@ -472,6 +472,16 @@ GitHub and Neon are directly manageable from this chat. Cloudflare dashboard/acc
 - No transaction semantics, data encoding, fee, or `validityStartHeight` behavior was changed. No third send occurred; no `FINAL` or `ARRIVED` occurred.
 - Next exact action: `VERIFY_NIMIQ_PAY_TESTNET_PLATFORM_STATUS_AND_LOCAL_APP_VERSION`.
 
+## Local Nimiq Pay version matches external failure report (2026-09-12)
+
+- Canonical version: `0.8.69`.
+- Wallet A is running Nimiq Pay `2.19.1`, exactly matching the version reported in the external TESTNET plain wallet-to-wallet post-approval failure case.
+- NimCarry provider readiness remains proven: one account, consensus `true`, and block height available. Two controlled NimCarry TESTNET sends reached native wallet approval and were independently verified **NOT_BROADCAST**.
+- Latest pass intent remains `tx_hash=null`; no hop, `FINAL`, or `ARRIVED` occurred.
+- This materially strengthens, but does not confirm, the root-cause classification: **LIKELY_EXTERNAL_NIMIQ_PAY_TESTNET_SUBMISSION_REGRESSION_NOT_YET_CONFIRMED**.
+- No runtime changes were made. Fee, data, `validityStartHeight`, and transaction semantics are unchanged. No third send occurred.
+- Next exact action: `MONITOR_NIMIQ_PAY_TESTNET_FIX_OR_PLATFORM_CONFIRMATION`.
+
 ## Read-only planned transaction contract diagnostic deployed (2026-09-12)
 
 - Canonical version: `0.8.67`.
