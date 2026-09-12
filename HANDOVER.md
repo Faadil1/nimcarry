@@ -420,3 +420,13 @@ GitHub and Neon are directly manageable from this chat. Cloudflare dashboard/acc
 - Neon remains: mission `ACTIVE`, `current_sequence=0`, `finalized_hop_count=0`, invitation sequence `1` `ACCEPTED`, `pass_deadline_at=2026-09-12T17:09:23.851Z`, existing pass intent sequence `1` with `tx_hash=null`, and `hop_count=0`.
 - No broadcast, `FINAL`, or `ARRIVED` occurred. This is a continuity-only update; no runtime change and no wallet send occurred.
 - Next exact action: `USER_APPROVE_CONTROLLED_A_TO_B_TESTNET_SEND`.
+
+## Second controlled A-to-B wallet sync failure (2026-09-12)
+
+- Canonical version: `0.8.62`.
+- A clicked `Authorize + Pass 1 NIM`; `AUTHORIZE_PASS` successfully renewed the stale unbroadcast pass intent.
+- Fresh pass intent sequence `1` was created at `2026-09-12T17:08:14.331Z`. Nimiq Pay then failed with “Something went wrong syncing your account.”
+- Backend `tx_hash=null`; `hop_count=0`; mission remains `ACTIVE`, `current_sequence=0`, `finalized_hop_count=0`. Invitation sequence `1` expired at `2026-09-12T17:09:23.851Z`.
+- No backend broadcast record, `FINAL`, or `ARRIVED` exists. Chain broadcast remains `UNKNOWN_PENDING_INDEPENDENT_CHAIN_CHECK` until B is checked externally; do not infer either outcome.
+- This is a continuity-only update. No runtime change and no further wallet action occurred.
+- Next exact action: `INDEPENDENT_CHAIN_CHECK_B_AFTER_SECOND_SYNC_FAILURE`.
