@@ -430,3 +430,13 @@ GitHub and Neon are directly manageable from this chat. Cloudflare dashboard/acc
 - No backend broadcast record, `FINAL`, or `ARRIVED` exists. Chain broadcast remains `UNKNOWN_PENDING_INDEPENDENT_CHAIN_CHECK` until B is checked externally; do not infer either outcome.
 - This is a continuity-only update. No runtime change and no further wallet action occurred.
 - Next exact action: `INDEPENDENT_CHAIN_CHECK_B_AFTER_SECOND_SYNC_FAILURE`.
+
+## Independent verification: second A-to-B attempt not broadcast (2026-09-12)
+
+- Canonical version: `0.8.63`.
+- Independent TESTNET.WATCH check on B `…E1QT` was performed after the second sync failure. B balance remains exactly `110000.00 NIM`; transaction history contains only the original faucet receipt `+110000 NIM`.
+- No `+1 NIM` A-to-B transaction exists from the `13:08 EDT` attempt. The second A-to-B attempt is therefore **NOT_BROADCAST**.
+- Neon independently remains: mission `ACTIVE`, `current_sequence=0`, `finalized_hop_count=0`, invitation sequence `1` `EXPIRED`, fresh pass intent sequence `1` created at `2026-09-12T17:08:14.331Z`, backend `tx_hash=null`, and `hop_count=0`.
+- No `FINAL` or `ARRIVED` occurred. Proof status is explicitly `NOT_BROADCAST_INDEPENDENTLY_VERIFIED`.
+- This is a continuity-only update. No wallet action and no send retry occurred.
+- Next exact action: `DIAGNOSE_RECURRING_NIMIQ_PAY_SYNC_FAILURE_BEFORE_RETRY`.
