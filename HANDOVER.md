@@ -1,7 +1,7 @@
 # HANDOVER — NimCarry
 
 Date: 2026-09-12  
-Canonical version: **0.8.37**
+Canonical version: **0.8.73**
 State: `PROVIDER_PREFLIGHT_DEPLOYED_PRODUCTION_READY`
 
 ## Read first
@@ -529,3 +529,12 @@ GitHub and Neon are directly manageable from this chat. Cloudflare dashboard/acc
 - Full suite: **174/174 PASS** across 25 files; TypeScript `--noEmit`: **PASS**. Frontend-only production deployment uploaded `/app.js` with the diagnostic markers; `/health`: **200**, `/health?deep=1`: **200** with Postgres, `nimcarry-primary`, `max_instances_for_proof_gate: 1`; SPA fallback: **200**.
 - The trace distinguishes account-sync failure from pass-intent/transaction-contract failure and provider transport-or-sync failure by phase. The next real send remains blocked until the observed failure phase is isolated.
 - Next exact action: `DIAGNOSE_RECURRING_NIMIQ_PAY_SYNC_FAILURE_BEFORE_RETRY`.
+
+
+## Gate — post-V1 judge-facing README and submission polish (2026-09-12)
+
+- V1.0.0 — Cycle II Preview is already published and immutable. Do not rewrite, move, delete, retag, or create v1.0.1.
+- This gate is `POST_V1_JUDGE_README_AND_SUBMISSION_POLISH` and is documentation/presentation only.
+- No transaction semantics change, wallet action, third send, real `FINAL`, or real `ARRIVED` is authorized.
+- The Nimiq Pay 2.19.1 TESTNET post-approval submission blocker remains open and unconfirmed.
+- Before README changes, canonical state was bumped to 0.8.73 and this handover records the exact next action: `REBUILD_README_AS_JUDGE_FACING_PRODUCT_STORY`.

@@ -3,9 +3,9 @@ former_public_name: Carry One
 competition: Nimiq Mini Apps Competition - Cycle II
 repository: Faadil1/nimcarry
 visibility: public
-state_version: 0.8.72
+state_version: 0.8.73
 date: 2026-09-12
-phase: REAL_TESTNET_PROOF_ATTEMPT_FAILED_NO_BROADCAST_EVIDENCE
+phase: POST_V1_JUDGE_README_AND_SUBMISSION_POLISH
 problem_locked: true
 public_early_access_authorized: false
 mainnet_cutover_authorized: false
@@ -397,3 +397,17 @@ still_blocked:
   - autonomous_AI_spend_or_routing
   - marketplace_expansion
   - unique_human_claims
+
+
+post_v1_judge_readme_submission_polish:
+  gate: POST_V1_JUDGE_README_AND_SUBMISSION_POLISH
+  v1_release: PUBLISHED_IMMUTABLE_V1_0_0_CYCLE_II_PREVIEW
+  existing_release_artifact: DO_NOT_REWRITE_MOVE_DELETE_OR_RETAG
+  transaction_semantics_changing: false
+  wallet_action: NONE
+  third_send: forbidden
+  real_FINAL_observed: false
+  real_ARRIVED_observed: false
+  testnet_blocker: OPEN_LIKELY_EXTERNAL_NIMIQ_PAY_TESTNET_SUBMISSION_REGRESSION_NOT_YET_CONFIRMED
+  scope: DOCUMENTATION_PRESENTATION_ONLY
+  next_exact_action: REBUILD_README_AS_JUDGE_FACING_PRODUCT_STORY
