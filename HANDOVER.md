@@ -1,7 +1,7 @@
 # HANDOVER — NimCarry
 
 Date: 2026-09-12  
-Canonical version: **0.8.74**
+Canonical version: **0.8.75**
 State: `PROVIDER_PREFLIGHT_DEPLOYED_PRODUCTION_READY`
 
 ## Read first
@@ -550,3 +550,14 @@ GitHub and Neon are directly manageable from this chat. Cloudflare dashboard/acc
 - No wallet action, third send, transaction semantics change, real `FINAL`, or real `ARRIVED`.
 - V1.0.0 remains published and immutable; no v1.0.1 created.
 - Next exact action: `CAPTURE_AND_INSERT_FINAL_README_VISUALS`.
+
+
+## Gate complete — final README visuals (2026-09-12)
+
+- Captured from the production Guided Demo at 1440×810 with headless Chromium, no browser chrome, taskbar, DevTools, cursor, provider diagnostics, wallet interaction, or transaction call.
+- Hero inserted: `docs/assets/readme/hero-product-screen.png` — real demo Mission Home after a simulated bridge handoff.
+- Route Receipt inserted: `docs/assets/readme/route-receipt-demo-arrived.png` — deterministic simulated ARRIVED / Route Receipt state.
+- Both PNGs are 1440×810; privacy/sensitive-data QA and README visual QA passed. The receipt caption explicitly says presentation only, not real TESTNET finality evidence.
+- Secret scan and final staged validation remain required before commit; no wallet action, third send, real `FINAL`, or real `ARRIVED`.
+- V1.0.0 remains unchanged; TESTNET blocker remains unchanged.
+- Next exact action: `FINAL_SUBMISSION_PACKAGE_AND_DEMO_VIDEO_GATE`.

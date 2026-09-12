@@ -19,7 +19,9 @@
 >
 > The demo is available now. Real A→B→C TESTNET proof remains blocked by a likely external, not-yet-confirmed Nimiq Pay 2.19.1 post-approval submission issue. No real `FINAL` or `ARRIVED` has occurred.
 
-<!-- V1 README VISUAL: HERO PRODUCT SCREEN -->
+<p align="center">
+  <img src="docs/assets/readme/hero-product-screen.png" alt="NimCarry destination-bound human routing mission" width="100%" />
+</p>
 
 ## ⚡ What It Does
 
@@ -106,7 +108,10 @@ The current evidence is precise: provider initialization works; one account is v
 - Reached **176/176 automated tests passing** at the V1 release and **production judge smoke 5/5 passing**.
 - Kept canonical state and handoff documentation current so another engineer can continue immediately.
 
-<!-- V1 README VISUAL: ROUTE RECEIPT / DEMO ARRIVED -->
+<p align="center">
+  <img src="docs/assets/readme/route-receipt-demo-arrived.png" alt="NimCarry guided demo Route Receipt" width="100%" />
+</p>
+<p align="center"><em>Guided Demo — simulated ARRIVED / Route Receipt. Presentation only; not real TESTNET finality evidence.</em></p>
 
 The strongest honest demo is the Route Receipt. The strongest honest production statement is that the real testnet handoff is still blocked before broadcast evidence.
 
