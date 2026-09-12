@@ -63,6 +63,14 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     els.notice.hidden = !message;
   };
   const setBusy = (value) => { state.busy = value; document.querySelectorAll("button").forEach((button) => { if (button.dataset.busyLock === "1") button.disabled = value; }); };
+  const passDiagnostic = (phase, details = {}) => console.info("[NimCarry pass diagnostic]", phase, details);
+  const passFailureClass = (phase, error) => {
+    const message = String(error?.message || "").toLowerCase();
+    if (phase === "account_sync" || /sync.{0,24}account|account.{0,24}sync/.test(message)) return "account_sync";
+    if (phase === "transaction_submission" && /transport|network|timeout|provider|sync/.test(message)) return "provider_transport_or_sync";
+    if (phase === "pass_intent" || phase === "transaction_construction" || /recipient|fee|data|transaction/.test(message)) return "transaction_construction_or_contract";
+    return phase;
+  };
   const navigate = (path) => { history.pushState({}, "", path); route(); };
   els.brandHome.addEventListener("click", () => navigate(state.mission?.mission_id ? `/mission/${encodeURIComponent(state.mission.mission_id)}` : "/"));
   addEventListener("popstate", route);
@@ -81,8 +89,10 @@ import { getNimiqProvider } from "/nimiq-provider.js";
   }
 
   async function provider() {
+    passDiagnostic("provider_init_requested");
     const nimiq = await getNimiqProvider();
     if (!nimiq || typeof nimiq.listAccounts !== "function") throw new Error("Nimiq Pay provider does not expose listAccounts().");
+    passDiagnostic("provider_ready", { has_list_accounts: true, has_sign: typeof nimiq.sign === "function", has_send_basic_transaction_with_data: typeof nimiq.sendBasicTransactionWithData === "function" });
     return nimiq;
   }
 
@@ -108,8 +118,10 @@ import { getNimiqProvider } from "/nimiq-provider.js";
 
   async function chooseWallet() {
     const nimiq = await provider();
+    passDiagnostic("account_sync_requested");
     const accounts = await nimiq.listAccounts();
     if (!Array.isArray(accounts) || accounts.length === 0) throw new Error("No Nimiq account was shared by Nimiq Pay.");
+    passDiagnostic("account_sync_succeeded", { account_count: accounts.length });
     if (accounts.length === 1) { state.selectedWallet = accounts[0]; return accounts[0]; }
     els.walletOptions.innerHTML = accounts.map((account, index) => `<label class="wallet-option"><input type="radio" name="wallet" value="${esc(account)}" ${index === 0 ? "checked" : ""}/><span>${esc(short(account))}</span></label>`).join("");
     els.walletDialog.showModal();
@@ -322,25 +334,31 @@ import { getNimiqProvider } from "/nimiq-provider.js";
   async function executePass(missionId, invitation) {
     if (!invitation?.invitation_id) return notice("INVITATION_REQUIRED: no accepted invitation is available for this pass.", true);
     setBusy(true);
+    let passPhase = "start";
     try {
       if (state.demo) {
         notice("Demo: PENDING → INCLUDED → FINAL…"); await new Promise((r) => setTimeout(r, 350)); const stored = demoLoad(); stored.invitation.status = "COMPLETED"; stored.mission.invitation = stored.invitation; stored.mission.sequence = Number(stored.mission.sequence || 0) + 1; stored.mission.finalized_hop_count = Number(stored.mission.finalized_hop_count || 0) + 1; stored.mission.route = [...(stored.mission.route || []), { sequence: stored.mission.sequence, from: { display_label: "Previous holder", wallet_fingerprint: "NQ…OLD" }, to: { display_label: "Bridge", wallet_fingerprint: "NQ…NEW" }, finalized_at: new Date().toISOString(), tx_hash_short: "demo…final" }]; stored.mission.current_holder = { display_label: "Bridge", wallet_fingerprint: "NQ…NEW", is_viewer: false }; stored.mission.primary_action = "CREATE_INVITATION"; demoSave(stored); state.mission = stored.mission; notice("Demo FINAL. Custody advanced exactly once."); navigate(`/mission/${encodeURIComponent(missionId)}/route`); return;
       }
       const sequence = Number(invitation.sequence || state.mission?.sequence + 1 || 1); notice("Authorizing canonical pass intent…");
-      const auth = await signedAuth("AUTHORIZE_PASS", { missionId, invitationId: invitation.invitation_id, sequence });
+       passPhase = "authorize"; passDiagnostic("authorize_started", { sequence });
+       const auth = await signedAuth("AUTHORIZE_PASS", { missionId, invitationId: invitation.invitation_id, sequence });
+       passPhase = "pass_intent";
       const intent = await api(`/missions/${encodeURIComponent(missionId)}/pass-intent`, { method: "POST", body: { invitation_id: invitation.invitation_id, auth } });
       if (!intent?.recipient || Number(intent.value_luna) !== ONE_NIM || !intent.recipient_data) throw new Error("PASS_INTENT_CONTRACT_MISMATCH: recipient/value/opaque data required.");
-      if (!String(intent.recipient_data).startsWith("co:v1:")) throw new Error("OPAQUE_COMMITMENT_REQUIRED: refusing clear-text/legacy recipient data.");
+       if (!String(intent.recipient_data).startsWith("co:v1:")) throw new Error("OPAQUE_COMMITMENT_REQUIRED: refusing clear-text/legacy recipient data.");
+       passDiagnostic("pass_intent_received", { value_luna: Number(intent.value_luna), fee_luna: Number(intent.fee_luna), recipient_present: true, opaque_commitment_present: true });
       const selectedWallet = await chooseWallet();
       if (!intent.expected_sender || walletKey(selectedWallet) !== walletKey(intent.expected_sender)) {
         throw new Error("WRONG_WALLET_SELECTION: the canonical holder wallet is not selected in this Nimiq Pay session.");
       }
       const nimiq = await provider(); notice("Open Nimiq Pay and approve exactly 1 NIM…");
-      const txHash = await nimiq.sendBasicTransactionWithData({ recipient: intent.recipient, value: ONE_NIM, fee: 0, data: intent.recipient_data });
+       passPhase = "transaction_submission"; passDiagnostic("wallet_approval_opened", { value_luna: ONE_NIM, fee_luna: 0, opaque_commitment_present: true });
+       const txHash = await nimiq.sendBasicTransactionWithData({ recipient: intent.recipient, value: ONE_NIM, fee: 0, data: intent.recipient_data });
+       passDiagnostic("wallet_call_returned", { transaction_hash_present: Boolean(txHash) });
       const intentId = intent.intent_id || intent.id; if (!intentId || !txHash) throw new Error("PASS_BROADCAST_CONTRACT_MISMATCH: missing intent id or transaction hash.");
       await api(`/missions/${encodeURIComponent(missionId)}/pass-intent/${encodeURIComponent(intentId)}/broadcast`, { method: "POST", body: { tx_hash: txHash } });
       notice("Transaction claimed. Waiting for independent FINAL verification…"); await pollFinality(missionId); navigate(`/mission/${encodeURIComponent(missionId)}/route`);
-    } catch (error) { notice(error.message, true); } finally { setBusy(false); }
+    } catch (error) { passDiagnostic("pass_failed", { phase: passPhase, classification: passFailureClass(passPhase, error) }); notice(error.message, true); } finally { setBusy(false); }
   }
 
   async function pollFinality(missionId) {

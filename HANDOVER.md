@@ -440,3 +440,13 @@ GitHub and Neon are directly manageable from this chat. Cloudflare dashboard/acc
 - No `FINAL` or `ARRIVED` occurred. Proof status is explicitly `NOT_BROADCAST_INDEPENDENTLY_VERIFIED`.
 - This is a continuity-only update. No wallet action and no send retry occurred.
 - Next exact action: `DIAGNOSE_RECURRING_NIMIQ_PAY_SYNC_FAILURE_BEFORE_RETRY`.
+
+## Safe provider diagnostics deployed (2026-09-12)
+
+- Canonical version: `0.8.64`.
+- After CI passed for the no-broadcast checkpoint, the frontend now traces the pass sequence through provider initialization, account sync, pass-intent receipt, wallet approval opening, `sendBasicTransactionWithData` return, and failure classification.
+- Diagnostics emit only fixed phases, booleans, counts, and the expected `100000` Luna / `0` fee. They never log private keys, seeds, full addresses, recipient data, raw errors, or transaction hashes.
+- No wallet send was invoked during diagnosis. The independent chain result remains **NOT_BROADCAST**; no `FINAL` or `ARRIVED` occurred.
+- Full suite: **174/174 PASS** across 25 files; TypeScript `--noEmit`: **PASS**. Frontend-only production deployment uploaded `/app.js` with the diagnostic markers; `/health`: **200**, `/health?deep=1`: **200** with Postgres, `nimcarry-primary`, `max_instances_for_proof_gate: 1`; SPA fallback: **200**.
+- The trace distinguishes account-sync failure from pass-intent/transaction-contract failure and provider transport-or-sync failure by phase. The next real send remains blocked until the observed failure phase is isolated.
+- Next exact action: `DIAGNOSE_RECURRING_NIMIQ_PAY_SYNC_FAILURE_BEFORE_RETRY`.

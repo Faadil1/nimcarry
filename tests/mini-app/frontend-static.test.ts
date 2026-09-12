@@ -36,6 +36,14 @@ describe("static Mini App skeleton", () => {
     expect(js).toContain('intent.expected_sender');
     expect(js).toContain('WRONG_WALLET_SELECTION');
   });
+  it("traces pass provider phases without logging wallet or transaction secrets", () => {
+    expect(js).toContain('passDiagnostic("account_sync_requested")');
+    expect(js).toContain('passDiagnostic("wallet_approval_opened"');
+    expect(js).toContain('passDiagnostic("wallet_call_returned"');
+    expect(js).toContain('passDiagnostic("pass_failed"');
+    expect(js).toContain('classification: passFailureClass(passPhase, error)');
+    expect(js).not.toContain('console.info("[NimCarry pass diagnostic]", error');
+  });
   it("ships an isolated read-only provider diagnostic behind provider-check=1", () => {
     expect(js).toContain('query.get("provider-check") === "1"');
     expect(js).toContain("Waiting for window.nimiq.");
