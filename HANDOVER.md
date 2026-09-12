@@ -490,6 +490,16 @@ GitHub and Neon are directly manageable from this chat. Cloudflare dashboard/acc
 - Mainnet remains forbidden. This release must not imply completed real TESTNET E2E proof or resolution of the Nimiq Pay blocker.
 - Next exact action: `PREPARE_V1_0_0_PUBLIC_PREVIEW_PACKAGE`.
 
+## V1.0.0 Public Preview release candidate ready (2026-09-12)
+
+- Canonical version: `0.8.71`.
+- Release candidate SHA: `47f43ceb7d3ff2fec9ed12f16cf4c256980fba82`.
+- Package identity is `nimcarry@1.0.0`, private, with a consistent lockfile. README, SECURITY, CHANGELOG, release notes, and publish checklist are present; GitHub description/homepage/topics now point to NimCarry and the Cloudflare production origin.
+- Validation: full tests **176/176 PASS** across 25 files; typecheck **PASS**; build **PASS**; working-tree secret scan **PASS**; production judge smoke **5/5 PASS**; `/health` **200**; `/health?deep=1` **200** with Postgres, `nimcarry-primary`, and `max_instances_for_proof_gate: 1`; SPA/static assets **200**.
+- CI: **PASS** (`34713882221`) for the release-candidate SHA.
+- Known limitation remains explicit: Nimiq Pay `2.19.1` TESTNET post-approval submission issue is external/unconfirmed; two controlled attempts were independently **NOT_BROADCAST**. No real `FINAL` or `ARRIVED`, and mainnet remains forbidden.
+- Next exact action: `PUBLISH_V1_0_0_GITHUB_RELEASE`.
+
 ## Read-only planned transaction contract diagnostic deployed (2026-09-12)
 
 - Canonical version: `0.8.67`.
