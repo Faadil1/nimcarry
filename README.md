@@ -8,7 +8,7 @@
 <p align="center"><strong>One NIM. One bridge at a time.</strong></p>
 
 <p align="center">
-  <a href="https://carry-one-sip-show.vercel.app/?demo=1"><strong>Live clickable demo</strong></a>
+  <a href="https://nimcarry.faadil-casecraft.workers.dev"><strong>Live App</strong></a>
   ·
   <a href="#demo--evidence">Demo video / evidence</a>
   ·
@@ -17,7 +17,16 @@
 
 > **Naming decision — 2026-09-09:** the product formerly presented as **Carry One** is now **NimCarry**. The existing repository slug, deployment URL and internal `carryone.*` storage keys remain temporarily stable to avoid breaking the active Cycle II demo/integration work. Public-facing product identity is NimCarry.
 
-> **Sip & Show note:** the public URL above is an explicit **demo-only** surface: no wallet writes, no backend/network mutations, and no claim of real testnet finality. The real Nimiq Pay E2E proof is the next runtime gate.
+> **Preview boundary:** the Live App is a Public Preview. It must not be read as completed real TESTNET proof, FINAL, ARRIVED, or mainnet readiness.
+
+## v1.0.0 — Cycle II Preview
+
+NimCarry is released as a **PUBLIC_PREVIEW**, not Public Early Access. Provider readiness is proven, but two controlled TESTNET sends reached wallet approval and were independently verified **NOT_BROADCAST**. The current Nimiq Pay 2.19.1 TESTNET post-approval submission issue remains external and unconfirmed.
+
+- **Live App:** https://nimcarry.faadil-casecraft.workers.dev
+- **Guided Demo:** use `?demo=1`; demo ARRIVED and Route Receipt are presentation-only.
+- **Real TESTNET proof:** pending; never infer FINAL or ARRIVED from approval or a transaction hash.
+- **Stack:** Cloudflare Worker + Container, Neon/Postgres, and Nimiq Pay.
 
 NimCarry is a **destination-bound human routing Mini App** for the Nimiq Mini Apps Competition — Cycle II. One verified **1 NIM** baton moves through consenting human bridges until the defined destination becomes the finalized recipient. Each holder chooses the next person who can move the mission closer.
 
@@ -77,15 +86,17 @@ See [`SECURITY.md`](SECURITY.md) for vulnerability reporting and current release
 
 Already merged: frozen Reach Mission product law + UX/state/security contracts; foundation mission/invitation/auth/finality services; blind-spot hardening; five-screen frontend skeleton; PostgreSQL persistence; public Sip & Show clickable demo; demo navigation/favicon fixes; Cycle II hidden-spot audit; and the NimCarry public-facing naming transition.
 
-Current gate: **secure HTTP + frontend/PostgreSQL vertical integration**.
+Current gate: **V1 Public Preview packaging while real TESTNET proof remains blocked**.
 
 Still intentionally unclaimed until real runtime proof: real Nimiq Pay multi-account behavior; exactly-1-NIM forwarding with requested fee 0; native invite deeplink on a real device; and full 3-wallet testnet `CREATE → INVITE → ACCEPT → AUTHORIZE → PASS → FINAL → ARRIVED`.
 
-Public Early Access and mainnet remain blocked until those security/runtime gates pass.
+Public Early Access and mainnet remain blocked. The known Nimiq Pay TESTNET blocker is not resolved by this release.
 
 ## Demo & evidence
 
-**Live clickable demo:** https://carry-one-sip-show.vercel.app/?demo=1
+**Live App:** https://nimcarry.faadil-casecraft.workers.dev
+
+**Guided Demo:** https://nimcarry.faadil-casecraft.workers.dev/?demo=1
 
 The local demo may preview the ARRIVED / Route Receipt presentation, but it remains visibly labelled **DEMO MODE**. It is never represented as testnet evidence.
 

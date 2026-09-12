@@ -50,4 +50,8 @@ The public repository CI includes a high-confidence scan of tracked files and re
 
 ## Current release boundary
 
-Public Early Access and mainnet funds remain blocked until the secure HTTP vertical slice and real Nimiq Pay/testnet E2E proof are complete. Any public clickable demo remains an explicit demo-only surface and must not be treated as wallet/runtime proof.
+NimCarry v1.0.0 is a **PUBLIC_PREVIEW** release. Real-value production use and mainnet funds remain blocked. Real TESTNET E2E proof remains pending: two controlled TESTNET sends reached native wallet approval and were independently verified NOT_BROADCAST.
+
+The current Nimiq Pay 2.19.1 TESTNET post-approval submission issue is external and unconfirmed. V1 does not claim that this blocker is resolved. Demo `ARRIVED` and Route Receipt states are demo-only presentation and are not real custody or finality evidence.
+
+Do not interpret V1 as Public Early Access, mainnet readiness, completed A→B→C proof, real FINAL, or real ARRIVED.
