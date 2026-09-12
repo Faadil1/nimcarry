@@ -3,7 +3,7 @@ former_public_name: Carry One
 competition: Nimiq Mini Apps Competition - Cycle II
 repository: Faadil1/nimcarry
 visibility: public
-state_version: 0.8.66
+state_version: 0.8.67
 date: 2026-09-12
 phase: REAL_TESTNET_PROOF_ATTEMPT_FAILED_NO_BROADCAST_EVIDENCE
 problem_locked: true

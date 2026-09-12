@@ -296,6 +296,14 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     const passMatch = path.match(/^\/missions\/([^/]+)\/pass-intent$/);
     if (response.ok && method === "POST" && passMatch && payload) {
       const missionId = decodeURIComponent(passMatch[1]);
+      const plannedData = typeof payload.recipient_data === "string" ? payload.recipient_data : "";
+      sessionStorage.setItem("carryone.plannedTransaction", JSON.stringify({
+        recipient_present: Boolean(payload.recipient),
+        value_luna: Number(payload.value_luna),
+        fee_luna: Number(payload.fee_luna),
+        data_utf8_bytes: new TextEncoder().encode(plannedData).length,
+        opaque_commitment_present: plannedData.startsWith("co:v1:"),
+      }));
       passByMission.set(missionId, {
         invitationId: body?.invitation_id,
         sequence: payload.sequence,

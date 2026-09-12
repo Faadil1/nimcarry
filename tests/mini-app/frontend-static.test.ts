@@ -70,6 +70,14 @@ describe("static Mini App skeleton", () => {
     expect(diagnostic).not.toContain("sendBasicTransactionWithData(");
     expect(diagnostic).not.toContain("sign(");
   });
+  it("shows only the sanitized planned transaction contract", () => {
+    expect(js).toContain("planned recipient present");
+    expect(js).toContain("planned data UTF-8 bytes &lt;= 64");
+    expect(js).toContain("validityStartHeight available");
+    expect(compat).toContain("data_utf8_bytes");
+    expect(compat).toContain("opaque_commitment_present");
+    expect(compat).not.toContain("sessionStorage.setItem(\"carryone.plannedTransaction\", plannedData");
+  });
   it("uses the Mini App SDK initializer as the shared provider boundary", () => {
     expect(html).toContain('<script type="module" src="/http-compat.js"></script>');
     expect(html).toContain('<script type="module" src="/app.js"></script>');

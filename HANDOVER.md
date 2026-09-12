@@ -461,6 +461,16 @@ GitHub and Neon are directly manageable from this chat. Cloudflare dashboard/acc
 - This is a continuity-only record. No wallet action or send retry occurred.
 - Next exact action: `DIAGNOSE_TRANSACTION_CALL_CONTRACT_WITHOUT_SEND`.
 
+## Read-only planned transaction contract diagnostic deployed (2026-09-12)
+
+- Canonical version: `0.8.67`.
+- The diagnostic now records only sanitized planned-contract fields: recipient presence, value and fee, opaque-commitment presence, UTF-8 data byte length and `<=64` result, consensus result, block-height availability/height, and `validityStartHeight` availability. The planned recipient data itself is never displayed or logged.
+- NimCarry’s current live call remains `sendBasicTransactionWithData({ recipient, value: 100000, fee: 0, data })`. The official provider contract treats `validityStartHeight` as optional; its absence is not claimed as the root cause. Repository working examples explicitly obtain a block height immediately before send and pass it as `validityStartHeight`; this diagnostic makes that comparison visible without changing send semantics.
+- No `sendBasicTransaction*`, signing, or approval method is invoked by the diagnostic. Full suite: **176/176 PASS** across 25 files; TypeScript `--noEmit`: **PASS**.
+- Frontend-only deployment completed as Worker version `06b81a1c-0f97-44a1-ae07-c474f6744644`; `/health`: **200**; `/health?deep=1`: **200** with Postgres, `nimcarry-primary`, `max_instances_for_proof_gate: 1`; SPA fallback: **200**; deployed app and compatibility bundles contain the planned-contract diagnostic.
+- Backend proof state remains unchanged: no send retry, broadcast, `FINAL`, or `ARRIVED`.
+- Next exact action: `DIAGNOSE_TRANSACTION_CALL_CONTRACT_WITHOUT_SEND`.
+
 ## Safe provider diagnostics deployed (2026-09-12)
 
 - Canonical version: `0.8.64`.

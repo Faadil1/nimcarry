@@ -56,7 +56,11 @@ import { getNimiqProvider } from "/nimiq-provider.js";
       let blockAvailable = false;
       if (hasConsensus) { try { consensus = String(await nimiq.isConsensusEstablished()); } catch (error) { consensus = `error (${safeErrorClass(error)})`; } }
       if (hasBlockNumber) { try { const result = await nimiq.getBlockNumber(); blockAvailable = Number.isFinite(Number(result)); blockNumber = blockAvailable ? String(Number(result)) : "unavailable"; } catch (error) { blockNumber = `error (${safeErrorClass(error)})`; } }
-      accounts.insertAdjacentHTML("beforeend", `<ul><li>provider initialized: true</li><li>account count: ${listed.length}</li><li>consensus_established: ${esc(consensus)}</li><li>block_number_available: ${blockAvailable}</li><li>block height: ${esc(blockNumber)}</li><li>method availability: isConsensusEstablished=${hasConsensus}, getBlockNumber=${hasBlockNumber}</li></ul>`);
+      let planned = {};
+      try { planned = JSON.parse(sessionStorage.getItem("carryone.plannedTransaction") || "{}"); } catch { planned = {}; }
+      const dataBytes = Number(planned.data_utf8_bytes);
+      const dataLengthAvailable = Number.isFinite(dataBytes);
+      accounts.insertAdjacentHTML("beforeend", `<ul><li>provider initialized: true</li><li>account count: ${listed.length}</li><li>consensus_established: ${esc(consensus)}</li><li>block_number_available: ${blockAvailable}</li><li>block height: ${esc(blockNumber)}</li><li>method availability: isConsensusEstablished=${hasConsensus}, getBlockNumber=${hasBlockNumber}</li><li>planned recipient present: ${Boolean(planned.recipient_present)}</li><li>planned value_luna: ${esc(planned.value_luna ?? "unavailable")}</li><li>planned fee_luna: ${esc(planned.fee_luna ?? "unavailable")}</li><li>planned data UTF-8 bytes available: ${dataLengthAvailable}</li><li>planned data UTF-8 bytes &lt;= 64: ${dataLengthAvailable && dataBytes <= 64}</li><li>planned opaque commitment: ${Boolean(planned.opaque_commitment_present)}</li><li>validityStartHeight available: ${blockAvailable}</li></ul>`);
     } catch (error) {
       status.textContent = `Provider diagnostic error: ${/sync|consensus/i.test(String(error?.message || "")) ? "CONSENSUS_SYNC_FAILURE" : "PROVIDER_READ_FAILURE"}`;
       status.classList.add("error");
