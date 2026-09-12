@@ -3,9 +3,9 @@ former_public_name: Carry One
 competition: Nimiq Mini Apps Competition - Cycle II
 repository: Faadil1/nimcarry
 visibility: public
-state_version: 0.8.75
+state_version: 0.8.77
 date: 2026-09-12
-phase: POST_V1_JUDGE_README_AND_SUBMISSION_POLISH
+phase: FINAL_SUBMISSION_PACKAGE_AND_DEMO_VIDEO_GATE
 problem_locked: true
 public_early_access_authorized: false
 mainnet_cutover_authorized: false
@@ -445,3 +445,33 @@ final_readme_visuals:
   testnet_blocker: UNCHANGED
   v1_release: UNCHANGED
   next_exact_action: FINAL_SUBMISSION_PACKAGE_AND_DEMO_VIDEO_GATE
+
+
+final_submission_package_gate:
+  status: COMPLETE
+  v1_release: PUBLISHED_IMMUTABLE_V1_0_0_CYCLE_II_PREVIEW
+  readme_judge_facing_polish: COMPLETE
+  final_readme_visuals: COMPLETE
+  testnet_blocker: UNCHANGED_LIKELY_EXTERNAL_NIMIQ_PAY_TESTNET_SUBMISSION_REGRESSION_NOT_YET_CONFIRMED
+  wallet_action: NONE
+  real_FINAL_observed: false
+  real_ARRIVED_observed: false
+  no_third_send: true
+  next_exact_action: EXECUTE_FINAL_MANUAL_SUBMISSION_ACTIONS
+  official_sources_verified: [rules, submit_page, scoring, faq]
+
+
+cycle_ii_submission_package:
+  files: [docs/SUBMISSION-REQUIREMENTS-CYCLE-II.md, docs/SUBMISSION-COPY-CYCLE-II.md, docs/DEMO-VIDEO-SCRIPT-CYCLE-II.md, docs/DEMO-VIDEO-SHOTLIST-CYCLE-II.md, docs/DEMO-VIDEO-CAPTURE-RUNBOOK.md, docs/CYCLE-II-FINAL-SCORE-AUDIT.md, docs/PROMOTION-PACKAGE-CYCLE-II.md, docs/FINAL-SUBMISSION-LINKS.md, docs/FINAL-SUBMISSION-CHECKLIST.md]
+  official_requirements_verified: true
+  final_250_word_copy_ready: true
+  demo_script_ready: true
+  shot_list_ready: true
+  score_audit_complete: true
+  promotion_drafts_ready: true
+  remaining_manual_actions: [record_or_upload_demo_video, publish_skool_post, publish_public_social_post, enter_private_payout_wallet_in_official_form, submit_official_form]
+  testnet_blocker: UNCHANGED
+  wallet_action: NONE
+  real_FINAL_observed: false
+  real_ARRIVED_observed: false
+  next_exact_action: EXECUTE_FINAL_MANUAL_SUBMISSION_ACTIONS

@@ -1,7 +1,7 @@
 # HANDOVER — NimCarry
 
 Date: 2026-09-12  
-Canonical version: **0.8.75**
+Canonical version: **0.8.77**
 State: `PROVIDER_PREFLIGHT_DEPLOYED_PRODUCTION_READY`
 
 ## Read first
@@ -561,3 +561,23 @@ GitHub and Neon are directly manageable from this chat. Cloudflare dashboard/acc
 - Secret scan and final staged validation remain required before commit; no wallet action, third send, real `FINAL`, or real `ARRIVED`.
 - V1.0.0 remains unchanged; TESTNET blocker remains unchanged.
 - Next exact action: `FINAL_SUBMISSION_PACKAGE_AND_DEMO_VIDEO_GATE`.
+
+
+## Gate — final Cycle II submission package and demo video (2026-09-12)
+
+- README judge-facing polish and final README visuals are complete.
+- V1.0.0 remains published and immutable; no v1.0.1 and no release mutation.
+- The Nimiq Pay 2.19.1 TESTNET post-approval blocker remains unchanged. No wallet action, third send, real `FINAL`, or real `ARRIVED`.
+- Official Cycle II rules, submit flow, scoring, and FAQ were inspected before package drafting.
+- Current exact action: `PREPARE_CYCLE_II_FINAL_SUBMISSION_ASSETS`.
+
+
+## Gate complete — Cycle II final submission package (2026-09-12)
+
+- Created the nine requested package files under `docs/`: requirements, submission copy, demo script, shot list, capture runbook, score audit, promotion package, final links, and final checklist.
+- Official Rules, Submit page, Scoring Guide, and FAQ were verified. Final copy is ready, including a 236-word primary description and a labeled 100-word variant.
+- Production health, deep health, Live App, Guided Demo, public GitHub repo, MIT License, README, visual assets, and immutable v1.0.0 were verified.
+- Secret scan passed. No private payout wallet, wallet capability, seed, key, or real usage number was committed.
+- Remaining manual actions: record/upload demo video, publish Skool draft, publish public social draft, enter private payout wallet in the official form, submit the official form.
+- No wallet action, third send, real `FINAL`, or real `ARRIVED`; TESTNET blocker unchanged.
+- Next exact action: `EXECUTE_FINAL_MANUAL_SUBMISSION_ACTIONS`.
