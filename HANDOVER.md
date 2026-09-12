@@ -500,6 +500,16 @@ GitHub and Neon are directly manageable from this chat. Cloudflare dashboard/acc
 - Known limitation remains explicit: Nimiq Pay `2.19.1` TESTNET post-approval submission issue is external/unconfirmed; two controlled attempts were independently **NOT_BROADCAST**. No real `FINAL` or `ARRIVED`, and mainnet remains forbidden.
 - Next exact action: `PUBLISH_V1_0_0_GITHUB_RELEASE`.
 
+## V1.0.0 Cycle II Preview published (2026-09-12)
+
+- Canonical version: `0.8.72`.
+- Release tag: `v1.0.0`; release URL: https://github.com/Faadil1/nimcarry/releases/tag/v1.0.0.
+- Release SHA: `c7b9cf825cb9a13ec938fdcfe51ece74358f1072`; CI: **PASS** (`34714010636`).
+- Production runtime verdict: **PASS** — `/health` 200, `/health?deep=1` 200 with Postgres, `nimcarry-primary`, and `max_instances_for_proof_gate: 1`; SPA/static assets and judge smoke 5/5 pass.
+- V1 is explicitly a `PUBLIC_PREVIEW`, not Public Early Access. The blocker remains **LIKELY_EXTERNAL_NIMIQ_PAY_TESTNET_SUBMISSION_REGRESSION_NOT_YET_CONFIRMED**; two controlled TESTNET sends were independently **NOT_BROADCAST**. No real `FINAL`, `ARRIVED`, or mainnet readiness is claimed.
+- Post-V1 backlog: monitor/fix or obtain platform confirmation for Nimiq Pay TESTNET submission, then complete real A→B→C proof with independent FINAL/ARRIVED evidence and reassess access/mainnet gates.
+- Next gate: `POST_V1_TESTNET_FIX_AND_REAL_E2E_PROOF`.
+
 ## Read-only planned transaction contract diagnostic deployed (2026-09-12)
 
 - Canonical version: `0.8.67`.
