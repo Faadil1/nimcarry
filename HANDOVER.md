@@ -441,6 +441,16 @@ GitHub and Neon are directly manageable from this chat. Cloudflare dashboard/acc
 - This is a continuity-only update. No wallet action and no send retry occurred.
 - Next exact action: `DIAGNOSE_RECURRING_NIMIQ_PAY_SYNC_FAILURE_BEFORE_RETRY`.
 
+## Read-only network-sync preflight deployed (2026-09-12)
+
+- Canonical version: `0.8.65`.
+- Extended `?provider-check=1` without changing transaction semantics or invoking wallet send: it calls `listAccounts()`, then `isConsensusEstablished()`, then `getBlockNumber()`.
+- The UI displays only provider initialized, account count, short A fingerprint, consensus status, block availability/height, method availability, and sanitized network error classifications. No signing, transaction call, raw provider object, full address, signature, key, seed, recipient data, or transaction payload is displayed or logged.
+- Deterministic frontend coverage proves call order and proves the diagnostic contains neither signing nor transaction invocation. Full suite: **175/175 PASS** across 25 files; TypeScript `--noEmit`: **PASS**.
+- Frontend-only production deployment completed as Worker version `c14b4561-cddc-4882-b8e2-ec7d8fd01df6`; `/health`: **200**; `/health?deep=1`: **200** with Postgres, `nimcarry-primary`, `max_instances_for_proof_gate: 1`; SPA fallback: **200**; deployed bundle contains the consensus/block-height preflight.
+- No wallet action, send retry, broadcast, `FINAL`, or `ARRIVED` occurred.
+- Next exact action: `RUN_A_READ_ONLY_CONSENSUS_AND_BLOCK_HEIGHT_CHECK`.
+
 ## Safe provider diagnostics deployed (2026-09-12)
 
 - Canonical version: `0.8.64`.

@@ -37,12 +37,28 @@ import { getNimiqProvider } from "/nimiq-provider.js";
       const nimiq = await provider();
       const listed = await nimiq.listAccounts();
       if (!Array.isArray(listed)) throw new Error("listAccounts() returned a non-array result.");
-      status.textContent = `Provider initialized; listAccounts() succeeded (${listed.length} account${listed.length === 1 ? "" : "s"}).`;
+      status.textContent = "Provider initialized; read-only network preflight running.";
       accounts.innerHTML = listed.length
         ? `<ul>${listed.map((account) => `<li>Account fingerprint: <code>${esc(short(account))}</code></li>`).join("")}</ul>`
         : "<p>No accounts were shared by Nimiq Pay.</p>";
+      const safeErrorClass = (error) => {
+        const message = String(error?.message || "").toLowerCase();
+        if (/consensus|sync/.test(message)) return "CONSENSUS_SYNC_FAILURE";
+        if (/block|height/.test(message)) return "BLOCK_HEIGHT_FAILURE";
+        if (/timeout/.test(message)) return "PROVIDER_TIMEOUT";
+        if (/network|transport|connection/.test(message)) return "PROVIDER_TRANSPORT_FAILURE";
+        return "PROVIDER_READ_FAILURE";
+      };
+      const hasConsensus = typeof nimiq.isConsensusEstablished === "function";
+      const hasBlockNumber = typeof nimiq.getBlockNumber === "function";
+      let consensus = "unavailable";
+      let blockNumber = "unavailable";
+      let blockAvailable = false;
+      if (hasConsensus) { try { consensus = String(await nimiq.isConsensusEstablished()); } catch (error) { consensus = `error (${safeErrorClass(error)})`; } }
+      if (hasBlockNumber) { try { const result = await nimiq.getBlockNumber(); blockAvailable = Number.isFinite(Number(result)); blockNumber = blockAvailable ? String(Number(result)) : "unavailable"; } catch (error) { blockNumber = `error (${safeErrorClass(error)})`; } }
+      accounts.insertAdjacentHTML("beforeend", `<ul><li>provider initialized: true</li><li>account count: ${listed.length}</li><li>consensus_established: ${esc(consensus)}</li><li>block_number_available: ${blockAvailable}</li><li>block height: ${esc(blockNumber)}</li><li>method availability: isConsensusEstablished=${hasConsensus}, getBlockNumber=${hasBlockNumber}</li></ul>`);
     } catch (error) {
-      status.textContent = `Provider diagnostic error: ${error?.message || String(error)}`;
+      status.textContent = `Provider diagnostic error: ${/sync|consensus/i.test(String(error?.message || "")) ? "CONSENSUS_SYNC_FAILURE" : "PROVIDER_READ_FAILURE"}`;
       status.classList.add("error");
     }
   }

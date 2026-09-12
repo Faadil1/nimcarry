@@ -58,6 +58,18 @@ describe("static Mini App skeleton", () => {
     expect(diagnostic).not.toContain("sendBasicTransactionWithData");
     expect(diagnostic).not.toContain("sign(");
   });
+  it("runs the read-only network preflight after account listing without any send call", () => {
+    expect(js).toContain("await nimiq.listAccounts()");
+    expect(js).toContain("await nimiq.isConsensusEstablished()");
+    expect(js).toContain("await nimiq.getBlockNumber()");
+    expect(js.indexOf("await nimiq.listAccounts()")).toBeLessThan(js.indexOf("await nimiq.isConsensusEstablished()"));
+    expect(js.indexOf("await nimiq.isConsensusEstablished()")).toBeLessThan(js.indexOf("await nimiq.getBlockNumber()"));
+    const diagnosticStart = js.indexOf("async function runProviderDiagnostic");
+    const diagnosticEnd = js.indexOf("\n  }", diagnosticStart);
+    const diagnostic = js.slice(diagnosticStart, diagnosticEnd);
+    expect(diagnostic).not.toContain("sendBasicTransactionWithData(");
+    expect(diagnostic).not.toContain("sign(");
+  });
   it("uses the Mini App SDK initializer as the shared provider boundary", () => {
     expect(html).toContain('<script type="module" src="/http-compat.js"></script>');
     expect(html).toContain('<script type="module" src="/app.js"></script>');
