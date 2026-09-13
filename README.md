@@ -24,15 +24,42 @@
   <img src="docs/assets/readme/hero-product-screen.png" alt="NimCarry destination-bound human routing mission" width="100%" />
 </p>
 
-## What NimCarry does
+## Why NimCarry exists
 
-**Warm introductions disappear after the first handoff.** NimCarry turns trusted human forwarding into a visible, consented route toward a known destination.
+### The pain
 
-A creator starts a mission, invites a trusted bridge, and waits for explicit acceptance. Exactly **1 NIM** acts as the custody baton. Each verified handoff moves that baton one person closer to the destination. The route changes only after independently verified finality.
+**Warm introductions disappear after the first handoff.** Someone you trust says “I’ll pass it on,” and from that moment the route becomes invisible.
+
+### The problem
+
+Once an introduction moves beyond the first person, the creator usually cannot reliably know:
+
+- who currently carries it;
+- whether the next person explicitly consented;
+- whether the handoff actually happened;
+- whether the route is still moving toward the intended destination;
+- when the intended destination has actually been reached.
+
+A message can prove that someone *said* they forwarded something. It does not create shared custody state.
+
+### Why NimCarry is different
+
+NimCarry turns that informal chain into a **destination-bound human route**.
+
+- Exactly **1 NIM** acts as the custody baton — not a reward, wager, stake, or prize.
+- A bridge explicitly accepts before custody can move.
+- Wallet approval, a pending transaction, or a browser claim never advances the route.
+- Only independently verified `FINAL` changes custody.
+- The destination stays protected while the route remains understandable.
+- When the destination becomes the finalized recipient, NimCarry produces a privacy-safe **Route Receipt**.
 
 **Create → Invite → Accept → Pass 1 NIM → FINAL → Next bridge → ARRIVED**
 
-When the destination becomes the finalized recipient, NimCarry produces a privacy-safe **Route Receipt**.
+Without Nimiq, a bridge can only say “I forwarded it.” With NimCarry, the handoff can become a verifiable custody event.
+
+---
+
+## The route
 
 | Step | What happens |
 |---|---|
@@ -42,11 +69,15 @@ When the destination becomes the finalized recipient, NimCarry produces a privac
 | Pass 1 NIM | The current holder approves the exact baton transfer |
 | Route / Arrival | Only finalized hops appear; ARRIVED produces the receipt |
 
-Without Nimiq, a bridge can only say “I forwarded it.” With NimCarry, the handoff can become a verifiable custody event.
+<p align="center">
+  <img src="docs/assets/readme/pass-1-nim-screen.png" alt="NimCarry Pass 1 NIM custody baton screen" width="100%" />
+</p>
+
+The product story is simple: **I need to reach someone I cannot contact directly. I ask someone I trust to bridge the mission. They choose whether to accept. If they do, 1 NIM becomes the baton. The route moves only after verified finality.**
 
 ---
 
-## How it works
+## Execution
 
 NimCarry separates user approval, mission state, durable storage, and chain verification so that no browser claim can move custody by itself.
 
@@ -72,6 +103,51 @@ For the compact technical map, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md
 
 ---
 
+## Evidence
+
+What is proven today:
+
+- A complete five-screen destination-bound routing flow.
+- Explicit bridge consent before any payment.
+- Exactly **1 NIM = one custody baton**.
+- FINAL-only custody transitions.
+- Privacy-safe destination handling and opaque on-chain commitments.
+- Fail-closed behavior for expired invites, stale intents, lost capabilities, and ambiguous broadcasts.
+- Production Cloudflare + Container + Neon/PostgreSQL runtime.
+- Live Nimiq Pay provider readiness proven on a real device.
+- Deterministic guided demo ending in a privacy-safe Route Receipt.
+- `v1.0.0 — Cycle II Preview` published.
+- 176/176 automated tests passing at the V1 release and production judge smoke 5/5 passing.
+
+| Area | Status |
+|---|---|
+| Live production app | Ready |
+| Guided demo | Ready |
+| Cloudflare / Postgres runtime | Ready |
+| Nimiq Pay provider readiness | Verified |
+| Real A→B TESTNET broadcast | Blocked before broadcast |
+| Real FINAL / ARRIVED | Not claimed |
+| Mainnet | Disabled |
+
+The strongest production statement is also the most important evidence boundary: **approval ≠ broadcast ≠ FINAL**.
+
+Two controlled A→B attempts reached native Nimiq Pay approval and failed afterward. We independently checked chain history, recipient balance, backend intent state, and Neon finality state. Both attempts were classified `NOT_BROADCAST`; NimCarry did not move custody or manufacture ARRIVED.
+
+---
+
+## Demo
+
+The recommended judge path is the deterministic [Guided Demo](https://nimcarry.faadil-casecraft.workers.dev/?demo=1). It uses the real product UI and state model without requiring wallet or network writes while the TESTNET submission issue remains unresolved.
+
+<p align="center">
+  <img src="docs/assets/readme/route-receipt-demo-arrived.png" alt="NimCarry guided demo Route Receipt" width="100%" />
+</p>
+<p align="center"><em>Guided Demo — simulated ARRIVED / Route Receipt. Presentation only; not real TESTNET finality evidence.</em></p>
+
+The final demo video pairs a short cinematic interpretation of the custody baton with real NimCarry screens; the cinematic layer is storytelling, while the live product remains the proof.
+
+---
+
 ## Engineering challenges
 
 ### Reissuing an expired invitation without weakening invariants
@@ -88,9 +164,7 @@ After a failed wallet attempt, a stale pass intent remained. NimCarry now reuses
 
 ### Refusing to confuse approval with proof
 
-Two controlled A→B attempts reached the native Nimiq Pay approval screen and failed afterward. We independently checked chain history, recipient balance, backend intent state, and Neon finality state. Both attempts were classified `NOT_BROADCAST`.
-
-That evidence boundary is deliberate: **approval ≠ broadcast ≠ FINAL**.
+Two controlled A→B attempts reached the native Nimiq Pay approval screen and failed afterward. NimCarry kept custody at the last verified holder and classified both attempts `NOT_BROADCAST` after independent checks.
 
 ### Current TESTNET limitation
 
@@ -99,43 +173,6 @@ Provider initialization, account access, consensus, block height, recipient pres
 `LIKELY_EXTERNAL_NIMIQ_PAY_TESTNET_SUBMISSION_REGRESSION_NOT_YET_CONFIRMED`
 
 NimCarry does not claim that Nimiq has officially confirmed the cause.
-
----
-
-## What we shipped
-
-- A complete five-screen destination-bound routing flow.
-- Explicit bridge consent before any payment.
-- Exactly **1 NIM = one custody baton**; no reward, stake, wager, or forwarding incentive.
-- FINAL-only custody transitions.
-- Privacy-safe destination handling and opaque on-chain commitments.
-- Fail-closed behavior for expired invites, stale intents, lost capabilities, and ambiguous broadcasts.
-- Production Cloudflare + Container + Neon/PostgreSQL runtime.
-- Live Nimiq Pay provider readiness proven on a real device.
-- Deterministic guided demo ending in a privacy-safe Route Receipt.
-- `v1.0.0 — Cycle II Preview` published.
-- 176/176 automated tests passing at the V1 release and production judge smoke 5/5 passing.
-
-<p align="center">
-  <img src="docs/assets/readme/route-receipt-demo-arrived.png" alt="NimCarry guided demo Route Receipt" width="100%" />
-</p>
-<p align="center"><em>Guided Demo — simulated ARRIVED / Route Receipt. Presentation only; not real TESTNET finality evidence.</em></p>
-
----
-
-## Verification status
-
-| Area | Status |
-|---|---|
-| Live production app | Ready |
-| Guided demo | Ready |
-| Cloudflare / Postgres runtime | Ready |
-| Nimiq Pay provider readiness | Verified |
-| Real A→B TESTNET broadcast | Blocked before broadcast |
-| Real FINAL / ARRIVED | Not claimed |
-| Mainnet | Disabled |
-
-The strongest honest demo is the Route Receipt. The strongest honest production statement is that the real testnet handoff remains blocked before broadcast evidence.
 
 ---
 
@@ -164,7 +201,7 @@ The public `main` branch is intentionally compact for judges and contributors:
 - `docs/` — concise architecture, release, submission, and README assets
 - `scripts/` — local development, smoke, migration, and safety utilities
 
-Internal research, strategy notes, transcript analysis, and operational handovers are intentionally not part of the current public tree.
+Internal research, strategy notes, transcript analysis, judge Q&A, and operational handovers are intentionally not part of the current public tree.
 
 ---
 
