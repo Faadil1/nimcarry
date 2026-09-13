@@ -16,6 +16,8 @@ jobs:
     name: Capture main + A/B/C/D + convergence
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      TRACE_PLAYWRIGHT_ROOT: /tmp/trace-playwright
 
     steps:
       - name: Checkout convergence tooling and all refs
@@ -33,9 +35,15 @@ jobs:
       - name: Install project dependencies
         run: npm ci
 
-      - name: Install Playwright for visual review only
+      - name: Install Playwright in isolated visual-review tree
+        shell: bash
         run: |
-          npm install --no-save --no-package-lock playwright@1.55.0
+          set -euo pipefail
+          rm -rf "$TRACE_PLAYWRIGHT_ROOT"
+          mkdir -p "$TRACE_PLAYWRIGHT_ROOT"
+          cd "$TRACE_PLAYWRIGHT_ROOT"
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.55.0
           npx playwright install --with-deps chromium
 
       - name: Capture deterministic demo states for every direction
@@ -87,6 +95,7 @@ jobs:
             summary.candidates[label] = rows;
           }
           await writeFile('trace-visual/matrix.json', JSON.stringify(summary, null, 2));
+          console.log(JSON.stringify(summary, null, 2));
           NODE
 
       - name: Upload TRACE visual matrix
