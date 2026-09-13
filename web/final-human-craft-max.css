@@ -1,5 +1,5 @@
 /* Final human-craft MAX pass — pushes the approved direction harder and removes residual app/SaaS feel. */
-.final-human-craft .brand{min-height:44px;display:flex;align-items:center}.final-human-craft .brand span{min-width:0}.final-human-craft .wallet-onboarding-card .button,.final-human-craft .wallet-onboarding-card a.button{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+.final-human-craft .brand{min-height:44px;display:flex;align-items:center}.final-human-craft .brand span{min-width:0}.final-human-craft .wallet-onboarding-card .button,.final-human-craft .wallet-onboarding-card a.button,.final-human-craft #wallet-onboarding-share a.button,.final-human-craft .warning a.button{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
 .final-human-craft .hero-card,.final-human-craft .card,.final-human-craft .form-card,.final-human-craft .route-card,.final-human-craft .hc-create-preview,.final-human-craft .hc-pass,.final-human-craft .hc-pass-ritual{min-width:0}
 .final-human-craft img,.final-human-craft svg{max-width:100%}.final-human-craft .button-row>*{max-width:100%}.final-human-craft .invite-link,.final-human-craft code{overflow-wrap:anywhere;word-break:break-word}
 
@@ -53,6 +53,7 @@
   .final-human-craft .hc-home{padding:34px 32px}
   .hc-max-home-stage{grid-template-columns:minmax(0,.92fr) minmax(420px,1.08fr);gap:38px}
   .hc-max-home-copy h1{font-size:clamp(4.2rem,7vw,6.5rem);max-width:8.7ch}.hc-max-home-copy .lede{max-width:39ch;font-size:1.04rem}
+  .hc-max-home-copy .button-row{display:flex!important;flex-wrap:wrap!important;align-items:center;width:100%!important;gap:10px!important}.hc-max-home-copy .button-row>.button,.hc-max-home-copy .button-row>a.button{flex:0 1 auto!important;width:auto!important;min-width:168px!important;min-height:46px!important;writing-mode:horizontal-tb!important;white-space:normal!important}
   .hc-max-home-story .hc-home-art{max-height:390px;object-fit:cover}
   .final-human-craft .hc-create-layout{grid-template-columns:minmax(0,1fr) minmax(360px,.78fr);gap:28px}
   .final-human-craft .hc-create-preview{position:sticky;top:24px}
@@ -74,6 +75,7 @@
   .final-human-craft .app-shell{padding-left:8px;padding-right:8px}.final-human-craft h1{font-size:2.28rem}.final-human-craft .network-chip{padding:7px 8px;font-size:.56rem}.final-human-craft .brand strong{font-size:1.04rem}
   .final-human-craft .hc-preview-type{grid-template-columns:1fr}.final-human-craft .hc-invite-context{grid-template-columns:1fr}.final-human-craft .hc-invite-arrow{transform:rotate(90deg)}
   .final-human-craft input,.final-human-craft textarea,.final-human-craft select{max-width:100%;min-width:0}.final-human-craft .form-grid,.final-human-craft label{min-width:0}
+  .final-human-craft .hero-card.hc-pass{overflow:hidden}.final-human-craft .hc-pass,.final-human-craft .hc-pass *{min-width:0}.final-human-craft .hc-pass .wi-proof-ladder,.final-human-craft .hc-pass .wi-proof-step,.final-human-craft .hc-pass .hc-proof-rule,.final-human-craft .hc-pass .hc-pass-ritual,.final-human-craft .hc-pass .hc-pass-step{width:100%;max-width:100%}.final-human-craft .hc-pass .hc-proof-rule{display:grid;grid-template-columns:1fr}.final-human-craft .hc-pass .hc-stamp{max-width:100%;white-space:normal;text-align:center;overflow-wrap:anywhere}.final-human-craft .hc-pass .hc-pass-step{grid-template-columns:30px minmax(0,1fr)}
 }
 
 @media(prefers-reduced-motion:reduce){.hc-max-home-story::after,.hc-max-route-motto{transform:none}}
