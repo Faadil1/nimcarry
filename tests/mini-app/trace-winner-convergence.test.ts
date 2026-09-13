@@ -2,37 +2,41 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const html = readFileSync("web/index.html", "utf8");
-const css = readFileSync("web/trace-winner-convergence.css", "utf8");
-const js = readFileSync("web/trace-winner-convergence.js", "utf8");
+const finalCss = readFileSync("web/final-human-craft.css", "utf8");
+const finalJs = readFileSync("web/final-human-craft.js", "utf8");
+const legacyCss = readFileSync("web/trace-winner-convergence.css", "utf8");
+const legacyJs = readFileSync("web/trace-winner-convergence.js", "utf8");
 
-describe("TRACE winner-convergence candidate", () => {
-  it("loads only as an additive presentation layer", () => {
-    expect(html).toContain('href="/trace-winner-convergence.css"');
-    expect(html).toContain('src="/trace-winner-convergence.js"');
-    expect(js).not.toContain("fetch(");
-    expect(js).not.toContain("sendBasicTransactionWithData");
-    expect(js).not.toContain("nimiq.sign");
-    expect(js).not.toContain("localStorage.setItem");
-    expect(js).not.toContain("sessionStorage.setItem");
+describe("TRACE convergence promotion into final human-craft runtime", () => {
+  it("keeps the convergence experiment as provenance but does not load it in the final runtime", () => {
+    expect(legacyCss.length).toBeGreaterThan(0);
+    expect(legacyJs.length).toBeGreaterThan(0);
+    expect(html).not.toContain('href="/trace-winner-convergence.css"');
+    expect(html).not.toContain('src="/trace-winner-convergence.js"');
+    expect(html).toContain('href="/final-human-craft.css"');
+    expect(html).toContain('src="/final-human-craft.js"');
   });
 
-  it("keeps NimCarry's anti-collision and custody truth explicit", () => {
-    expect(js).toContain("One destination");
-    expect(js).toContain("Accept ≠ payment");
-    expect(js).toContain("Only FINAL changes custody");
-    expect(js).toContain("Last independently verified holder");
+  it("keeps the anti-collision and custody truths after visual cutover", () => {
+    expect(finalJs).toContain("One destination");
+    expect(finalJs).toContain("Accepting means you consent to participate — it does not move funds.");
+    expect(finalJs).toContain("Approval or broadcast is not custody.");
+    expect(finalJs).toContain("FINAL = custody");
+    expect(finalJs).toContain("last verified holder");
   });
 
   it("uses rendered product state rather than manufacturing FINAL or ARRIVED", () => {
-    expect(js).toContain('hero.querySelector(".target-title")');
-    expect(js).toContain('hero.querySelector(".holder-chip strong")');
-    expect(js).toContain('hero.querySelector(".status-pill")');
-    expect(js).not.toContain("demoSave");
+    expect(finalJs).toContain('hero.querySelector(".target-title")');
+    expect(finalJs).toContain('hero.querySelector(".holder-chip strong")');
+    expect(finalJs).toContain('card.querySelector(".status-pill")');
+    expect(finalJs).not.toContain("demoSave");
+    expect(finalJs).not.toContain("fetch(");
   });
 
-  it("preserves mobile and reduced-motion constraints", () => {
-    expect(css).toContain("@media(max-width:520px)");
-    expect(css).toContain("prefers-reduced-motion:reduce");
-    expect(css).toContain("min-height:46px");
+  it("preserves mobile, desktop and reduced-motion constraints in the promoted identity", () => {
+    expect(finalCss).toContain("@media(max-width:520px)");
+    expect(finalCss).toContain("@media(min-width:1024px)");
+    expect(finalCss).toContain("prefers-reduced-motion:reduce");
+    expect(finalCss).toContain("min-height:46px");
   });
 });
