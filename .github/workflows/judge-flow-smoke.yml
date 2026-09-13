@@ -1,0 +1,76 @@
+name: Judge Full Flow Smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - web/**
+      - scripts/judge-flow-smoke.mjs
+      - .github/workflows/judge-flow-smoke.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - web/**
+      - scripts/judge-flow-smoke.mjs
+      - .github/workflows/judge-flow-smoke.yml
+
+permissions:
+  contents: read
+
+jobs:
+  flow:
+    name: Production guided flow — mobile + desktop
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NIMCARRY_JUDGE_URL: https://nimcarry.faadil-casecraft.workers.dev
+      JUDGE_FLOW_PLAYWRIGHT_ROOT: /tmp/nimcarry-judge-flow-playwright
+      JUDGE_FLOW_OUTPUT: judge-flow-smoke
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright in isolated tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$JUDGE_FLOW_PLAYWRIGHT_ROOT"
+          mkdir -p "$JUDGE_FLOW_PLAYWRIGHT_ROOT"
+          cd "$JUDGE_FLOW_PLAYWRIGHT_ROOT"
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Run full production guided-flow smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$JUDGE_FLOW_OUTPUT"
+          for attempt in 1 2 3 4; do
+            echo "Judge flow attempt $attempt/4"
+            if node scripts/judge-flow-smoke.mjs "$NIMCARRY_JUDGE_URL"; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 4 ]; then
+              echo "Flow not ready yet; waiting for production propagation..."
+              sleep 12
+            fi
+          done
+          exit 1
+
+      - name: Upload flow evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: judge-full-flow-smoke
+          path: judge-flow-smoke
+          if-no-files-found: warn
+          retention-days: 7
