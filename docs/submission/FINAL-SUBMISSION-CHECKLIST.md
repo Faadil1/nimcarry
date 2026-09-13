@@ -10,13 +10,14 @@
 - [x] ≤250-word submission description ready.
 - [x] Team wording ready: Faadil Boussari — product/repo lead; Opeyemi (`opeblow`) — technical lead.
 - [x] Demo script, shot list, and capture runbook ready.
+- [x] Final 87-second demo video published: https://youtu.be/fKu_DgAOEv0
 - [x] Score audit and promotion drafts ready.
 - [x] Testnet blocker and evidence boundary stated truthfully.
 - [x] Secret scan and production endpoint checks complete.
 
 ## Manual actions for Faadil
 
-- [ ] Record/upload the deterministic 60–90 second demo video and add its public URL.
+- [ ] Share the final package with Opeyemi before broader promotion.
 - [ ] Publish the Skool builder-community post.
 - [ ] Publish the public social post.
 - [ ] Enter the private payout wallet in the official submission form: `MANUAL_PRIVATE_FORM_ENTRY_REQUIRED`.
