@@ -1,16 +1,23 @@
 name: Judge Window Smoke
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       base_url:
         description: "Deployed NimCarry base URL to check"
-        required: true
-        default: "https://carry-one-sip-show.vercel.app"
+        required: false
+        default: "https://nimcarry.faadil-casecraft.workers.dev"
+
+concurrency:
+  group: nimcarry-production-smoke
+  cancel-in-progress: true
 
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,5 +27,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Run judge-window smoke check
-        run: node scripts/judge-smoke.mjs "${{ inputs.base_url }}"
+      - name: Run production judge-window smoke check
+        env:
+          NIMCARRY_JUDGE_URL: ${{ github.event.inputs.base_url || 'https://nimcarry.faadil-casecraft.workers.dev' }}
+        run: node scripts/judge-smoke.mjs "$NIMCARRY_JUDGE_URL"
