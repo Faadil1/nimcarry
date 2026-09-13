@@ -156,7 +156,13 @@
     if (!hero || hero.dataset.hcPass === "1") return;
     hero.dataset.hcPass = "1";
     hero.classList.add("hc-pass");
+
+    // The old three-metric transaction strip belonged to the previous visual direction.
+    // The selected direction treats this moment as a human custody ritual instead.
+    hero.querySelector(".promise-strip")?.remove();
     hero.querySelector(".wi-baton-proof")?.remove();
+    const warning = hero.querySelector(".warning");
+    if (warning) warning.textContent = "Once a transaction hash exists, the handoff becomes a verification state. NimCarry keeps the last verified holder authoritative until the backend independently confirms FINALity.";
 
     const image = art("/craft-baton-handoff.svg", "hc-pass-art");
     const ritual = el("section", "hc-pass-ritual");
