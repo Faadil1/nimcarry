@@ -1,71 +1,96 @@
 # Cycle II demo video script
 
-Target length: 75–90 seconds. Use the deterministic Guided Demo for all successful route progression. Simulated ARRIVED is never real chain evidence.
+Target length: 80–90 seconds. Use the deterministic Guided Demo for all successful route progression. Simulated ARRIVED is never real chain evidence.
 
-The opening may use the approved cinematic museum / custody-baton sequence, but every cinematic beat must resolve into real NimCarry screens. The live product remains the proof.
+The final film uses three short cinematic museum transitions, each resolving into a real NimCarry screen. The cinematic layer creates memorability; the real product remains the proof.
 
-**0–7s — Pain**
+**0–7s — Pain / cinematic opening**
 
-Visual: cinematic museum artifact / 1 NIM baton. No app UI yet.
+Visual: museum-like 1 NIM custody baton artifact. The baton feels valuable because the route beyond the first relay is still unknown. Resolve into the real NimCarry Mission Home hero screen.
 
 Voiceover: “Warm introductions disappear after the first handoff.”
 
-**7–14s — Problem**
-
-Visual: the route beyond the first relay becomes unclear; transition into the real NimCarry Mission Home hero screen.
-
-Voiceover: “Once someone says ‘I’ll pass it on,’ you lose visibility into who carries it next, whether they consented, and whether the handoff actually happened.”
-
-**14–23s — Differentiator**
+**7–15s — Problem + differentiator**
 
 Visual: real Mission Home / living route state.
 
-Voiceover: “NimCarry turns that invisible chain into a destination-bound human route. Exactly 1 NIM is the custody baton.”
+Voiceover: “Once someone says ‘I’ll pass it on,’ visibility, consent and proof disappear. NimCarry turns that invisible chain into a destination-bound human route.”
 
-**23–36s — Execution: create, invite, accept**
+**15–29s — Execution: create, invite, accept**
 
 Visual: Create Mission → Bridge Invitation → Accept. Keep DEMO MODE visible.
 
 Voiceover: “You define the person you need to reach, invite a trusted bridge, and they choose whether to accept. Nobody becomes a bridge by surprise.”
 
-**36–50s — Evidence mechanism: Pass 1 NIM**
+**29–36s — Cinematic custody handoff**
+
+Visual: museum handoff start frame. A sculptural human relay passes the glowing custody baton. Resolve exactly into the real Pass 1 NIM screen.
+
+Voiceover: “Exactly 1 NIM is the custody baton — not a reward.”
+
+**36–49s — Evidence mechanism: Pass 1 NIM**
 
 Visual: real Pass 1 NIM screen. Use the demo-only progression control; never open Nimiq Pay during recording.
 
-Voiceover: “The current holder authorizes exactly 1 NIM. But approval is not proof. NimCarry only moves custody after independent FINALity.”
+Voiceover: “The current holder authorizes the pass. But approval is not proof. NimCarry only moves custody after independent FINALity.”
 
 On-screen emphasis: `approval ≠ broadcast ≠ FINAL`
 
-**50–63s — Story: the route moves**
+**49–58s — Real negative-event truth beat**
 
-Visual: living route / next-bridge state.
+Visual: remain on a real NimCarry state where the route has not advanced; no fake error reconstruction and no provider diagnostics.
 
-Voiceover: “Each accepted, verified handoff moves the baton one human closer to the known destination.”
+Voiceover: “In two real TESTNET attempts, approval opened but nothing broadcast. NimCarry kept custody at the last verified holder instead of inventing progress.”
 
-**63–75s — Demo payoff: Route Receipt**
+Optional on-screen line: `Real failure > fake success.`
+
+**58–69s — Story: the route moves in deterministic demo**
+
+Visual: living route / next-bridge state in DEMO MODE.
+
+Voiceover: “When evidence is sufficient, each accepted, verified handoff moves the baton one human closer to the known destination.”
+
+**69–76s — Cinematic arrival transition**
+
+Visual: the baton reaches the final museum threshold. The route becomes complete. Resolve exactly into the real Route Receipt / simulated ARRIVED end frame.
+
+Sound should resolve here, not explode.
+
+**76–84s — Demo payoff + truth boundary**
 
 Visual: deterministic simulated ARRIVED / Route Receipt. DEMO MODE boundary remains visible.
 
-Voiceover: “When the intended destination becomes the finalized recipient, the route becomes ARRIVED and produces a privacy-safe Route Receipt.”
+Voiceover: “This Route Receipt is the deterministic demo payoff. Real TESTNET FINAL and ARRIVED are not claimed while the current submission issue remains unresolved.”
 
-**75–83s — Truth boundary**
-
-Visual: hold the real Route Receipt demo screen, then clean transition to the closing card.
-
-Voiceover: “This walkthrough uses NimCarry’s deterministic demo mode. Real TESTNET broadcast proof remains pending while a current Nimiq Pay submission issue is investigated.”
-
-**83–90s — Close**
+**84–90s — Close**
 
 Visual: NimCarry mark, Live App URL, GitHub URL.
 
 Voiceover: “NimCarry. One NIM. One bridge at a time.”
 
+## Sound arc
+
+- Opening: quiet gallery room tone + low atmospheric bed.
+- Baton activation: soft resonant pulse, tactile rather than sci-fi.
+- Handoff: one precise material click/chime and restrained low-frequency movement.
+- Negative-event truth beat: music drops back; almost dry room tone so the statement lands.
+- Route movement: subtle pulse resumes.
+- Arrival: restrained harmonic resolution / soft swell.
+- Close: one clean signature tone.
+
+Avoid trailer booms, EDM, crypto-style sound effects, loud risers, or constant music.
+
 ## Narrative check
 
-The finished cut should answer these questions without requiring narration from the builder afterward:
+The finished cut must show all of these without requiring a live explanation afterward:
 
-1. What hurts? — the introduction disappears after the first handoff.
-2. What is broken? — visibility, consent, and proof disappear.
-3. What is different? — destination-bound route + 1 NIM custody baton + FINAL-only movement.
-4. Is it real? — real product screens, production runtime, explicit evidence boundary.
-5. What is the payoff? — privacy-safe Route Receipt.
+1. **Pain** — the introduction disappears after the first handoff.
+2. **Problem** — visibility, consent and proof disappear.
+3. **Differentiator** — destination-bound route + exactly 1 NIM custody baton + FINAL-only movement.
+4. **Execution** — real NimCarry create / invite / accept / pass screens.
+5. **Evidence** — approval is not enough; independent finality controls custody.
+6. **Negative event** — two real approved TESTNET attempts were independently NOT_BROADCAST.
+7. **Mitigation / counter-case** — preserve the last verified holder and refuse a false success claim.
+8. **Story** — verified handoffs move toward the known destination.
+9. **Demo payoff** — privacy-safe Route Receipt, visibly simulated.
+10. **Truth boundary** — no real FINAL or ARRIVED claim.
