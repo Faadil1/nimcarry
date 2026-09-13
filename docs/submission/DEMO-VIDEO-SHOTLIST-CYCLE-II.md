@@ -2,23 +2,34 @@
 
 | Time | Story role | URL/state | User action | Visible UI / visual | Narration | DEMO MODE | Transition |
 |---|---|---|---|---|---|---|---|
-| 0–7s | Pain | Cinematic asset | None | Museum-like 1 NIM custody baton artifact | “Warm introductions disappear after the first handoff.” | N/A | Slow cinematic reveal |
-| 7–14s | Problem | Cinematic → production hero | None | Route becomes uncertain, then resolves into real Mission Home | “Once someone says ‘I’ll pass it on,’ you lose visibility into who carries it next, whether they consented, and whether the handoff actually happened.” | Yes once UI appears | Match transition into real screen |
-| 14–23s | Differentiator | `/?demo=1&tour=1&reset=1` / Mission Home | Load/reset | Destination-bound route, holder state, NimCarry identity | “NimCarry turns that invisible chain into a destination-bound human route. Exactly 1 NIM is the custody baton.” | Yes | Direct cut on product action |
-| 23–30s | Execution | `/create?demo=1&tour=1` | Use deterministic prefilled form; submit | Known destination, mission note, Create Mission | “You define the person you need to reach…” | Yes | Cut on submit |
-| 30–36s | Execution / consent | `/i/<demo-token>?demo=1&tour=1` | Show invitation; click Accept | Bridge Invitation and explicit consent language | “…invite a trusted bridge, and they choose whether to accept. Nobody becomes a bridge by surprise.” | Yes | Match cut on Accept |
-| 36–50s | Evidence mechanism | `/mission/<demo-id>/pass?demo=1` | Show Pass 1 NIM; use demo-only progression only | 1 NIM baton, fee 0, FINAL-only copy | “The current holder authorizes exactly 1 NIM. But approval is not proof. NimCarry only moves custody after independent FINALity.” | Yes | Cut before any provider surface |
-| 50–63s | Story | `/mission/<demo-id>?demo=1` | Continue deterministic demo | Living route, current holder, next bridge | “Each accepted, verified handoff moves the baton one human closer to the known destination.” | Yes | Clean direct cut |
-| 63–75s | Demo payoff | `/mission/demo-arrived-<timestamp>/route?demo=1` | Use existing Preview ARRIVED receipt control | Simulated ARRIVED Route Receipt | “When the intended destination becomes the finalized recipient, the route becomes ARRIVED and produces a privacy-safe Route Receipt.” | Yes | Hold on receipt |
-| 75–83s | Truth boundary | Same Route Receipt state | No action | Receipt + visible DEMO MODE boundary | “This walkthrough uses NimCarry’s deterministic demo mode. Real TESTNET broadcast proof remains pending while a current Nimiq Pay submission issue is investigated.” | Yes | Gentle fade to close |
-| 83–90s | Close | End card | No interaction | NimCarry logo, Live App, GitHub | “NimCarry. One NIM. One bridge at a time.” | N/A | End |
+| 0–7s | Pain / cinematic | Cinematic asset 01 | None | Museum-like 1 NIM custody baton artifact | “Warm introductions disappear after the first handoff.” | N/A | Resolve into real hero screen |
+| 7–15s | Problem + differentiator | `/?demo=1&tour=1&reset=1` / Mission Home | Load/reset | Destination-bound route, holder state, NimCarry identity | “Once someone says ‘I’ll pass it on,’ visibility, consent and proof disappear. NimCarry turns that invisible chain into a destination-bound human route.” | Yes | Direct cut on product action |
+| 15–23s | Execution | `/create?demo=1&tour=1` | Use deterministic prefilled form; submit | Known destination, mission note, Create Mission | “You define the person you need to reach…” | Yes | Cut on submit |
+| 23–29s | Execution / consent | `/i/<demo-token>?demo=1&tour=1` | Show invitation; click Accept | Bridge Invitation and explicit consent language | “…invite a trusted bridge, and they choose whether to accept. Nobody becomes a bridge by surprise.” | Yes | Match cut on Accept |
+| 29–36s | Differentiator / cinematic handoff | Cinematic asset 02 | None | Sculptural human relay passes glowing custody baton | “Exactly 1 NIM is the custody baton — not a reward.” | N/A | Resolve into real Pass 1 NIM screen |
+| 36–49s | Evidence mechanism | `/mission/<demo-id>/pass?demo=1` | Show Pass 1 NIM; use demo-only progression only | 1 NIM baton, fee 0, FINAL-only copy | “The current holder authorizes the pass. But approval is not proof. NimCarry only moves custody after independent FINALity.” | Yes | Hold; no provider surface |
+| 49–58s | Concrete negative event | Real NimCarry state; route not advanced | No wallet action | Last verified holder / unchanged route; optional minimal caption | “In two real TESTNET attempts, approval opened but nothing broadcast. NimCarry kept custody at the last verified holder instead of inventing progress.” | Yes if using demo shell | Sound drops nearly dry |
+| 58–69s | Story / mitigation | `/mission/<demo-id>?demo=1` | Continue deterministic demo | Living route, current holder, next bridge | “When evidence is sufficient, each accepted, verified handoff moves the baton one human closer to the known destination.” | Yes | Clean cut |
+| 69–76s | Cinematic arrival | Cinematic asset 03 | None | Baton follows completed luminous route into final threshold | No additional line required; let score resolve | N/A | Resolve into Route Receipt frame |
+| 76–84s | Demo payoff + truth boundary | `/mission/demo-arrived-<timestamp>/route?demo=1` | Use existing Preview ARRIVED receipt control | Simulated ARRIVED Route Receipt | “This Route Receipt is the deterministic demo payoff. Real TESTNET FINAL and ARRIVED are not claimed while the current submission issue remains unresolved.” | Yes | Hold on receipt |
+| 84–90s | Close | End card | No interaction | NimCarry logo, Live App, GitHub | “NimCarry. One NIM. One bridge at a time.” | N/A | End |
 
 The `<demo-token>` and `<demo-id>` values are generated by existing demo code; do not publish them as links. Use the production Guided Demo and its existing reset/tour controls.
+
+## Cinematic start/end frame map
+
+1. **Asset 01 / Museum artifact** → real `hero-product-screen.png`.
+2. **Asset 02 / Custody handoff** → real `pass-1-nim-screen.png`.
+3. **Asset 03 / Arrival threshold** → real `route-receipt-demo-arrived.png`.
+
+Each generated clip must end by converging on the supplied real end frame. Do not ask the video model to redesign or invent the NimCarry UI.
 
 ## Capture rules
 
 - Cinematic frames are storytelling only; they must transition into real NimCarry screens.
 - Never open Nimiq Pay or trigger a real provider transaction while recording.
 - Keep the DEMO MODE boundary visible on all simulated successful states.
-- `pass-1-nim-screen.png` is the visual reference for the evidence-mechanism beat.
+- Do not reconstruct a fake TESTNET error screen for the negative-event beat.
+- The negative-event statement is real evidence: two controlled approvals were independently `NOT_BROADCAST`.
+- The counter-case must be legible: custody remains at the last verified holder when proof is insufficient.
 - The Route Receipt is the payoff, not proof of real TESTNET finality.
