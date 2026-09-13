@@ -1,17 +1,19 @@
-name: Approved Craft Visual Review
+name: Final Human Craft Visual Review
 
 on:
   push:
     branches:
       - experiment/approved-craft-fidelity
     paths:
-      - web/approved-craft-fidelity.css
-      - web/approved-craft-fidelity.js
-      - web/approved-craft-polish.css
-      - web/approved-craft-polish.js
+      - web/final-human-craft.css
+      - web/final-human-craft.js
       - web/craft-human-route.svg
       - web/craft-baton-handoff.svg
       - web/craft-arrival.svg
+      - web/nimcarry-mark.svg
+      - web/favicon.svg
+      - web/social-card.svg
+      - web/manifest.webmanifest
       - web/index.html
       - scripts/approved-craft-visual-capture.mjs
       - .github/workflows/approved-craft-visual-review.yml
@@ -24,14 +26,14 @@ permissions:
   contents: read
 
 jobs:
-  approved-craft-visual:
-    name: Capture approved craft responsive matrix
+  final-human-craft-visual:
+    name: Capture final human-craft responsive matrix
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      TRACE_PLAYWRIGHT_ROOT: /tmp/approved-craft-playwright
+      TRACE_PLAYWRIGHT_ROOT: /tmp/final-human-craft-playwright
     steps:
-      - name: Checkout approved craft candidate
+      - name: Checkout final human-craft candidate
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -60,15 +62,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf approved-craft-visual
-          node scripts/approved-craft-visual-capture.mjs web approved-craft-visual 4199
+          rm -rf final-human-craft-visual
+          node scripts/approved-craft-visual-capture.mjs web final-human-craft-visual 4199
 
       - name: Enforce geometry gate
         shell: bash
         run: |
           node --input-type=module <<'NODE'
           import { readFile } from 'node:fs/promises';
-          const report = JSON.parse(await readFile('approved-craft-visual/report.json','utf8'));
+          const report = JSON.parse(await readFile('final-human-craft-visual/report.json','utf8'));
           const failures = [];
           for (const [viewport, states] of Object.entries(report.viewports)) {
             for (const [state, data] of Object.entries(states)) {
@@ -80,13 +82,13 @@ jobs:
             console.error(failures.join('\n'));
             process.exit(1);
           }
-          console.log('Approved craft geometry gate PASS');
+          console.log('Final human-craft geometry gate PASS');
           NODE
 
-      - name: Upload approved craft fidelity matrix
+      - name: Upload final human-craft matrix
         uses: actions/upload-artifact@v4
         with:
-          name: approved-craft-fidelity-matrix
-          path: approved-craft-visual
+          name: final-human-craft-matrix
+          path: final-human-craft-visual
           if-no-files-found: error
           retention-days: 7
