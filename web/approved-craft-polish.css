@@ -26,6 +26,15 @@
 .approved-craft .cf-invite-people-art{position:relative;overflow:visible}
 .approved-craft .cf-invite-people-art::before{content:"";position:absolute;right:-9px;top:-13px;width:58px;height:24px;background:rgba(232,191,69,.62);transform:rotate(7deg);clip-path:polygon(0 12%,100% 0,92% 100%,7% 82%)}
 
+@media(max-width:767px){
+  .approved-craft .cf-home{display:flex!important;flex-direction:column}
+  .approved-craft .cf-home>.kicker{order:0}.approved-craft .cf-home>.wi-problem-first{order:1}.approved-craft .cf-home>h1{order:2}.approved-craft .cf-home>.lede{order:3}.approved-craft .cf-home>.tw-thesis-line{order:4}.approved-craft .cf-home>.button-row{order:5;margin-top:13px}.approved-craft .cf-home>.mp-audience{order:6}.approved-craft .cf-home>.wi-scenario{order:7}.approved-craft .cf-home>.wi-baton-note{order:8}.approved-craft .cf-home>.cf-home-manifesto{order:9}
+  .approved-craft .cf-invitation>.cf-invite-note{display:none}
+  .approved-craft .cf-invitation>.wi-lifecycle{display:none}
+  .approved-craft .cf-invitation>.button-row{margin-top:14px}
+  .approved-craft .cf-invitation>.wallet-onboarding-card{margin-top:12px}
+}
+
 @media(max-width:520px){
   .approved-craft .cf-home-art{margin-left:-3px;width:calc(100% + 6px)}
   .approved-craft .cf-pass-art{margin-top:11px}
