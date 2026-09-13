@@ -65,7 +65,7 @@ color_roles:
     - blue
     - aubergine
 
- typography_roles:
+typography_roles:
   display: warm_editorial_human
   interface: highly_legible_sans
   annotation: sparse_handwritten_short_only
