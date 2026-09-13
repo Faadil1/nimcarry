@@ -1,0 +1,241 @@
+/* NimCarry — human-approved WARM_CRAFT_COLLAGE_HUMAN_OPPORTUNITY direction.
+ * Real responsive UI only. No screenshots. No state authority in this layer.
+ */
+:root{
+  --cf-canvas:#efe5d4;
+  --cf-paper:#fff9ed;
+  --cf-paper-warm:#f7eddc;
+  --cf-paper-pink:#f0c9bc;
+  --cf-paper-blue:#cbddea;
+  --cf-paper-teal:#bedbd2;
+  --cf-ink:#29271f;
+  --cf-muted:#6f685d;
+  --cf-forest:#3f6339;
+  --cf-forest-dark:#27452a;
+  --cf-coral:#df654d;
+  --cf-yellow:#e8bf45;
+  --cf-aubergine:#6f4f72;
+  --cf-blue:#557d98;
+  --cf-green:#95b85d;
+  --cf-line:rgba(41,39,31,.18);
+  --cf-shadow:0 15px 34px rgba(75,58,37,.15),0 2px 4px rgba(75,58,37,.10);
+  --cf-shadow-lift:0 23px 58px rgba(75,58,37,.18),0 4px 8px rgba(75,58,37,.10);
+  --cf-radius-paper:8px;
+  --cf-radius-control:12px;
+}
+
+body.approved-craft{
+  background:
+    linear-gradient(rgba(95,70,41,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(95,70,41,.018) 1px,transparent 1px),
+    radial-gradient(circle at 12% 8%,rgba(232,191,69,.23),transparent 24rem),
+    radial-gradient(circle at 91% 21%,rgba(85,125,152,.13),transparent 22rem),
+    var(--cf-canvas);
+  background-size:21px 21px,21px 21px,auto,auto,auto;
+  color:var(--cf-ink);
+}
+.approved-craft .route-ribbon{display:none}
+.approved-craft .app-shell{width:min(760px,100%);padding-left:14px;padding-right:14px}
+.approved-craft .brandbar{
+  position:sticky;top:max(7px,env(safe-area-inset-top));z-index:30;
+  margin-bottom:15px;padding:9px 11px;
+  border:1px solid rgba(41,39,31,.13);border-radius:14px;
+  background:rgba(255,249,237,.91);backdrop-filter:blur(12px);
+  box-shadow:0 7px 18px rgba(75,58,37,.08)
+}
+.approved-craft .brand-logo{width:39px;height:39px;filter:saturate(.82)}
+.approved-craft .brand strong{font-family:Georgia,"Times New Roman",serif;font-size:1.13rem;letter-spacing:-.025em}
+.approved-craft .brand small{font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;color:var(--cf-muted)}
+.approved-craft .network-chip{border:1px solid rgba(41,39,31,.14);border-radius:7px;background:#f8efd9;backdrop-filter:none;color:#464239;letter-spacing:.055em}
+.approved-craft .network-chip .pulse{background:var(--cf-green);box-shadow:0 0 0 3px rgba(149,184,93,.17)}
+
+/* Paper surfaces: intentionally imperfect, but not cartoonish. */
+.approved-craft .hero-card,.approved-craft .card,.approved-craft .route-card,.approved-craft .form-card{
+  position:relative;border:1px solid rgba(41,39,31,.15);border-radius:var(--cf-radius-paper);
+  background:
+    linear-gradient(112deg,rgba(255,255,255,.35),transparent 28%),
+    repeating-linear-gradient(0deg,rgba(85,69,46,.016) 0 1px,transparent 1px 5px),
+    var(--cf-paper);
+  box-shadow:var(--cf-shadow);
+}
+.approved-craft .hero-card{padding:25px 20px 21px;overflow:visible}
+.approved-craft .hero-card::after{display:none}
+.approved-craft .hero-card::before,.approved-craft .form-card::before,.approved-craft .route-card::before{
+  content:"";position:absolute;z-index:-1;left:9px;right:-7px;bottom:-7px;height:16px;
+  background:#d8c4a5;opacity:.34;clip-path:polygon(0 15%,7% 0,16% 18%,27% 3%,39% 20%,52% 1%,63% 18%,76% 4%,88% 19%,100% 0,100% 100%,0 100%)
+}
+.approved-craft h1,.approved-craft .target-title{
+  font-family:Georgia,"Times New Roman",serif;color:var(--cf-ink);font-weight:700;
+  letter-spacing:-.055em;line-height:.98
+}
+.approved-craft h2{font-family:Georgia,"Times New Roman",serif;font-weight:700;letter-spacing:-.035em}
+.approved-craft .kicker,.approved-craft .dialog-kicker{
+  color:var(--cf-muted);font-size:.64rem;letter-spacing:.12em;font-weight:850
+}
+.approved-craft .lede,.approved-craft .mission-note{color:#5e584f;line-height:1.55}
+.approved-craft .wi-problem-first{font-family:Georgia,"Times New Roman",serif;color:var(--cf-coral);font-weight:700;letter-spacing:-.02em}
+.approved-craft .wi-scenario{border-radius:5px;background:#f0e4ce;border:0;border-left:4px solid var(--cf-blue);transform:rotate(-.35deg)}
+.approved-craft .wi-baton-note{border-radius:5px;background:#f1d88d;border:1px solid rgba(41,39,31,.12);box-shadow:3px 4px 0 rgba(41,39,31,.08)}
+.approved-craft .wi-baton-note strong{font-family:Georgia,"Times New Roman",serif}
+
+/* Controls feel printed / stamped, while retaining accessible geometry. */
+.approved-craft .button{min-height:46px;border-radius:9px;padding:12px 15px;letter-spacing:-.01em;box-shadow:none}
+.approved-craft .button.primary{background:var(--cf-forest-dark);color:#fffaf0;box-shadow:4px 5px 0 #bd765b}
+.approved-craft .button.primary:hover{box-shadow:3px 4px 0 #bd765b}
+.approved-craft .button.secondary{background:#d67a61;color:#241f1a}
+.approved-craft .button.green{background:#9fbd6b;color:#263322}
+.approved-craft .button.ghost{background:rgba(255,249,237,.63);border:1px dashed rgba(41,39,31,.32)}
+.approved-craft input,.approved-craft textarea,.approved-craft select{
+  min-height:47px;border-radius:9px;border:1px solid rgba(41,39,31,.22);background:#fffdf6;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8)
+}
+.approved-craft input:focus,.approved-craft textarea:focus,.approved-craft select:focus{border-color:var(--cf-forest);box-shadow:0 0 0 3px rgba(63,99,57,.14)}
+.approved-craft .checkline{padding:11px;border:1px dashed rgba(41,39,31,.22);border-radius:8px;background:#f8efdf}
+.approved-craft .back-link{min-height:44px;display:inline-flex;align-items:center;color:#625b51}
+
+/* Shared craft primitives injected from approved-craft-fidelity.js */
+.cf-paper-label{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border-radius:4px;background:#e7d5b6;border:1px solid rgba(41,39,31,.12);font-size:.58rem;font-weight:900;letter-spacing:.11em;text-transform:uppercase;transform:rotate(-1deg)}
+.cf-torn-note{position:relative;padding:12px 13px;background:#f2d77f;border:1px solid rgba(41,39,31,.11);box-shadow:3px 5px 0 rgba(74,56,36,.09);transform:rotate(-.55deg)}
+.cf-torn-note::after{content:"";position:absolute;left:0;right:0;bottom:-5px;height:7px;background:inherit;clip-path:polygon(0 0,5% 70%,12% 16%,20% 80%,29% 24%,38% 85%,49% 18%,58% 76%,67% 14%,76% 80%,87% 19%,95% 68%,100% 0)}
+.cf-torn-note strong{display:block;font-family:Georgia,"Times New Roman",serif;font-size:.92rem}.cf-torn-note span{display:block;margin-top:4px;color:#615747;font-size:.7rem;line-height:1.42}
+.cf-stamp{display:inline-grid;place-items:center;padding:6px 9px;border:2px solid currentColor;border-radius:5px;font-size:.57rem;font-weight:950;letter-spacing:.1em;text-transform:uppercase;transform:rotate(-2deg);color:var(--cf-forest)}
+.cf-stamp.pending{color:#9c6d20}.cf-stamp.coral{color:var(--cf-coral)}
+
+.cf-human-route{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:18px 0 14px;padding:18px 14px 14px;border-radius:8px;background:#e9deca;border:1px solid rgba(41,39,31,.11);overflow:hidden}
+.cf-human-route::before{content:"";position:absolute;left:16%;right:16%;top:49px;height:2px;background:repeating-linear-gradient(90deg,var(--cf-coral) 0 8px,transparent 8px 13px);opacity:.7}
+.cf-person{position:relative;z-index:1;text-align:center;min-width:0}
+.cf-person-portrait{position:relative;width:62px;height:70px;margin:0 auto 8px;border-radius:32px 32px 13px 13px;background:var(--person-bg,#6f4f72);border:5px solid #fff4df;box-shadow:2px 4px 0 rgba(41,39,31,.12);overflow:hidden}
+.cf-person-portrait::before{content:"";position:absolute;width:25px;height:25px;border-radius:50%;background:#e6b798;left:50%;top:10px;transform:translateX(-50%);box-shadow:0 -6px 0 2px var(--person-hair,#2b2a25)}
+.cf-person-portrait::after{content:"";position:absolute;width:48px;height:37px;border-radius:24px 24px 7px 7px;background:var(--person-shirt,#517c76);left:50%;bottom:-7px;transform:translateX(-50%)}
+.cf-person:nth-child(2){--person-bg:#b8d0dc;--person-hair:#5c3f31;--person-shirt:#d76b52}.cf-person:nth-child(3){--person-bg:#d9c98d;--person-hair:#25231f;--person-shirt:#5e7355}
+.cf-person strong{display:block;font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cf-person small{display:block;margin-top:3px;color:#72695f;font-size:.58rem;line-height:1.3}
+.cf-baton{position:absolute;z-index:3;left:50%;top:42px;width:50px;height:12px;border-radius:7px;background:linear-gradient(90deg,#c99719,#f1cd55,#d6a92b);border:1px solid rgba(99,72,10,.26);box-shadow:1px 3px 0 rgba(69,49,11,.12);transform:translateX(-50%) rotate(-8deg)}
+.cf-baton::after{content:"1 NIM";position:absolute;left:50%;top:-17px;transform:translateX(-50%);font-size:.48rem;font-weight:950;letter-spacing:.07em;color:#735b18;white-space:nowrap}
+
+/* Home: manifesto + human route, no generic SaaS card wall. */
+.approved-craft .cf-home{padding-top:22px}
+.cf-home-manifesto{position:relative;margin:16px 0 5px}
+.cf-home-line{display:inline-block;font-family:Georgia,"Times New Roman",serif;font-size:clamp(1.5rem,7vw,2.7rem);line-height:1.03;font-weight:700;letter-spacing:-.055em;color:var(--cf-forest-dark)}
+.cf-home-line em{font-style:normal;background:linear-gradient(transparent 56%,rgba(232,191,69,.55) 56% 90%,transparent 90%)}
+.cf-home-caption{max-width:43ch;margin:9px 0 0;color:#625a50;line-height:1.48;font-size:.78rem}
+.cf-home .promise-strip{display:none}
+.cf-home .mp-audience{border:0!important;background:transparent!important;padding:0!important;margin-top:14px!important}
+.cf-home .mp-audience-line{font-family:Georgia,"Times New Roman",serif!important;color:#4b463e!important}
+.cf-home .mp-use-cases{gap:6px!important}.cf-home .mp-use-case{border:1px solid rgba(41,39,31,.13)!important;border-radius:4px!important;background:#efe1ca!important;transform:rotate(-.6deg)}
+.cf-home .mp-use-case:nth-child(2){background:#d7e2df!important;transform:rotate(.5deg)}.cf-home .mp-use-case:nth-child(3){background:#efcabf!important}.cf-home .mp-use-case:nth-child(4){background:#d9d0e5!important;transform:rotate(.7deg)}
+.cf-home .tw-thesis-line{border:0;border-radius:0;background:transparent;padding:0;margin:12px 0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+/* Create: actionable form plus a real responsive preview, not a fake screenshot. */
+.cf-create-layout{display:grid;gap:14px;align-items:start}
+.cf-create-layout>.form-card{margin:0}
+.cf-mission-preview{position:relative;padding:18px 16px 19px;border:1px solid rgba(41,39,31,.14);border-radius:8px;background:#ece0cb;box-shadow:var(--cf-shadow);overflow:hidden}
+.cf-mission-preview h3{font-family:Georgia,"Times New Roman",serif;font-size:1.35rem;margin:10px 0 7px;letter-spacing:-.04em}.cf-mission-preview p{font-size:.76rem;line-height:1.48;color:#645c51;margin:0 0 14px}
+.cf-preview-destination{display:flex;align-items:center;gap:10px;padding:11px;background:#fff7e7;border:1px solid rgba(41,39,31,.12);transform:rotate(.4deg)}
+.cf-preview-pin{width:34px;height:41px;display:grid;place-items:center;color:#fff;border-radius:50% 50% 50% 4px;background:var(--cf-coral);transform:rotate(-45deg);font-weight:900}.cf-preview-pin span{transform:rotate(45deg)}
+.cf-preview-destination strong{display:block;font-size:.76rem}.cf-preview-destination small{display:block;margin-top:2px;font-size:.61rem;color:#736b60}
+.cf-preview-principles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:13px}.cf-preview-principles span{padding:7px 5px;background:rgba(255,249,237,.68);border-top:2px solid var(--cf-forest);font-size:.55rem;font-weight:850;text-align:center;line-height:1.3}
+
+/* Invitation: a consent artifact, not a payment request. */
+.approved-craft .cf-invitation{background:#f3eadb}
+.cf-invite-route{display:grid;grid-template-columns:1fr auto 1fr;gap:9px;align-items:center;margin:15px 0 12px;padding:13px;background:#dce7e4;border:1px solid rgba(41,39,31,.12);box-shadow:3px 4px 0 rgba(41,39,31,.07)}
+.cf-invite-route .cf-person-portrait{width:52px;height:58px;margin-bottom:5px}.cf-invite-arrow{font-family:Georgia,"Times New Roman",serif;font-size:1.3rem;color:var(--cf-coral)}
+.approved-craft .cf-invitation .tw-invite-rule{border:0;border-radius:4px;background:#f2d77f;box-shadow:2px 4px 0 rgba(41,39,31,.08)}
+.approved-craft .cf-invitation .wi-lifecycle{border-radius:5px;background:#fff8ea;border:1px dashed rgba(41,39,31,.25)}
+.approved-craft .cf-invitation .warning{background:#efe3d1;border-left-color:var(--cf-forest)}
+
+/* Mission: finite route is the identity device. */
+.approved-craft .cf-mission .tw-route-instrument{border-radius:7px;background:#e9ddc9;border:1px solid rgba(41,39,31,.14);box-shadow:3px 5px 0 rgba(41,39,31,.06)}
+.approved-craft .cf-mission .tw-route-instrument::before{background:repeating-linear-gradient(to bottom,rgba(223,101,77,.72) 0 6px,transparent 6px 11px)}
+.approved-craft .cf-mission .tw-route-node{border-radius:5px;background:var(--cf-forest-dark);border-color:#f2d77f}.approved-craft .cf-mission .tw-route-row.frontier .tw-route-node{background:var(--cf-coral);border-color:#f2d0c7}
+.approved-craft .cf-mission .tw-route-tag{border-radius:4px;background:#f7efdf}
+
+/* Pass: tactile ritual + sober evidence. */
+.cf-pass-ritual{display:grid;grid-template-columns:84px 1fr;gap:14px;align-items:center;margin:15px 0;padding:15px;background:#e4d7c2;border:1px solid rgba(41,39,31,.14);box-shadow:3px 5px 0 rgba(41,39,31,.07)}
+.cf-pass-baton{position:relative;width:80px;height:22px;border-radius:12px;background:linear-gradient(90deg,#b88615,#f0ca4b 38%,#d8a72a);border:1px solid rgba(90,62,8,.26);box-shadow:2px 4px 0 rgba(70,47,9,.13);transform:rotate(-5deg)}
+.cf-pass-baton::after{content:"1 NIM";position:absolute;inset:0;display:grid;place-items:center;font-size:.6rem;font-weight:950;color:#624c12;letter-spacing:.08em}
+.cf-pass-ritual strong{display:block;font-family:Georgia,"Times New Roman",serif;font-size:1rem}.cf-pass-ritual span{display:block;margin-top:4px;font-size:.68rem;line-height:1.42;color:#655d53}
+.approved-craft .cf-pass .wi-proof-ladder{border-radius:5px;border-color:rgba(41,39,31,.18)}
+.approved-craft .cf-pass .wi-proof-step{background:#fff8e9}.approved-craft .cf-pass .wi-proof-step.lr-active{background:#f5dfb9}.approved-craft .cf-pass .wi-proof-step.lr-complete{background:#e0ebcf}
+.approved-craft .cf-pass .wi-baton-proof{background:#f1d88d;border-radius:5px}
+
+/* Route details: people stay primary; evidence is restrained. */
+.cf-route-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 0 13px;padding:12px 13px;background:#e8dbc7;border-left:5px solid var(--cf-coral)}
+.cf-route-heading strong{display:block;font-family:Georgia,"Times New Roman",serif;font-size:1.05rem}.cf-route-heading span{display:block;margin-top:3px;font-size:.65rem;color:#6f665b;line-height:1.38}.cf-route-heading .cf-stamp{flex:0 0 auto}
+.approved-craft .route-step{min-height:88px;grid-template-columns:46px 1fr}.approved-craft .route-step .dot{width:23px;height:23px;background:var(--cf-forest-dark);border:6px solid #dce7b8;border-radius:5px;transform:rotate(45deg)}.approved-craft .route-step:not(:last-child) .rail::after{width:2px;background:repeating-linear-gradient(to bottom,var(--cf-coral) 0 7px,transparent 7px 12px);opacity:.7}
+.approved-craft .route-step strong{font-family:Georgia,"Times New Roman",serif;font-size:.96rem}.approved-craft .route-step small{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.61rem;line-height:1.45}
+.approved-craft .wi-finality-note{border-radius:5px;background:#e3ecd3;border-left-color:var(--cf-forest)}
+
+/* ARRIVED: human completion + proof object, not success-toast crypto. */
+.cf-arrived-moment{position:relative;margin:15px 0 17px;padding:20px 16px 18px;background:#dde4c5;border:1px solid rgba(41,39,31,.15);box-shadow:4px 6px 0 rgba(41,39,31,.07);overflow:hidden}
+.cf-arrived-moment::after{content:"";position:absolute;width:78px;height:78px;right:-26px;bottom:-30px;border:15px solid rgba(223,101,77,.32);border-radius:50%}
+.cf-arrived-moment .cf-stamp{margin-bottom:10px}.cf-arrived-moment h3{font-family:Georgia,"Times New Roman",serif;font-size:1.55rem;line-height:1;margin:0 0 8px;letter-spacing:-.045em}.cf-arrived-moment p{max-width:45ch;margin:0;color:#58604d;font-size:.76rem;line-height:1.5}
+.approved-craft .wi-receipt{border-radius:6px;background:#fff8e9;border:1px solid rgba(41,39,31,.22);box-shadow:6px 8px 0 rgba(41,39,31,.08)}
+.approved-craft .wi-receipt::before{opacity:.08}.approved-craft .wi-receipt-head{border-bottom:1px dashed rgba(41,39,31,.28)}.approved-craft .wi-arrived-seal{border-radius:4px;background:transparent;border:2px solid var(--cf-forest);color:var(--cf-forest)}
+.approved-craft .wi-receipt-metric{border-radius:4px;background:#eee2ca}.approved-craft .wi-receipt-route{border-top:1px dashed rgba(41,39,31,.16)}
+.approved-craft .mp-arrived-purpose{font-family:Georgia,"Times New Roman",serif;color:var(--cf-forest-dark);font-size:1.03rem;font-weight:700}
+
+/* Invite-created/share card becomes a physical handoff slip. */
+.approved-craft .invite-link{border-radius:5px;border:1px dashed rgba(41,39,31,.35);background:#ede0ca;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.approved-craft .wi-private-note{padding:10px 12px;background:#dce7e4;border-left:4px solid var(--cf-blue);font-size:.72rem;line-height:1.45}
+
+/* Dialogs are paper sheets, not glass sheets. */
+.approved-craft .wallet-dialog,.approved-craft .invite-dialog{border-radius:9px;background:#fff8e9;border:1px solid rgba(41,39,31,.18);box-shadow:var(--cf-shadow-lift)}
+.approved-craft dialog::backdrop{background:rgba(45,40,32,.48);backdrop-filter:none}
+.approved-craft .dialog-actions{background:linear-gradient(transparent,#fff8e9 28%)}
+.approved-craft .footer{border-top:1px dashed rgba(41,39,31,.2);padding-top:11px;color:#70685e}
+
+/* Mobile first: one dominant task, readable craft. */
+@media(max-width:520px){
+  .approved-craft .app-shell{padding-left:10px;padding-right:10px}
+  .approved-craft .brand small{display:none}
+  .approved-craft .brandbar{border-radius:11px}
+  .approved-craft .hero-card,.approved-craft .card,.approved-craft .form-card,.approved-craft .route-card{padding:18px 15px}
+  .approved-craft h1{font-size:clamp(2.2rem,12.5vw,3.35rem)}
+  .cf-human-route{gap:7px;padding-left:8px;padding-right:8px}.cf-human-route::before{left:14%;right:14%}.cf-person-portrait{width:52px;height:60px}.cf-person strong{font-size:.64rem}.cf-person small{font-size:.53rem}.cf-baton{width:42px}
+  .cf-preview-principles{grid-template-columns:1fr}.cf-pass-ritual{grid-template-columns:72px 1fr}.cf-pass-baton{width:68px}
+  .approved-craft .button-row .button,.approved-craft .button-row a.button{flex:1 1 100%;text-align:center}
+  .approved-craft .form-card form>.button.primary{position:sticky;bottom:max(8px,env(safe-area-inset-bottom));z-index:12;box-shadow:0 10px 22px rgba(54,45,34,.14),4px 5px 0 #bd765b}
+  .approved-craft .dialog-actions{position:sticky;bottom:0;padding-top:13px}
+  .approved-craft .footer{flex-direction:column;gap:5px}
+}
+@media(max-width:340px){
+  .cf-human-route{grid-template-columns:1fr}.cf-human-route::before{left:50%;right:auto;top:50px;bottom:50px;width:2px;height:auto;background:repeating-linear-gradient(to bottom,var(--cf-coral) 0 8px,transparent 8px 13px)}
+  .cf-baton{left:60%;top:119px}.cf-person{padding:3px 0}
+  .approved-craft .mp-use-cases{grid-template-columns:1fr 1fr!important}
+}
+
+/* Tablet: introduce contextual second zones without losing task priority. */
+@media(min-width:768px){
+  .approved-craft .app-shell{width:min(920px,100%);padding-left:24px;padding-right:24px}
+  .approved-craft .hero-card{padding:31px 29px 27px}
+  .cf-create-layout{grid-template-columns:minmax(0,1.2fr) minmax(270px,.8fr);gap:18px}.cf-mission-preview{position:sticky;top:86px}
+  .cf-human-route{padding:21px}.cf-person-portrait{width:72px;height:80px}
+}
+
+/* Desktop: genuine layout adaptation, never a centered phone. */
+@media(min-width:1024px){
+  .approved-craft .app-shell{width:min(1180px,calc(100% - 48px));padding-top:24px}
+  .approved-craft .screen{min-height:72vh}
+  .approved-craft .brandbar{padding:10px 13px}
+  .approved-craft .cf-home{display:grid;grid-template-columns:minmax(0,1.04fr) minmax(380px,.96fr);gap:26px;align-items:start;padding:36px 34px 30px}
+  .approved-craft .cf-home>.kicker,.approved-craft .cf-home>.wi-problem-first,.approved-craft .cf-home>h1,.approved-craft .cf-home>.lede,.approved-craft .cf-home>.wi-scenario,.approved-craft .cf-home>.wi-baton-note,.approved-craft .cf-home>.tw-thesis-line,.approved-craft .cf-home>.mp-audience,.approved-craft .cf-home>.button-row{grid-column:1}
+  .approved-craft .cf-home>.cf-home-manifesto{grid-column:2;grid-row:1 / span 9;align-self:center;margin:0}
+  .approved-craft .cf-home>.button-row{margin-top:8px}
+  .cf-home-manifesto .cf-human-route{margin-top:18px}
+  .cf-create-layout{grid-template-columns:minmax(0,1.13fr) minmax(330px,.87fr);gap:24px}.cf-create-layout>.form-card{padding:31px}.cf-mission-preview{padding:24px;top:92px}
+  .approved-craft .cf-invitation{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(330px,.92fr);gap:16px 24px;padding:33px}
+  .approved-craft .cf-invitation>.kicker,.approved-craft .cf-invitation>h1,.approved-craft .cf-invitation>.lede,.approved-craft .cf-invitation>.card,.approved-craft .cf-invitation>.warning,.approved-craft .cf-invitation>.wi-lifecycle,.approved-craft .cf-invitation>.button-row{grid-column:1}
+  .approved-craft .cf-invitation>.cf-invite-route,.approved-craft .cf-invitation>.tw-invite-rule{grid-column:2}.approved-craft .cf-invitation>.cf-invite-route{grid-row:1 / span 4;margin-top:8px;align-self:start}.approved-craft .cf-invitation>.tw-invite-rule{align-self:start}
+  .approved-craft .cf-pass{display:grid;grid-template-columns:minmax(0,1fr) minmax(350px,.86fr);gap:12px 24px;padding:33px}.approved-craft .cf-pass>.kicker,.approved-craft .cf-pass>h1,.approved-craft .cf-pass>.lede,.approved-craft .cf-pass>.promise-strip,.approved-craft .cf-pass>.warning,.approved-craft .cf-pass>.button-row{grid-column:1}.approved-craft .cf-pass>.cf-pass-ritual,.approved-craft .cf-pass>.wi-baton-proof,.approved-craft .cf-pass>.wi-proof-ladder,.approved-craft .cf-pass>.lr-proof-status{grid-column:2}.approved-craft .cf-pass>.cf-pass-ritual{grid-row:1 / span 3;align-self:start;margin:0}
+  .approved-craft .cf-mission{padding:33px;display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,.9fr);gap:10px 24px}.approved-craft .cf-mission>.meta-row,.approved-craft .cf-mission>.target-title,.approved-craft .cf-mission>.mission-note,.approved-craft .cf-mission>.button-row{grid-column:1}.approved-craft .cf-mission>.tw-route-instrument{grid-column:2;grid-row:1 / span 4;margin-top:0;align-self:start}
+  .approved-craft .route-card{padding:29px}.approved-craft .route{max-width:760px}.approved-craft .wi-receipt{max-width:840px;margin:18px auto 4px}
+}
+@media(min-width:1280px){
+  .approved-craft .app-shell{width:min(1260px,calc(100% - 64px))}.approved-craft .cf-home{grid-template-columns:minmax(0,1fr) minmax(470px,.9fr);gap:42px}.cf-home-line{font-size:3rem}.cf-human-route{padding:24px 25px}.cf-person-portrait{width:78px;height:86px}
+}
+@media(min-width:1440px){.approved-craft .app-shell{width:min(1320px,calc(100% - 88px))}}
+
+@media(prefers-reduced-motion:reduce){
+  .approved-craft .cf-torn-note,.approved-craft .cf-stamp,.approved-craft .cf-preview-destination,.approved-craft .cf-pass-baton{transform:none!important}
+  .approved-craft .brandbar{backdrop-filter:none}
+}
