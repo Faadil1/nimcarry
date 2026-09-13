@@ -12,6 +12,8 @@
   ·
   <a href="https://nimcarry.faadil-casecraft.workers.dev/?demo=1"><strong>Guided Demo</strong></a>
   ·
+  <a href="https://youtu.be/fKu_DgAOEv0"><strong>Demo Video</strong></a>
+  ·
   <a href="https://github.com/Faadil1/nimcarry/releases/tag/v1.0.0"><strong>v1.0.0 Release</strong></a>
 </p>
 
@@ -139,6 +141,8 @@ Two controlled A→B attempts reached native Nimiq Pay approval and failed after
 
 The recommended judge path is the deterministic [Guided Demo](https://nimcarry.faadil-casecraft.workers.dev/?demo=1). It uses the real product UI and state model without requiring wallet or network writes while the TESTNET submission issue remains unresolved.
 
+**Watch the final 87-second demo:** [NimCarry — One NIM. One Bridge at a Time.](https://youtu.be/fKu_DgAOEv0)
+
 <p align="center">
   <img src="docs/assets/readme/route-receipt-demo-arrived.png" alt="NimCarry guided demo Route Receipt" width="100%" />
 </p>
@@ -223,6 +227,7 @@ npm run build
 
 - [Live App](https://nimcarry.faadil-casecraft.workers.dev)
 - [Guided Demo](https://nimcarry.faadil-casecraft.workers.dev/?demo=1)
+- [Demo Video](https://youtu.be/fKu_DgAOEv0)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Security](SECURITY.md)
 - [Release notes](docs/release/RELEASE-NOTES-V1.0.0.md)
