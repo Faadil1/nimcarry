@@ -5,6 +5,7 @@ OUTPUT_ROOT="${DEMO_VIDEO_OUTPUT:-demo-video-v2}"
 RAW_VIDEO="${1:-$OUTPUT_ROOT/nimcarry-demo-v2-raw.webm}"
 FINAL_VIDEO="${2:-$OUTPUT_ROOT/nimcarry-demo-v2.mp4}"
 AUDIO_DIR="$OUTPUT_ROOT/audio"
+TRIM_START="0.45"
 mkdir -p "$AUDIO_DIR"
 
 : "${VOICE_SEGMENT_1:?VOICE_SEGMENT_1 is required}"
@@ -33,18 +34,25 @@ ffmpeg -hide_banner -loglevel error -y \
   -af "loudnorm=I=-16:LRA=11:TP=-1.5" \
   -ar 48000 -ac 2 "$AUDIO_DIR/narration.wav"
 
-VIDEO_DURATION="$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$RAW_VIDEO")"
+RAW_DURATION="$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$RAW_VIDEO")"
 AUDIO_DURATION="$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$AUDIO_DIR/narration.wav")"
-EXTRA_VIDEO="$(python3 - <<PY
-video=float("$VIDEO_DURATION")
+read -r VIDEO_DURATION EXTRA_VIDEO <<EOF
+$(python3 - <<PY
+raw=float("$RAW_DURATION")
+trim=float("$TRIM_START")
 audio=float("$AUDIO_DURATION")
-print(max(0.0, audio + 2.0 - video))
+video=max(0.0, raw-trim)
+extra=max(0.0, audio + 2.0 - video)
+print(video, extra)
 PY
-)"
+)
+EOF
 
 cat > "$OUTPUT_ROOT/render-metadata.json" <<EOF
 {
-  "raw_video_seconds": $VIDEO_DURATION,
+  "raw_video_seconds": $RAW_DURATION,
+  "trim_start_seconds": $TRIM_START,
+  "effective_video_seconds": $VIDEO_DURATION,
   "narration_seconds": $AUDIO_DURATION,
   "video_tail_extension_seconds": $EXTRA_VIDEO,
   "output": "$FINAL_VIDEO",
@@ -53,7 +61,7 @@ cat > "$OUTPUT_ROOT/render-metadata.json" <<EOF
 EOF
 
 ffmpeg -hide_banner -loglevel error -y \
-  -i "$RAW_VIDEO" \
+  -ss "$TRIM_START" -i "$RAW_VIDEO" \
   -i "$AUDIO_DIR/narration.wav" \
   -filter_complex "[0:v]tpad=stop_mode=clone:stop_duration=${EXTRA_VIDEO},scale=1920:1080:flags=lanczos,fps=30,format=yuv420p[v];[1:a]apad=pad_dur=12[a]" \
   -map "[v]" -map "[a]" \
