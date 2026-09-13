@@ -2,7 +2,7 @@
 .final-human-craft .brand{min-height:44px;display:flex;align-items:center}.final-human-craft .brand span{min-width:0}.final-human-craft .wallet-onboarding-card .button,.final-human-craft .wallet-onboarding-card a.button,.final-human-craft #wallet-onboarding-share a.button,.final-human-craft .warning a.button{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
 .final-human-craft .hero-card,.final-human-craft .card,.final-human-craft .form-card,.final-human-craft .route-card,.final-human-craft .hc-create-preview,.final-human-craft .hc-pass,.final-human-craft .hc-pass-ritual{min-width:0}
 .final-human-craft img,.final-human-craft svg{max-width:100%}.final-human-craft .button-row>*{max-width:100%}.final-human-craft .invite-link,.final-human-craft code{overflow-wrap:anywhere;word-break:break-word}
-.final-human-craft .hc-pass .promise-strip{display:none!important}
+.promise-strip{display:none!important}
 
 /* Paper realism: irregular edge, fibers, shadows. */
 .final-human-craft .hero-card,.final-human-craft .form-card,.final-human-craft .route-card{
