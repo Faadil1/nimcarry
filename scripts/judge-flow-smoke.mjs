@@ -1,5 +1,6 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { createServer } from "node:http";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { extname, join, normalize } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const playwrightRoot = process.env.JUDGE_FLOW_PLAYWRIGHT_ROOT;
@@ -7,8 +8,63 @@ if (!playwrightRoot) throw new Error("JUDGE_FLOW_PLAYWRIGHT_ROOT is required");
 const playwrightModule = pathToFileURL(join(playwrightRoot, "node_modules", "playwright", "index.mjs")).href;
 const { chromium } = await import(playwrightModule);
 
-const baseUrl = (process.argv[2] || process.env.NIMCARRY_JUDGE_URL || "").replace(/\/$/, "");
-if (!baseUrl) throw new Error("Usage: node scripts/judge-flow-smoke.mjs <production-url>");
+const localWebRoot = String(process.env.JUDGE_FLOW_WEB_ROOT || "").trim();
+const localPort = Number(process.env.JUDGE_FLOW_LOCAL_PORT || 4317);
+let localServer = null;
+
+const mime = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".webmanifest": "application/manifest+json",
+  ".json": "application/json; charset=utf-8",
+};
+
+function safeWebPath(root, pathname) {
+  const clean = normalize(decodeURIComponent(pathname))
+    .replace(/^([.][.][/\\])+/, "")
+    .replace(/^[/\\]+/, "");
+  return join(root, clean || "index.html");
+}
+
+async function startLocalSpaServer(root, port) {
+  const origin = `http://127.0.0.1:${port}`;
+  const server = createServer(async (req, res) => {
+    const url = new URL(req.url || "/", origin);
+    let path = safeWebPath(root, url.pathname);
+    try {
+      const info = await stat(path);
+      if (info.isDirectory()) path = join(path, "index.html");
+    } catch {
+      path = join(root, "index.html");
+    }
+    try {
+      const body = await readFile(path);
+      res.writeHead(200, {
+        "content-type": mime[extname(path)] || "application/octet-stream",
+        "cache-control": "no-store",
+      });
+      res.end(body);
+    } catch (error) {
+      res.writeHead(500, { "content-type": "text/plain; charset=utf-8" });
+      res.end(String(error));
+    }
+  });
+  await new Promise((resolve) => server.listen(port, "127.0.0.1", resolve));
+  return { server, origin };
+}
+
+let baseUrl;
+if (localWebRoot) {
+  const started = await startLocalSpaServer(localWebRoot, localPort);
+  localServer = started.server;
+  baseUrl = started.origin;
+} else {
+  baseUrl = (process.argv[2] || process.env.NIMCARRY_JUDGE_URL || "").replace(/\/$/, "");
+  if (!baseUrl) throw new Error("Usage: node scripts/judge-flow-smoke.mjs <production-url> or set JUDGE_FLOW_WEB_ROOT");
+}
 
 const outputRoot = process.env.JUDGE_FLOW_OUTPUT || "judge-flow-smoke";
 await mkdir(outputRoot, { recursive: true });
@@ -21,6 +77,7 @@ const viewports = [
 const report = {
   generated_at: new Date().toISOString(),
   base_url: baseUrl,
+  target: localWebRoot ? "PR_LOCAL_BRANCH_RUNTIME" : "PRODUCTION_RUNTIME",
   mode: "DEMO MODE — no wallet or network writes",
   viewports: {},
 };
@@ -34,6 +91,10 @@ async function expectPath(page, pattern, label) {
     { timeout: 8000 },
   );
   return { label, path: new URL(page.url()).pathname };
+}
+
+async function readMissionId(page) {
+  return page.evaluate(() => JSON.parse(localStorage.getItem("carryone.demo") || "null")?.mission?.mission_id || null);
 }
 
 async function run(viewport) {
@@ -83,16 +144,15 @@ async function run(viewport) {
     await page.locator("#demo-tour-open-invite").click();
     await page.waitForURL(/\/i\//, { timeout: 8000 });
     await page.locator("#accept").waitFor({ state: "visible" });
-    steps.push({ label: "invitation", path: new URL(page.url()).pathname });
+    steps.push({ label: "invitation-bridge-b", path: new URL(page.url()).pathname });
     await page.locator("#accept").click();
-    await page.locator("#notice").filter({ hasText: "Demo bridge accepted" }).waitFor({ state: "visible", timeout: 8000 });
+    steps.push(await expectPath(page, /^\/mission\/[^/]+$/, "mission-after-bridge-accept"));
 
-    const missionId = await page.evaluate(() => JSON.parse(localStorage.getItem("carryone.demo") || "null")?.mission?.mission_id);
+    const missionId = await readMissionId(page);
     if (!missionId) throw new Error("Demo mission id missing after invitation acceptance");
+    await page.locator("#pass-button").waitFor({ state: "visible" });
 
     activeStep = "pass-bridge-b";
-    await page.goto(`${baseUrl}/mission/${encodeURIComponent(missionId)}?demo=1&tour=1`, { waitUntil: "networkidle" });
-    await page.locator("#pass-button").waitFor({ state: "visible" });
     await page.locator("#pass-button").click();
     steps.push(await expectPath(page, /^\/mission\/[^/]+\/pass$/, "pass-bridge-b"));
     await page.locator("#send").click();
@@ -105,16 +165,17 @@ async function run(viewport) {
     await page.locator("#invite-dialog").waitFor({ state: "visible" });
     await page.locator("#invite-confirm").click();
     await page.locator("#demo-tour-open-invite").waitFor({ state: "visible" });
+
     activeStep = "invitation-destination";
     await page.locator("#demo-tour-open-invite").click();
     await page.waitForURL(/\/i\//, { timeout: 8000 });
     await page.locator("#accept").waitFor({ state: "visible" });
+    steps.push({ label: "invitation-destination", path: new URL(page.url()).pathname });
     await page.locator("#accept").click();
-    await page.locator("#notice").filter({ hasText: "Demo bridge accepted" }).waitFor({ state: "visible", timeout: 8000 });
+    steps.push(await expectPath(page, /^\/mission\/[^/]+$/, "mission-after-destination-accept"));
+    await page.locator("#pass-button").waitFor({ state: "visible" });
 
     activeStep = "pass-destination";
-    await page.goto(`${baseUrl}/mission/${encodeURIComponent(missionId)}?demo=1&tour=1`, { waitUntil: "networkidle" });
-    await page.locator("#pass-button").waitFor({ state: "visible" });
     await page.locator("#pass-button").click();
     steps.push(await expectPath(page, /^\/mission\/[^/]+\/pass$/, "pass-destination"));
     await page.locator("#send").click();
@@ -161,6 +222,7 @@ for (const viewport of viewports) {
 
 await writeFile(join(outputRoot, "report.json"), JSON.stringify(report, null, 2));
 await browser.close();
+if (localServer) await new Promise((resolve) => localServer.close(resolve));
 
 if (failed) process.exit(1);
-console.log("NimCarry production judge flow: PASS on mobile + desktop");
+console.log(`NimCarry judge flow: PASS on mobile + desktop (${localWebRoot ? "PR local branch runtime" : "production"})`);
