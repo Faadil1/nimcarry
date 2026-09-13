@@ -16,19 +16,21 @@ on:
       - web/**
       - scripts/judge-flow-smoke.mjs
       - .github/workflows/judge-flow-smoke.yml
+      - tests/mini-app/approved-craft-fidelity.test.ts
 
 permissions:
   contents: read
 
 jobs:
   flow:
-    name: Production guided flow — mobile + desktop
+    name: Guided flow — mobile + desktop
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       NIMCARRY_JUDGE_URL: https://nimcarry.faadil-casecraft.workers.dev
       JUDGE_FLOW_PLAYWRIGHT_ROOT: /tmp/nimcarry-judge-flow-playwright
       JUDGE_FLOW_OUTPUT: judge-flow-smoke
+      JUDGE_FLOW_WEB_ROOT: ${{ github.event_name == 'pull_request' && 'web' || '' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -49,13 +51,21 @@ jobs:
           npm install --no-audit --no-fund playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Run full production guided-flow smoke
+      - name: Run full guided-flow smoke
         shell: bash
         run: |
           set -euo pipefail
           rm -rf "$JUDGE_FLOW_OUTPUT"
+
+          if [ -n "$JUDGE_FLOW_WEB_ROOT" ]; then
+            echo "PR mode: exercising the checked-out branch with a local SPA server."
+            node scripts/judge-flow-smoke.mjs
+            exit 0
+          fi
+
+          echo "Main mode: exercising the deployed Cloudflare runtime."
           for attempt in 1 2 3 4; do
-            echo "Judge flow attempt $attempt/4"
+            echo "Production judge flow attempt $attempt/4"
             if node scripts/judge-flow-smoke.mjs "$NIMCARRY_JUDGE_URL"; then
               exit 0
             fi
