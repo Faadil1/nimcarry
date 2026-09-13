@@ -1,12 +1,12 @@
 {
-  "name": "NimCarry — Reach Mission",
+  "name": "NimCarry — People move opportunity forward",
   "short_name": "NimCarry",
-  "description": "Destination-bound human routing with a verified 1 NIM custody baton.",
+  "description": "Human routes for warm introductions, referrals, opportunities and community access. One destination; consenting human bridges; exactly 1 NIM as the verified custody baton.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f3ecdf",
-  "theme_color": "#f3ecdf",
+  "background_color": "#fff8eb",
+  "theme_color": "#183f36",
   "icons": [
     {
       "src": "/nimcarry-mark.svg",
