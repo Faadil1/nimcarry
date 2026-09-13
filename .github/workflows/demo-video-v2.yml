@@ -1,0 +1,98 @@
+name: Demo Video V2
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - scripts/demo-video-v2-cinematic.html
+      - scripts/demo-video-v2-cinematic.mjs
+      - scripts/demo-video-v2-capture.mjs
+      - scripts/demo-video-v2-render.sh
+      - docs/demo/DEMO-V2-NARRATIVE.md
+      - .github/workflows/demo-video-v2.yml
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    name: Cinematic + capture + narrate final UI demo
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NIMCARRY_DEMO_URL: https://nimcarry.faadil-casecraft.workers.dev
+      DEMO_VIDEO_PLAYWRIGHT_ROOT: /tmp/nimcarry-demo-video-playwright
+      DEMO_VIDEO_OUTPUT: demo-video-v2
+      VOICE_SEGMENT_1: https://storage.googleapis.com/adm--audio-playback--7d--public/mcp-preview/4ce6248f-be13-42f1-b1de-825157b652a3.mp3
+      VOICE_SEGMENT_2: https://storage.googleapis.com/adm--audio-playback--7d--public/mcp-preview/62c73eea-9d96-4421-b131-c5477bd27ea6.mp3
+      VOICE_SEGMENT_3: https://storage.googleapis.com/adm--audio-playback--7d--public/mcp-preview/7c53e737-13bc-487e-a24f-b26fc158a8d8.mp3
+      VOICE_SEGMENT_4: https://storage.googleapis.com/adm--audio-playback--7d--public/mcp-preview/adb351b7-7d20-494a-a6b0-66e88ef0093d.mp3
+      VOICE_SEGMENT_5: https://storage.googleapis.com/adm--audio-playback--7d--public/mcp-preview/3fb6de6f-31f9-4900-8de4-6bf15c5a3dab.mp3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright and Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$DEMO_VIDEO_PLAYWRIGHT_ROOT"
+          mkdir -p "$DEMO_VIDEO_PLAYWRIGHT_ROOT"
+          cd "$DEMO_VIDEO_PLAYWRIGHT_ROOT"
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Ensure ffmpeg
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+          ffmpeg -version | head -n 1
+
+      - name: Render tactile cinematic opener
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$DEMO_VIDEO_OUTPUT"
+          mkdir -p "$DEMO_VIDEO_OUTPUT"
+          node scripts/demo-video-v2-cinematic.mjs
+
+      - name: Capture the real final UI flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/demo-video-v2-capture.mjs "$NIMCARRY_DEMO_URL"
+
+      - name: Render narrated MP4
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x scripts/demo-video-v2-render.sh
+          scripts/demo-video-v2-render.sh
+
+      - name: Upload demo video package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nimcarry-demo-video-v2
+          path: |
+            demo-video-v2/nimcarry-demo-v2.mp4
+            demo-video-v2/nimcarry-cinematic-v2.webm
+            demo-video-v2/nimcarry-demo-v2-raw.webm
+            demo-video-v2/arrived-final.png
+            demo-video-v2/capture-manifest.json
+            demo-video-v2/render-metadata.json
+            demo-video-v2/final-probe.json
+          if-no-files-found: warn
+          retention-days: 14
