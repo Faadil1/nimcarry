@@ -1,0 +1,62 @@
+/* Final fidelity polish for the human-approved craft/collage direction. */
+.approved-craft .cf-home-manifesto{isolation:isolate}
+.approved-craft .cf-home-art,.approved-craft .cf-pass-art,.approved-craft .cf-arrival-art{display:block;width:100%;height:auto;border:1px solid rgba(41,39,31,.15);background:#eadfcd;box-shadow:5px 7px 0 rgba(76,58,37,.08)}
+.approved-craft .cf-home-art{margin:17px 0 13px;border-radius:7px;transform:rotate(.35deg)}
+.approved-craft .cf-route-accessible-copy{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.approved-craft .cf-home-manifesto::before,.approved-craft .cf-home-manifesto::after{content:"";position:absolute;z-index:-1;width:78px;height:52px;opacity:.62}
+.approved-craft .cf-home-manifesto::before{right:-13px;top:44px;background:#efcabf;clip-path:polygon(15% 0,100% 18%,84% 100%,0 78%);transform:rotate(9deg)}
+.approved-craft .cf-home-manifesto::after{left:-19px;bottom:18px;background:#bfd7cd;clip-path:polygon(0 17%,82% 0,100% 83%,22% 100%);transform:rotate(-8deg)}
+
+.approved-craft .cf-pass-art{max-width:520px;margin:15px 0 16px;border-radius:7px;transform:rotate(-.25deg)}
+.approved-craft .cf-pass-ritual{margin-top:8px}
+.approved-craft .cf-pass .promise-strip{margin-top:14px}
+.approved-craft .cf-proof-rule{display:flex;gap:9px;flex-wrap:wrap}
+
+.approved-craft .cf-arrival-art{margin:11px 0 13px;border-radius:7px;transform:rotate(.25deg)}
+.approved-craft .cf-arrived-moment{padding:15px 15px 18px}
+.approved-craft .cf-arrived-moment h3{font-size:1.7rem}
+
+.approved-craft .cf-route-person{position:relative;display:inline-block;width:32px;height:36px;margin:0 9px 0 0;vertical-align:middle;border-radius:18px 18px 8px 8px;background:#6f4f72;border:3px solid #f7eddb;box-shadow:2px 2px 0 rgba(41,39,31,.10)}
+.approved-craft .cf-route-person::before{content:"";position:absolute;width:13px;height:13px;border-radius:50%;left:50%;top:5px;transform:translateX(-50%);background:#d6a37f;box-shadow:0 -3px 0 1px #302822}
+.approved-craft .cf-route-person::after{content:"";position:absolute;width:24px;height:15px;left:50%;bottom:1px;transform:translateX(-50%);border-radius:12px 12px 4px 4px;background:#557d98}
+.approved-craft .cf-route-person.destination{background:#d8c98d}
+.approved-craft .cf-route-person.destination::after{background:#3f716a}
+
+.approved-craft .cf-invite-note{background:#f0cfb9;transform:rotate(.55deg)}
+.approved-craft .cf-invite-people-art{position:relative;overflow:visible}
+.approved-craft .cf-invite-people-art::before{content:"";position:absolute;right:-9px;top:-13px;width:58px;height:24px;background:rgba(232,191,69,.62);transform:rotate(7deg);clip-path:polygon(0 12%,100% 0,92% 100%,7% 82%)}
+
+@media(max-width:520px){
+  .approved-craft .cf-home-art{margin-left:-3px;width:calc(100% + 6px)}
+  .approved-craft .cf-pass-art{margin-top:11px}
+  .approved-craft .cf-route-person{width:27px;height:31px;margin-right:7px}
+  .approved-craft .cf-route-person::before{width:11px;height:11px}.approved-craft .cf-route-person::after{width:20px;height:13px}
+  .approved-craft .cf-arrival-art{margin-top:8px}
+}
+
+@media(min-width:768px){
+  .approved-craft .cf-home-art{margin-top:19px}
+  .approved-craft .cf-pass-art{max-width:580px}
+}
+
+@media(min-width:1024px){
+  .approved-craft .cf-home-art{margin-top:20px}
+  .approved-craft .cf-invitation>.cf-invite-route{grid-column:2;grid-row:1 / span 3;margin:7px 0 0;align-self:start}
+  .approved-craft .cf-invitation>.cf-invite-note{grid-column:2;grid-row:4;align-self:start;margin:0}
+  .approved-craft .cf-invitation>.tw-invite-rule{grid-column:2;grid-row:5;align-self:start;margin-top:0}
+  .approved-craft .cf-pass>.cf-pass-art{grid-column:1;grid-row:4;margin:2px 0 10px;align-self:start}
+  .approved-craft .cf-pass>.cf-pass-ritual{grid-column:2;grid-row:1 / span 3}
+  .approved-craft .cf-route.cf-route-arrived{display:grid;grid-template-columns:minmax(0,1.04fr) minmax(380px,.96fr);gap:10px 28px;align-items:start}
+  .approved-craft .cf-route.cf-route-arrived>.wi-flow,.approved-craft .cf-route.cf-route-arrived>.split,.approved-craft .cf-route.cf-route-arrived>.cf-route-heading{grid-column:1 / -1}
+  .approved-craft .cf-route.cf-route-arrived>.target-title,.approved-craft .cf-route.cf-route-arrived>.lede,.approved-craft .cf-route.cf-route-arrived>.route,.approved-craft .cf-route.cf-route-arrived>.wi-finality-note{grid-column:1}
+  .approved-craft .cf-route.cf-route-arrived>.cf-arrived-moment,.approved-craft .cf-route.cf-route-arrived>.wi-receipt{grid-column:2}
+  .approved-craft .cf-route.cf-route-arrived>.cf-arrived-moment{grid-row:4 / span 2;margin:0}.approved-craft .cf-route.cf-route-arrived>.wi-receipt{margin:0;align-self:start}
+  .approved-craft .cf-route.cf-route-arrived>.button-row{grid-column:2}
+}
+
+@media(min-width:1280px){
+  .approved-craft .cf-home-art{max-height:315px;object-fit:cover}
+  .approved-craft .cf-pass-art{max-width:610px}
+}
+
+@media(prefers-reduced-motion:reduce){.approved-craft .cf-home-art,.approved-craft .cf-pass-art,.approved-craft .cf-arrival-art,.approved-craft .cf-invite-note{transform:none}}
