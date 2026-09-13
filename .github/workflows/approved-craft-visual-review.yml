@@ -1,0 +1,87 @@
+name: Approved Craft Visual Review
+
+on:
+  push:
+    branches:
+      - experiment/approved-craft-fidelity
+    paths:
+      - web/approved-craft-fidelity.css
+      - web/approved-craft-fidelity.js
+      - web/index.html
+      - scripts/approved-craft-visual-capture.mjs
+      - .github/workflows/approved-craft-visual-review.yml
+      - docs/design/APPROVED-CRAFT-FIDELITY-CONTRACT.yaml
+  pull_request:
+    branches:
+      - experiment/mature-nimiq-pay-positioning
+
+permissions:
+  contents: read
+
+jobs:
+  approved-craft-visual:
+    name: Capture approved craft responsive matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      TRACE_PLAYWRIGHT_ROOT: /tmp/approved-craft-playwright
+    steps:
+      - name: Checkout approved craft candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Install Playwright in isolated tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$TRACE_PLAYWRIGHT_ROOT"
+          mkdir -p "$TRACE_PLAYWRIGHT_ROOT"
+          cd "$TRACE_PLAYWRIGHT_ROOT"
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Capture mobile tablet desktop states
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf approved-craft-visual
+          node scripts/approved-craft-visual-capture.mjs web approved-craft-visual 4199
+
+      - name: Enforce geometry gate
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          const report = JSON.parse(await readFile('approved-craft-visual/report.json','utf8'));
+          const failures = [];
+          for (const [viewport, states] of Object.entries(report.viewports)) {
+            for (const [state, data] of Object.entries(states)) {
+              if (data.horizontal_overflow) failures.push(`${viewport}/${state}: horizontal overflow`);
+              if (data.small_buttons.length) failures.push(`${viewport}/${state}: touch targets ${JSON.stringify(data.small_buttons)}`);
+            }
+          }
+          if (failures.length) {
+            console.error(failures.join('\n'));
+            process.exit(1);
+          }
+          console.log('Approved craft geometry gate PASS');
+          NODE
+
+      - name: Upload approved craft fidelity matrix
+        uses: actions/upload-artifact@v4
+        with:
+          name: approved-craft-fidelity-matrix
+          path: approved-craft-visual
+          if-no-files-found: error
+          retention-days: 7
