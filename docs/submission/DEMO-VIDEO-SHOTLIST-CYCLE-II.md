@@ -27,6 +27,8 @@ Each generated clip must end by converging on the supplied real end frame. Do no
 ## Capture rules
 
 - Cinematic frames are storytelling only; they must transition into real NimCarry screens.
+- Generated cinematic clip audio is never authoritative: mute/remove its native audio before final assembly unless it has been explicitly reviewed and approved. The final mix must use the controlled narration/music/SFX layers only, with no scratch, static, generated room tone, or residual model audio.
+- Before publishing, listen once on headphones and once on a phone speaker for clicks, scratches, clipping, hiss, abrupt ambience changes, or accidental duplicate audio layers.
 - Never open Nimiq Pay or trigger a real provider transaction while recording.
 - Keep the DEMO MODE boundary visible on all simulated successful states.
 - Do not reconstruct a fake TESTNET error screen for the negative-event beat.
