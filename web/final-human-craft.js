@@ -127,12 +127,15 @@
     const note = el("div", "hc-hand-note hc-invite-note");
     note.append(el("strong", "", `Why you? ${whyText}`), el("span", "", `This route has one destination: ${destination}. Accepting means you consent to participate — it does not move funds.`));
 
-    const buttons = hero.querySelector(".button-row");
+    // The wallet-onboarding card contains its own .button-row. Always anchor to the
+    // actual Accept/Decline action row; otherwise moving onboarding after its own
+    // descendant creates a HierarchyRequestError and can interrupt invitation UX.
+    const buttons = hero.querySelector("#accept")?.closest(".button-row");
     const onboarding = hero.querySelector(".wallet-onboarding-card");
     const lifecycle = hero.querySelector(".wi-lifecycle");
     if (lifecycle) lifecycle.after(context, note);
     else (whyCard || buttons || hero).before(context, note);
-    if (buttons && onboarding) buttons.after(onboarding);
+    if (buttons && onboarding && !onboarding.contains(buttons)) buttons.after(onboarding);
   }
 
   function mission() {
