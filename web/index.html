@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="/styles.css" />
   <link rel="stylesheet" href="/winning-intelligence.css" />
   <link rel="stylesheet" href="/final-human-craft.css" />
+  <link rel="stylesheet" href="/final-human-craft-max.css" />
 </head>
 <body>
   <div id="app-shell" class="app-shell">
@@ -38,22 +39,13 @@
 
   <dialog id="wallet-dialog" class="wallet-dialog">
     <form method="dialog" id="wallet-form">
-      <div class="dialog-kicker">Nimiq Pay</div>
-      <h2>Choose the account you expect to use</h2>
-      <p>NimCarry cannot force the sender account. The server still verifies the actual sender on-chain.</p>
-      <div id="wallet-options" class="wallet-options"></div>
-      <div class="dialog-actions"><button value="cancel" class="button ghost">Cancel</button><button id="wallet-confirm" value="default" class="button primary">Continue</button></div>
+      <div class="dialog-kicker">Nimiq Pay</div><h2>Choose the account you expect to use</h2><p>NimCarry cannot force the sender account. The server still verifies the actual sender on-chain.</p><div id="wallet-options" class="wallet-options"></div><div class="dialog-actions"><button value="cancel" class="button ghost">Cancel</button><button id="wallet-confirm" value="default" class="button primary">Continue</button></div>
     </form>
   </dialog>
 
   <dialog id="invite-dialog" class="invite-dialog">
     <form method="dialog" id="invite-form">
-      <div class="dialog-kicker">Next human bridge</div>
-      <h2>Who can move this introduction closer?</h2>
-      <label>Bridge label<input id="candidate-label" maxlength="60" placeholder="Opeyemi" /></label>
-      <label>Why them?<textarea id="why-you" maxlength="120" placeholder="You know the next person in this network and can move the introduction closer."></textarea></label>
-      <label>Known wallet (optional)<input id="candidate-wallet" autocomplete="off" placeholder="NQ…" /></label>
-      <div class="dialog-actions"><button value="cancel" class="button ghost">Cancel</button><button id="invite-confirm" value="default" class="button primary">Create private invite</button></div>
+      <div class="dialog-kicker">Next human bridge</div><h2>Who can move this introduction closer?</h2><label>Bridge label<input id="candidate-label" maxlength="60" placeholder="Opeyemi" /></label><label>Why them?<textarea id="why-you" maxlength="120" placeholder="You know the next person in this network and can move the introduction closer."></textarea></label><label>Known wallet (optional)<input id="candidate-wallet" autocomplete="off" placeholder="NQ…" /></label><div class="dialog-actions"><button value="cancel" class="button ghost">Cancel</button><button id="invite-confirm" value="default" class="button primary">Create private invite</button></div>
     </form>
   </dialog>
 
@@ -62,6 +54,7 @@
   <script src="/wallet-onboarding.js" defer></script>
   <script src="/winning-intelligence.js" defer></script>
   <script src="/final-human-craft.js" defer></script>
+  <script src="/final-human-craft-max.js" defer></script>
   <script src="/route-shell-polish.js" defer></script>
   <script src="/demo-ux.js" defer></script>
   <script src="/demo-tour.js" defer></script>
