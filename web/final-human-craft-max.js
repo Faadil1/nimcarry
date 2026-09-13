@@ -15,6 +15,9 @@
     if (node && clean(node.textContent) !== text) node.textContent = text;
   };
   const findCard = (root, pattern) => [...root.querySelectorAll(".card")].find((card) => pattern.test(clean(card.textContent)));
+  const moveInto = (parent, node) => {
+    if (parent && node && node.parentElement !== parent) parent.append(node);
+  };
 
   function disclosure(node, summaryText, className) {
     if (!node) return null;
@@ -88,8 +91,11 @@
     }
     const more = disclosure(values, "Why it is verifiable", "hc-home-more");
 
-    [kicker, primer, h1, lede, proof, buttons, cases, more].filter(Boolean).forEach((node) => copy.append(node));
-    storyWrap.append(story);
+    // Reparent each node only once. Re-appending already-composed controls on every
+    // MutationObserver pass creates a perpetual mutation loop that can interrupt
+    // real pointer clicks even though programmatic browser clicks still succeed.
+    [kicker, primer, h1, lede, proof, buttons, cases, more].filter(Boolean).forEach((node) => moveInto(copy, node));
+    moveInto(storyWrap, story);
     hero.dataset.hcMax = "1";
   }
 
@@ -178,8 +184,8 @@
       (flow || hero.firstElementChild || hero).after(grid);
     }
 
-    [envelope, stepKicker, h1, lede, whyCard, context, warning, actions].filter(Boolean).forEach((node) => primary.append(node));
-    [note, walletHelp].filter(Boolean).forEach((node) => support.append(node));
+    [envelope, stepKicker, h1, lede, whyCard, context, warning, actions].filter(Boolean).forEach((node) => moveInto(primary, node));
+    [note, walletHelp].filter(Boolean).forEach((node) => moveInto(support, node));
     hero.dataset.hcMax = "1";
   }
 
@@ -224,8 +230,8 @@
       (flow || hero.firstElementChild || hero).after(stage);
     }
 
-    [stepKicker, h1, lede, image].filter(Boolean).forEach((node) => left.append(node));
-    [ritual, warning, actions, rule, note, proofDetails].filter(Boolean).forEach((node) => right.append(node));
+    [stepKicker, h1, lede, image].filter(Boolean).forEach((node) => moveInto(left, node));
+    [ritual, warning, actions, rule, note, proofDetails].filter(Boolean).forEach((node) => moveInto(right, node));
     hero.dataset.hcMax = "1";
   }
 

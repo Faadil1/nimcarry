@@ -36,6 +36,16 @@ describe("final human-craft product identity", () => {
     }
   });
 
+  it("keeps interactive controls stable across MutationObserver passes", () => {
+    expect(maxJs).toContain("node.parentElement !== parent");
+    expect(maxJs).toContain("moveInto(copy, node)");
+    expect(maxJs).toContain("moveInto(primary, node)");
+    expect(maxJs).toContain("moveInto(right, node)");
+    expect(maxJs).not.toContain("forEach((node) => copy.append(node))");
+    expect(maxJs).not.toContain("forEach((node) => primary.append(node))");
+    expect(maxJs).not.toContain("forEach((node) => right.append(node))");
+  });
+
   it("locks the mature product positioning", () => {
     expect(js).toContain("People move opportunity forward.");
     expect(js).toContain("Warm introductions");
