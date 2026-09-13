@@ -7,6 +7,11 @@ on:
     paths:
       - web/approved-craft-fidelity.css
       - web/approved-craft-fidelity.js
+      - web/approved-craft-polish.css
+      - web/approved-craft-polish.js
+      - web/craft-human-route.svg
+      - web/craft-baton-handoff.svg
+      - web/craft-arrival.svg
       - web/index.html
       - scripts/approved-craft-visual-capture.mjs
       - .github/workflows/approved-craft-visual-review.yml
