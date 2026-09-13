@@ -208,8 +208,8 @@
     const proofDetails = ladder ? disclosure(ladder, "Why FINAL matters", "hc-proof-details") : null;
 
     let note = hero.querySelector(".hc-max-ritual-note");
-    if (!note) note = el("p", "hc-max-ritual-note", "People carry the outcome. 1 NIM only records verified custody.");
-    else setText(note, "People carry the outcome. 1 NIM only records verified custody.");
+    if (!note) note = el("p", "hc-max-ritual-note", "The human outcome is the reason for the route. 1 NIM only records verified custody.");
+    else setText(note, "The human outcome is the reason for the route. 1 NIM only records verified custody.");
 
     let stage = hero.querySelector(".hc-max-pass-stage");
     let left = stage?.querySelector(".hc-max-pass-story");
