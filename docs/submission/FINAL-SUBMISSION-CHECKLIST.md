@@ -10,7 +10,7 @@
 - [x] ≤250-word submission description ready.
 - [x] Team wording ready: Faadil Boussari — product/repo lead; Opeyemi (`opeblow`) — technical lead.
 - [x] Demo script, shot list, and capture runbook ready.
-- [x] Final V3 demo video published: https://youtu.be/0ISLOLvoqtE
+- [ ] Final corrected V3.1 demo video published and linked. The current upload `https://youtu.be/0ISLOLvoqtE` contains a beginning/end edit anomaly and must not be treated as the locked submission asset.
 - [x] Score audit and promotion drafts ready.
 - [x] Testnet blocker and evidence boundary stated truthfully.
 - [x] Secret scan and production endpoint checks complete.
