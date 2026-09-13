@@ -1,0 +1,230 @@
+contract: NIMCARRY_APPROVED_CRAFT_FIDELITY
+version: "1.0"
+status: HUMAN_APPROVED_IMPLEMENTATION_CONTRACT
+branch: experiment/approved-craft-fidelity
+base: experiment/mature-nimiq-pay-positioning
+
+visual_source:
+  label: WARM_CRAFT_COLLAGE_HUMAN_OPPORTUNITY
+  approved_date: "2026-09-13"
+  identity:
+    - tactile_paper_collage
+    - warm_human_materiality
+    - colorful_but_mature
+    - real_people_as_subject
+    - finite_destination_bound_route
+    - one_nim_baton_as_supporting_object
+    - torn_notes_tags_stamps_stitch_cues
+    - mobile_first_true_desktop_adaptation
+  mature_use_cases:
+    - warm_introductions
+    - referrals
+    - opportunities
+    - community_access
+
+frozen_truth:
+  one_private_destination: true
+  bridge_requires_explicit_consent: true
+  exact_baton_value_nim: 1
+  accepting_invite_moves_funds: false
+  approval_equals_custody: false
+  broadcast_equals_custody: false
+  final_only_changes_custody: true
+  demo_and_simulation_must_be_labeled: true
+  no_unverified_real_arrived_claim: true
+  protect_private_destination_and_full_wallets: true
+
+material_system:
+  canvas: warm_natural_paper
+  primary_surface: layered_paper_panel
+  depth: physical_soft_shadow
+  optional_semantic_details:
+    - torn_edge
+    - tape
+    - stamp
+    - stitch
+    - patch
+  reject:
+    - glassmorphism_primary_language
+    - neon_crypto
+    - generic_dark_fintech
+    - floating_card_overload
+    - decorative_3d_coin_orbit
+    - sterile_saas_with_surface_craft_only
+
+color_roles:
+  canvas: warm_cream
+  ink: dark_brown_charcoal
+  primary_action: deep_forest_green
+  baton_opportunity: warm_yellow_ochre
+  destination: coral_red_marker
+  verified_final: green_status
+  human_accents:
+    - coral
+    - teal
+    - blue
+    - aubergine
+
+ typography_roles:
+  display: warm_editorial_human
+  interface: highly_legible_sans
+  annotation: sparse_handwritten_short_only
+  evidence: sober_high_contrast_compact
+  reject:
+    - unreadable_microtype
+    - handwriting_for_evidence
+    - generic_startup_grotesk_as_only_voice
+    - all_caps_everywhere
+
+components_required:
+  - CraftCanvas
+  - PaperPanel
+  - TornNote
+  - MissionTag
+  - HumanAvatar
+  - BridgePortrait
+  - RouteNode
+  - HumanRoute
+  - NimBaton
+  - DestinationMarker
+  - ConsentCard
+  - ProofStamp
+  - RouteReceipt
+  - UseCaseStrip
+  - ResponsiveActionRail
+
+screen_contracts:
+  home:
+    first_view_must_express:
+      - people_carry_meaningful_introduction_or_opportunity
+      - one_destination
+      - real_human_bridges
+      - one_nim_is_baton_not_value_proposition
+    signature: human_route_path_plus_editorial_message
+  create:
+    primary_job: prepare_meaningful_introduction_not_crypto_transaction
+    order:
+      - destination
+      - payload_or_opportunity
+      - why_it_matters
+      - mission_preview
+  invitation:
+    before_accept_must_answer:
+      - who_invited_me
+      - what_is_the_destination_job
+      - why_me
+      - what_accept_means
+      - what_accept_does_not_do
+  pass:
+    must_show:
+      - exact_1_nim
+      - accepted_next_bridge
+      - approval_broadcast_final_separation
+      - final_only_changes_custody
+      - no_financial_upside
+  arrived:
+    must_show:
+      - human_route_completed
+      - intended_destination_reached
+      - people_made_it_possible
+      - proof_share_without_private_data
+  route_details:
+    must_show:
+      - finite_origin_to_destination_route
+      - people_as_nodes
+      - verified_vs_pending
+      - current_frontier_if_active
+      - restrained_evidence_layer
+      - route_receipt_when_arrived
+
+responsive:
+  mobile:
+    widths: [320, 375, 390]
+    rule: one_dominant_task_per_viewport
+    primary_cta_thumb_reachable: true
+    horizontal_scroll: forbidden
+  tablet:
+    widths: [768]
+    rule: preserve_mobile_clarity_add_context_selectively
+  desktop:
+    widths: [1024, 1280, 1440]
+    rule: true_adaptation_not_centered_phone
+    layout_jobs:
+      home: manifesto_plus_route_preview
+      create: form_plus_mission_preview
+      invitation: consent_plus_route_context
+      pass: action_plus_finality_context
+      arrived: emotional_completion_plus_receipt
+      route_details: timeline_plus_journey_plus_proof
+
+motion:
+  allow:
+    - paper_settle
+    - route_node_reveal
+    - baton_handoff_emphasis
+    - proof_stamp
+    - subtle_paper_lift
+  reject:
+    - endless_float
+    - decorative_parallax
+    - confetti_as_only_payoff
+    - motion_required_for_state_comprehension
+  reduced_motion_information_equivalence: required
+
+maturity_guardrail:
+  require:
+    - real_world_stakes
+    - sophisticated_spacing
+    - restrained_illustration_density
+    - sober_proof_surfaces
+  reject:
+    - cartoon_mascot
+    - arbitrary_badges
+    - unrelated_streaks
+    - game_reward_language
+
+anti_drift_failures:
+  - generic_saas_if_textures_removed
+  - generic_crypto_wallet_if_people_removed
+  - baton_becomes_brand_instead_of_human_route
+  - decorative_notes_outnumber_product_information
+  - desktop_becomes_dashboard_grid
+  - invitation_reads_like_payment_request
+  - arrived_reads_like_transaction_success_toast
+  - screenshot_or_static_slice_used_as_fake_ui
+  - visuals_imply_stronger_testnet_behavior_than_verified
+
+reference_routing:
+  typography: TRACE_TYPOGRAPHY_REFERENCE_LAYER
+  brand_system_logic: BRANDING_STYLE_GUIDES
+  microinteraction: DESIGN_SPELLS
+  cognitive_load: GROWTH_DESIGN_PSYCHOLOGY
+  uniqueness: TRACE_ANTI_SLOP
+  rule: extract_mechanism_never_copy_source_identity
+
+implementation_sequence:
+  - freeze_design_tokens
+  - build_material_primitives
+  - implement_home_create
+  - implement_invitation_pass
+  - implement_arrived_route_details
+  - mobile_qa
+  - tablet_qa
+  - desktop_qa
+  - typography_qa
+  - uniqueness_anti_slop_audit
+  - truth_proof_audit
+  - human_fidelity_comparison
+
+promotion_gate:
+  recognizable_as_approved_direction: required
+  five_second_job_comprehension: required
+  sixty_second_main_point_reach: required
+  consent_clear_before_accept: required
+  final_only_semantics_clear: required
+  responsive_all_required_widths: required
+  keyboard_focus_reduced_motion_sanity: required
+  screenshot_based_ui: forbidden
+  wholesale_reference_copy: forbidden
+  ci: pass
+  human_approval: required
