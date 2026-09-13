@@ -1,0 +1,147 @@
+/* P0 Nimiq Pay recovery UX — follows final human-craft identity. */
+.nimiq-recovery-panel {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  margin: 14px 0 18px;
+  padding: 18px;
+  border: 1px solid rgba(24, 63, 54, 0.18);
+  border-radius: 18px 12px 20px 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 244, 0.98), rgba(246, 236, 220, 0.98)),
+    repeating-linear-gradient(0deg, rgba(24, 63, 54, 0.018) 0 1px, transparent 1px 4px);
+  box-shadow: 0 16px 38px rgba(56, 45, 34, 0.12);
+  overflow: hidden;
+}
+
+.nimiq-recovery-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 6px;
+  background: #c4933f;
+}
+
+.nimiq-recovery-panel[data-kind="ambiguous"]::before,
+.nimiq-recovery-panel[data-kind="pending"]::before { background: #c4933f; }
+.nimiq-recovery-panel[data-kind="cancelled"]::before { background: #7c9a7d; }
+.nimiq-recovery-panel[data-kind="account"]::before,
+.nimiq-recovery-panel[data-kind="provider"]::before { background: #5c7e8c; }
+.nimiq-recovery-panel[data-kind="blocked"]::before { background: #a94f37; }
+
+.nr-stamp {
+  justify-self: start;
+  transform: rotate(-2deg);
+  padding: 6px 9px 5px;
+  border: 1.5px solid currentColor;
+  border-radius: 7px;
+  color: #183f36;
+  font: 900 0.64rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: rgba(255,255,255,0.54);
+}
+
+.nr-copy { min-width: 0; }
+.nr-eyebrow {
+  color: #6f665d;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+.nimiq-recovery-panel h2 {
+  margin: 6px 0 7px;
+  color: #183f36;
+  font-size: clamp(1.2rem, 5vw, 1.7rem);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+}
+.nimiq-recovery-panel p {
+  margin: 0;
+  color: #5f574f;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  max-width: 62ch;
+}
+
+.nr-rule {
+  display: grid;
+  gap: 3px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(24, 63, 54, 0.22);
+}
+.nr-rule span {
+  color: #766e65;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.nr-rule strong {
+  color: #183f36;
+  font-size: 0.78rem;
+}
+
+.nr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.nr-actions .button {
+  min-height: 46px;
+  flex: 1 1 190px;
+}
+
+.nr-details {
+  border-top: 1px dashed rgba(24, 63, 54, 0.16);
+  padding-top: 10px;
+}
+.nr-details summary {
+  cursor: pointer;
+  color: #70675f;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.nr-details code {
+  display: block;
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(24, 63, 54, 0.06);
+  color: #4f4841;
+  font-size: 0.66rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+@media (min-width: 768px) {
+  .nimiq-recovery-panel {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    padding: 20px 22px 18px;
+  }
+  .nr-stamp,
+  .nr-details { grid-column: 1 / -1; }
+  .nr-actions {
+    min-width: 250px;
+    justify-content: flex-end;
+  }
+  .nr-actions .button { flex: 0 0 auto; }
+}
+
+@media (max-width: 520px) {
+  .nimiq-recovery-panel {
+    margin: 10px 0 14px;
+    padding: 16px 14px 14px 18px;
+  }
+  .nr-actions { flex-direction: column; }
+  .nr-actions .button { width: 100%; flex-basis: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nr-stamp { transform: none; }
+}
