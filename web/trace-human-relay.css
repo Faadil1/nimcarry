@@ -1,0 +1,27 @@
+/* TRACE direction B — HUMAN RELAY. Presentation only. */
+:root{--hr-warm:#fff7ed;--hr-rose:#ef6b59;--hr-plum:#4b365c;--hr-leaf:#b9df7c;--hr-soft:#f0e8df;--hr-ink:#24201d}
+body.trace-human-relay{background:radial-gradient(circle at 14% 8%,rgba(239,107,89,.20),transparent 25rem),radial-gradient(circle at 92% 68%,rgba(185,223,124,.24),transparent 22rem),linear-gradient(165deg,#f7f0e7,#efe6dc);color:var(--hr-ink)}
+.trace-human-relay .route-ribbon{height:8px;opacity:.42;filter:blur(.2px)}
+.trace-human-relay .app-shell{width:min(720px,100%)}
+.trace-human-relay .brandbar{position:sticky;top:max(8px,env(safe-area-inset-top));z-index:20;padding:8px 10px;border:1px solid rgba(36,32,29,.10);border-radius:20px;background:rgba(255,250,245,.79);backdrop-filter:blur(18px);box-shadow:0 8px 28px rgba(77,54,44,.08)}
+.trace-human-relay .hero-card,.trace-human-relay .card,.trace-human-relay .form-card,.trace-human-relay .route-card{border-radius:30px;background:rgba(255,252,247,.94);border:1px solid rgba(36,32,29,.11);box-shadow:0 20px 60px rgba(73,48,38,.10)}
+.trace-human-relay h1{max-width:13ch;font-size:clamp(2.45rem,12vw,4.75rem)}
+.trace-human-relay .kicker{color:#7b6c63}
+.hr-human-context{display:grid;grid-template-columns:44px 1fr auto;gap:11px;align-items:center;margin:16px 0 4px;padding:12px;border-radius:18px;background:linear-gradient(135deg,#f8e6df,#fff8ef);border:1px solid rgba(239,107,89,.18)}
+.hr-human-context .hr-avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--hr-plum);color:white;font-weight:900;box-shadow:4px 4px 0 rgba(239,107,89,.55)}
+.hr-human-context strong{display:block;font-size:.9rem;letter-spacing:-.02em}.hr-human-context small{display:block;margin-top:3px;color:#74675f;line-height:1.35}
+.hr-human-context .hr-arrow{font-size:1.25rem;color:var(--hr-rose);font-weight:900}
+.hr-why-card{margin:14px 0;padding:16px 16px 15px;border-radius:20px;background:#f0e9f5;border:1px solid rgba(75,54,92,.14)}
+.hr-why-card span{display:block;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;font-weight:950;color:#75667f}.hr-why-card strong{display:block;margin-top:6px;font-size:1rem;line-height:1.35}.hr-why-card p{margin:7px 0 0;color:#655a69;font-size:.78rem;line-height:1.5}
+.hr-consent-contract{display:grid;gap:8px;margin:14px 0;padding:14px;border:1px solid rgba(36,32,29,.11);border-radius:18px;background:#fffaf3}
+.hr-consent-contract strong{font-size:.82rem}.hr-consent-row{display:grid;grid-template-columns:24px 1fr;gap:8px;align-items:start;font-size:.72rem;line-height:1.42;color:#615750}.hr-consent-row b{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--hr-leaf);color:var(--hr-ink);font-size:.68rem}.hr-consent-row.hr-decline b{background:#eee4db}
+.trace-human-relay .holder-chip{background:linear-gradient(135deg,#fff6ef,#f7efe9);border-radius:20px;border:1px solid rgba(239,107,89,.18)}
+.trace-human-relay .holder-chip::after{content:"CURRENT HUMAN BRIDGE"}
+.trace-human-relay .avatar{background:var(--hr-plum);color:white}
+.trace-human-relay .button.primary{border-radius:18px;background:var(--hr-plum);box-shadow:5px 5px 0 var(--hr-rose)}
+.trace-human-relay .button.secondary{background:#f3b19f}.trace-human-relay .button.green{background:var(--hr-leaf)}
+.trace-human-relay .wi-flow{background:transparent;padding-top:15px}.trace-human-relay .wi-flow-step b{border-radius:50%;background:#eee5dc}.trace-human-relay .wi-flow-step.current b{background:var(--hr-plum);box-shadow:3px 3px 0 var(--hr-rose)}
+.trace-human-relay .route-step .dot{background:var(--hr-plum);border-color:var(--hr-leaf)}
+.trace-human-relay .wi-receipt{border-radius:28px;background:linear-gradient(145deg,#fffaf4,#f5ece4)}
+@media(max-width:520px){.trace-human-relay .app-shell{padding-left:12px;padding-right:12px}.trace-human-relay .hero-card,.trace-human-relay .card,.trace-human-relay .form-card,.trace-human-relay .route-card{padding:20px 17px}.trace-human-relay .brand small{display:none}.hr-human-context{grid-template-columns:40px 1fr auto}.hr-human-context .hr-avatar{width:40px;height:40px}.trace-human-relay .button-row .button{min-height:48px}.trace-human-relay .dialog-actions{position:sticky;bottom:0;padding-top:10px;background:linear-gradient(transparent,var(--paper-2) 32%)}}
+@media(prefers-reduced-motion:reduce){.trace-human-relay *{scroll-behavior:auto!important}}
