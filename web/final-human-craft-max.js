@@ -119,6 +119,7 @@
       setText(introCopy, "Human outcome first. 1 NIM only records verified custody.");
       const note = preview.querySelector(".hc-hand-note span");
       setText(note, "Give each bridge one clear reason to keep moving.");
+      disclosure(preview, "Preview the mission card", "hc-create-preview-more");
     }
   }
 
@@ -200,7 +201,7 @@
     steps.forEach((step, index) => setText(step.querySelector("small"), concise[index] || clean(step.querySelector("small")?.textContent)));
 
     const warning = [...hero.querySelectorAll(".warning")].find((node) => /transaction hash|verification state|FINALity/i.test(clean(node.textContent)));
-    if (warning && !warning.querySelector("a,button")) setText(warning, "A wallet approval or transaction hash is not custody. The route moves only after independent FINALity.");
+    if (warning && !warning.querySelector("a,button")) setText(warning, "Approval is not custody. Only independent FINALity moves the route.");
 
     const actions = [...hero.querySelectorAll(".button-row")].find((row) => /Send|Pass|NIM/i.test(clean(row.textContent)));
     const rule = hero.querySelector(".hc-proof-rule");
@@ -245,6 +246,10 @@
     if (headingCopy && /verified handoff|Pending activity/i.test(clean(headingCopy.textContent))) {
       const count = card.querySelectorAll(".route-step").length;
       setText(headingCopy, `${count} verified handoff${count === 1 ? "" : "s"}. Pending activity never rewrites the path.`);
+    }
+    const lede = card.querySelector(".lede");
+    if (lede && /Only finalized handoffs|Full participant wallets|private destination wallet/i.test(clean(lede.textContent))) {
+      setText(lede, "Only finalized handoffs appear here. Private wallet data stays hidden.");
     }
     const arrivedCopy = card.querySelector(".hc-arrived-moment p");
     if (arrivedCopy) setText(arrivedCopy, "Only finalized handoffs are shown. Private wallet data stays hidden.");
