@@ -2,7 +2,12 @@ import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { mkdir } from "node:fs/promises";
-import { chromium } from "playwright";
+import { pathToFileURL } from "node:url";
+
+const playwrightRoot = process.env.TRACE_PLAYWRIGHT_ROOT;
+if (!playwrightRoot) throw new Error("TRACE_PLAYWRIGHT_ROOT is required for the visual harness");
+const playwrightModule = pathToFileURL(join(playwrightRoot, "node_modules", "playwright", "index.mjs")).href;
+const { chromium } = await import(playwrightModule);
 
 const [webRoot, label, outputRoot, portRaw] = process.argv.slice(2);
 if (!webRoot || !label || !outputRoot) throw new Error("usage: node trace-visual-capture.mjs <web-root> <label> <output-root> [port]");
