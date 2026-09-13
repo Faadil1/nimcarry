@@ -3,47 +3,65 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#efe5d4" />
+  <meta name="theme-color" content="#183f36" />
   <meta name="description" content="NimCarry helps Nimiq Pay users move warm introductions, referrals and opportunities toward one specific person through consenting human bridges." />
   <meta property="og:title" content="NimCarry — People move opportunity forward." />
-  <meta property="og:description" content="Move a warm introduction, referral or opportunity toward one specific person through trusted human bridges. Only FINAL changes custody." />
+  <meta property="og:description" content="One destination. Real people. A warm introduction you can actually follow until it arrives." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="/social-card.svg" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="NimCarry — People move opportunity forward." />
-  <meta name="twitter:description" content="Human routes for introductions, referrals and opportunities — powered by Nimiq Pay and one verified 1 NIM custody baton." />
+  <meta name="twitter:description" content="Human routes for warm introductions, referrals, opportunities and community access — powered by Nimiq Pay." />
   <meta name="twitter:image" content="/social-card.svg" />
-  <title>NimCarry — Human Routes for Warm Introductions</title>
+  <title>NimCarry — People move opportunity forward.</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/nimcarry-mark.svg" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="stylesheet" href="/styles.css" />
   <link rel="stylesheet" href="/winning-intelligence.css" />
-  <link rel="stylesheet" href="/living-route.css" />
-  <link rel="stylesheet" href="/trace-winner-convergence.css" />
-  <link rel="stylesheet" href="/mature-positioning.css" />
-  <link rel="stylesheet" href="/approved-craft-fidelity.css" />
-  <link rel="stylesheet" href="/approved-craft-polish.css" />
+  <link rel="stylesheet" href="/final-human-craft.css" />
 </head>
 <body>
-  <div class="route-ribbon route-ribbon-a" aria-hidden="true"></div><div class="route-ribbon route-ribbon-b" aria-hidden="true"></div>
   <div id="app-shell" class="app-shell">
-    <header class="brandbar"><button id="brand-home" class="brand" type="button" aria-label="NimCarry home"><img class="brand-logo" src="/nimcarry-mark.svg" alt="" width="44" height="44" /><span><strong>NimCarry</strong><small>Human Route</small></span></button><div class="network-chip"><span class="pulse"></span><span id="network-label">TESTNET READY</span></div></header>
-    <div id="demo-banner" class="demo-banner" hidden>DEMO MODE — no wallet or network writes</div><div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+    <header class="brandbar">
+      <button id="brand-home" class="brand" type="button" aria-label="NimCarry home">
+        <img class="brand-logo" src="/nimcarry-mark.svg" alt="" width="44" height="44" />
+        <span><strong>NimCarry</strong><small>Real people · one destination</small></span>
+      </button>
+      <div class="network-chip"><span class="pulse"></span><span id="network-label">TESTNET</span></div>
+    </header>
+    <div id="demo-banner" class="demo-banner" hidden>DEMO MODE — no wallet or network writes</div>
+    <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
     <main id="screen" class="screen" tabindex="-1"></main>
-    <footer class="footer"><span>Nimiq Pay · 1 NIM custody baton</span><span>Only FINAL changes custody</span></footer>
+    <footer class="footer"><span>Nimiq Pay · exactly 1 NIM custody baton</span><span>Only FINAL changes custody</span></footer>
   </div>
-  <dialog id="wallet-dialog" class="wallet-dialog"><form method="dialog" id="wallet-form"><div class="dialog-kicker">Nimiq Pay</div><h2>Choose the account you expect to use</h2><p>NimCarry cannot force the sender account. The server still verifies the actual sender on-chain.</p><div id="wallet-options" class="wallet-options"></div><div class="dialog-actions"><button value="cancel" class="button ghost">Cancel</button><button id="wallet-confirm" value="default" class="button primary">Continue</button></div></form></dialog>
-  <dialog id="invite-dialog" class="invite-dialog"><form method="dialog" id="invite-form"><div class="dialog-kicker">Next bridge</div><h2>Who can move this introduction closer?</h2><label>Bridge label<input id="candidate-label" maxlength="60" placeholder="Opeyemi" /></label><label>Why them?<textarea id="why-you" maxlength="120" placeholder="You know the next person in this network and can move the introduction closer."></textarea></label><label>Known wallet (optional)<input id="candidate-wallet" autocomplete="off" placeholder="NQ…" /></label><div class="dialog-actions"><button value="cancel" class="button ghost">Cancel</button><button id="invite-confirm" value="default" class="button primary">Create private invite</button></div></form></dialog>
+
+  <dialog id="wallet-dialog" class="wallet-dialog">
+    <form method="dialog" id="wallet-form">
+      <div class="dialog-kicker">Nimiq Pay</div>
+      <h2>Choose the account you expect to use</h2>
+      <p>NimCarry cannot force the sender account. The server still verifies the actual sender on-chain.</p>
+      <div id="wallet-options" class="wallet-options"></div>
+      <div class="dialog-actions"><button value="cancel" class="button ghost">Cancel</button><button id="wallet-confirm" value="default" class="button primary">Continue</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="invite-dialog" class="invite-dialog">
+    <form method="dialog" id="invite-form">
+      <div class="dialog-kicker">Next human bridge</div>
+      <h2>Who can move this introduction closer?</h2>
+      <label>Bridge label<input id="candidate-label" maxlength="60" placeholder="Opeyemi" /></label>
+      <label>Why them?<textarea id="why-you" maxlength="120" placeholder="You know the next person in this network and can move the introduction closer."></textarea></label>
+      <label>Known wallet (optional)<input id="candidate-wallet" autocomplete="off" placeholder="NQ…" /></label>
+      <div class="dialog-actions"><button value="cancel" class="button ghost">Cancel</button><button id="invite-confirm" value="default" class="button primary">Create private invite</button></div>
+    </form>
+  </dialog>
+
   <script type="module" src="/http-compat.js"></script>
   <script type="module" src="/app.js"></script>
   <script src="/wallet-onboarding.js" defer></script>
   <script src="/winning-intelligence.js" defer></script>
-  <script src="/living-route.js" defer></script>
-  <script src="/trace-winner-convergence.js" defer></script>
-  <script src="/mature-positioning.js" defer></script>
-  <script src="/approved-craft-fidelity.js" defer></script>
-  <script src="/approved-craft-polish.js" defer></script>
+  <script src="/final-human-craft.js" defer></script>
   <script src="/route-shell-polish.js" defer></script>
   <script src="/demo-ux.js" defer></script>
   <script src="/demo-tour.js" defer></script>
