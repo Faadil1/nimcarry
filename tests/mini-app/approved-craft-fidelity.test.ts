@@ -19,7 +19,9 @@ describe("approved craft fidelity production layer", () => {
 
   it("implements the approved human-route identity rather than a generic wallet", () => {
     expect(js).toContain("People move opportunity forward.");
-    expect(js).toContain("One destination. Real people. A route you can follow.");
+    expect(js).toContain('line.append("One destination. "');
+    expect(js).toContain('node("em", "", "Real people.")');
+    expect(js).toContain('" A route you can follow."');
     expect(js).toContain("Pass the baton, not a reward.");
     expect(js).toContain("The people are the route.");
     expect(css).toContain("cf-human-route");
