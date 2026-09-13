@@ -19,22 +19,21 @@
 
   function addHomeThesis() {
     const hero = screen.querySelector(".hero-card");
-    if (!hero || hero.querySelector(".tw-thesis")) return;
+    if (!hero || hero.querySelector(".tw-thesis-line")) return;
     const kicker = cleanText(hero.querySelector(".kicker"));
     if (!/Destination-bound human routing/i.test(kicker)) return;
 
-    const thesis = node("div", "tw-thesis");
-    [
-      ["One destination", "The route exists to reach one intended person."],
-      ["Human bridges", "Each bridge chooses whether to carry it closer."],
-      ["FINAL only", "Exactly 1 NIM changes custody only after independent finality."],
-    ].forEach(([title, copy]) => {
-      const item = node("div", "tw-thesis-item");
-      item.append(node("b", "", title), node("span", "", copy));
-      thesis.append(item);
-    });
-    const buttons = hero.querySelector(".button-row");
-    (buttons || hero).before(thesis);
+    const line = node("div", "tw-thesis-line");
+    line.setAttribute("aria-label", "NimCarry route rule");
+    line.append(
+      node("b", "", "One destination"),
+      node("span", "", "→"),
+      node("b", "", "Human bridges"),
+      node("span", "", "→"),
+      node("b", "", "FINAL arrival")
+    );
+    const promise = hero.querySelector(".promise-strip");
+    (promise || hero.querySelector(".button-row") || hero).before(line);
   }
 
   function addMissionInstrument() {
@@ -68,6 +67,7 @@
     rule.append(node("span", "", verifiedLabel || "Verified route"), node("b", "", "Only FINAL changes custody"));
     instrument.append(destination, frontier, rule);
 
+    hero.classList.add("tw-mission-instrumented");
     const note = hero.querySelector(".mission-note");
     (note || hero.querySelector(".holder-chip") || hero).after(instrument);
   }
@@ -75,31 +75,20 @@
   function addInvitationRouteCue() {
     if (!/^\/i\/[A-Za-z0-9_-]+$/.test(location.pathname)) return;
     const hero = screen.querySelector(".hero-card");
-    if (!hero || hero.querySelector(".tw-route-instrument")) return;
+    if (!hero || hero.querySelector(".tw-invite-rule")) return;
     const target = cleanText(hero.querySelector(".lede strong")) || "Private destination";
 
-    const instrument = node("section", "tw-route-instrument");
-    instrument.setAttribute("aria-label", "Your place in this destination-bound route");
-    instrument.append(node("div", "tw-route-label", "Why this is not an open-ended payment chain"));
-
-    const destination = node("div", "tw-route-row destination");
-    destination.append(node("span", "tw-route-node", "◎"));
-    const dcopy = node("span", "tw-route-copy");
-    dcopy.append(node("strong", "", target), node("small", "", "The mission has one intended destination and ends when it arrives."));
-    destination.append(dcopy, node("span", "tw-route-tag", "DESTINATION"));
-
-    const frontier = node("div", "tw-route-row frontier");
-    frontier.append(node("span", "tw-route-node", "+"));
-    const fcopy = node("span", "tw-route-copy");
-    fcopy.append(node("strong", "", "You are the proposed next bridge"), node("small", "", "Accepting is consent to participate. No funds or custody move on acceptance."));
-    frontier.append(fcopy, node("span", "tw-route-tag", "YOUR CHOICE"));
-
-    const rule = node("div", "tw-route-rule");
-    rule.append(node("span", "", "Decline keeps custody where it is"), node("b", "", "Accept ≠ payment"));
-    instrument.append(destination, frontier, rule);
-
+    const cue = node("div", "tw-invite-rule");
+    cue.setAttribute("aria-label", "Finite destination-bound invitation");
+    cue.append(
+      node("span", "tw-invite-dot", "◎"),
+      node("strong", "", target),
+      node("span", "", "One destination"),
+      node("b", "", "You are the proposed next bridge"),
+      node("em", "", "Accept ≠ payment")
+    );
     const why = hero.querySelector(".card");
-    (why || hero.querySelector(".warning") || hero).before(instrument);
+    (why || hero.querySelector(".warning") || hero).before(cue);
   }
 
   function tagProofObject() {
