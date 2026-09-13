@@ -65,6 +65,16 @@
     if (route) route.classList.add("cf-invite-people-art");
   }
 
+  function prioritizeInvitationAction() {
+    const invite = screen.querySelector(".cf-invitation");
+    const onboarding = invite?.querySelector("#wallet-onboarding-invite");
+    const accept = invite?.querySelector("#accept");
+    const actions = accept?.closest(".button-row");
+    if (!invite || !onboarding || !actions || onboarding.dataset.cfAfterActions === "1") return;
+    onboarding.dataset.cfAfterActions = "1";
+    actions.after(onboarding);
+  }
+
   function markArrivedGrid() {
     const route = screen.querySelector(".cf-route");
     if (!route) return;
@@ -79,6 +89,7 @@
     arrivalArt();
     routePeople();
     inviteComposition();
+    prioritizeInvitationAction();
     markArrivedGrid();
   }
   function schedule() {
