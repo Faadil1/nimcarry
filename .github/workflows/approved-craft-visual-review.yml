@@ -7,6 +7,8 @@ on:
     paths:
       - web/final-human-craft.css
       - web/final-human-craft.js
+      - web/final-human-craft-max.css
+      - web/final-human-craft-max.js
       - web/craft-human-route.svg
       - web/craft-baton-handoff.svg
       - web/craft-arrival.svg
