@@ -6,6 +6,9 @@ on:
       - experiment/trace-winner-convergence
     paths:
       - scripts/trace-visual-capture.mjs
+      - web/trace-winner-convergence.css
+      - web/trace-winner-convergence.js
+      - web/index.html
       - .github/workflows/trace-visual-review.yml
 
 permissions:
