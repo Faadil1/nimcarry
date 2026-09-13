@@ -46,6 +46,12 @@ describe("final human-craft product identity", () => {
     expect(maxJs).not.toContain("forEach((node) => right.append(node))");
   });
 
+  it("anchors invitation onboarding after the real accept row without a DOM hierarchy cycle", () => {
+    expect(js).toContain('hero.querySelector("#accept")?.closest(".button-row")');
+    expect(js).toContain("!onboarding.contains(buttons)");
+    expect(js).not.toContain('const buttons = hero.querySelector(".button-row");\n    const onboarding = hero.querySelector(".wallet-onboarding-card");');
+  });
+
   it("locks the mature product positioning", () => {
     expect(js).toContain("People move opportunity forward.");
     expect(js).toContain("Warm introductions");
