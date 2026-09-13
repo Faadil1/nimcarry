@@ -7,8 +7,8 @@ const sdk = readFileSync("web/vendor/nimiq-mini-app-sdk.js", "utf8");
 const compat = readFileSync("web/http-compat.js", "utf8");
 const demoUx = readFileSync("web/demo-ux.js", "utf8");
 const winning = readFileSync("web/winning-intelligence.js", "utf8");
-const living = readFileSync("web/living-route.js", "utf8");
-const livingCss = readFileSync("web/living-route.css", "utf8");
+const finalHuman = readFileSync("web/final-human-craft.js", "utf8");
+const finalHumanCss = readFileSync("web/final-human-craft.css", "utf8");
 const favicon = readFileSync("web/favicon.svg", "utf8");
 const mark = readFileSync("web/nimcarry-mark.svg", "utf8");
 const manifest = readFileSync("web/manifest.webmanifest", "utf8");
@@ -21,11 +21,17 @@ describe("static Mini App skeleton", () => {
     expect(html.indexOf('src="/http-compat.js"')).toBeLessThan(html.indexOf('src="/app.js"'));
     expect(html).toContain('src="/demo-ux.js"');
     expect(html.indexOf('src="/app.js"')).toBeLessThan(html.indexOf('src="/demo-ux.js"'));
-    expect(html).toContain('src="/living-route.js"');
-    expect(html.indexOf('src="/winning-intelligence.js"')).toBeLessThan(html.indexOf('src="/living-route.js"'));
+    expect(html).toContain('src="/winning-intelligence.js"');
+    expect(html).toContain('src="/final-human-craft.js"');
+    expect(html.indexOf('src="/winning-intelligence.js"')).toBeLessThan(html.indexOf('src="/final-human-craft.js"'));
     expect(html).toContain('href="/styles.css"');
-    expect(html).toContain('href="/living-route.css"');
+    expect(html).toContain('href="/winning-intelligence.css"');
+    expect(html).toContain('href="/final-human-craft.css"');
     expect(html).toContain('href="/favicon.svg"');
+    expect(html).not.toContain('src="/living-route.js"');
+    expect(html).not.toContain('src="/trace-winner-convergence.js"');
+    expect(html).not.toContain('src="/mature-positioning.js"');
+    expect(html).not.toContain('src="/approved-craft-fidelity.js"');
     expect(html).not.toMatch(/https:\/\/.*\.(?:js|css)/);
   });
   it("implements the real wallet challenge/sign/send boundary and explicit fee 0", () => {
@@ -170,34 +176,40 @@ describe("static Mini App skeleton", () => {
     expect(demoUx).toContain('history.pushState({}, "", `/mission/${encodeURIComponent(missionId)}?demo=1`)');
     expect(demoUx).toContain('new PopStateEvent("popstate")');
   });
-  it("ships route-native NimCarry browser and install branding", () => {
+  it("ships the final human-craft browser, install and social identity", () => {
     expect(favicon).toContain('<svg');
     expect(favicon).toContain('aria-label="NimCarry"');
     expect(mark).toContain("NimCarry");
+    expect(mark).toContain("#183f36");
+    expect(mark).toContain("#a94f37");
+    expect(mark).toContain("#c4933f");
     expect(html).toContain('src="/nimcarry-mark.svg"');
     expect(html).toContain('rel="manifest" href="/manifest.webmanifest"');
     expect(manifest).toContain('"short_name": "NimCarry"');
+    expect(manifest).toContain("People move opportunity forward");
     expect(html).toContain('property="og:title"');
     expect(html).toContain('/social-card.svg');
   });
-  it("turns the progress helper into a living route without inventing custody state", () => {
+  it("keeps route progress and finality truthful in the final product language", () => {
     expect(winning).toContain('node("div", "wi-flow")');
-    expect(living).toContain('routePhaseFromNotice');
-    expect(living).toContain('waiting for independent FINAL');
-    expect(living).toContain('FINAL — custody moved and the verified route advanced.');
-    expect(living).not.toContain('sendBasicTransactionWithData');
-    expect(livingCss).toContain('.wi-flow-step::after');
-    expect(livingCss).toContain('.wi-proof-step.lr-active');
+    expect(winning).toContain("Only FINAL handoffs count.");
+    expect(winning).toContain("A pending transaction never changes the current holder or the verified route.");
+    expect(finalHuman).toContain("A finite human route in progress.");
+    expect(finalHuman).toContain("Pending activity never rewrites the verified path.");
+    expect(finalHuman).not.toContain("sendBasicTransactionWithData");
+    expect(finalHumanCss).toContain("hc-route-arrived");
+    expect(finalHumanCss).toContain("hc-route-person");
   });
-  it("adds product-useful micro-interactions and an ARRIVED receipt reveal", () => {
-    expect(living).toContain('enhanceBridgeInvitation');
-    expect(living).toContain('syncBusyButtons');
-    expect(living).toContain('revealReceipt');
-    expect(livingCss).toContain('.button.lr-pressed');
-    expect(livingCss).toContain('.wi-receipt');
+  it("makes ARRIVED a human outcome plus privacy-safe proof rather than a transaction toast", () => {
+    expect(winning).toContain("Each displayed handoff was independently finalized before custody moved.");
+    expect(winning).toContain("Private destination and full participant wallet data stay hidden from this receipt.");
+    expect(finalHuman).toContain("It arrived because people carried it.");
+    expect(finalHuman).toContain("craft-arrival.svg");
+    expect(finalHumanCss).toContain("hc-arrived-moment");
+    expect(finalHumanCss).toContain("wi-receipt");
   });
-  it("honors reduced-motion at both base and Living Route CSS boundaries", () => {
+  it("honors reduced-motion in both base and final identity CSS", () => {
     expect(css).toContain("prefers-reduced-motion:reduce");
-    expect(livingCss).toContain("prefers-reduced-motion:reduce");
+    expect(finalHumanCss).toContain("prefers-reduced-motion:reduce");
   });
 });
