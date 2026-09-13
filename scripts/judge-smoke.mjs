@@ -41,6 +41,7 @@ try {
   record("root-http-200", root.response.ok, `${root.response.status} in ${root.ms}ms (attempt ${root.attempt})`);
   record("public-brand-visible", /NimCarry/.test(root.text), "NimCarry must be visible in served HTML");
   record("final-human-craft-runtime-wired", /final-human-craft\.css/.test(root.text) && /final-human-craft-max\.css/.test(root.text), "approved runtime identity must be wired in production HTML");
+  record("recovery-ux-runtime-wired", /nimiq-recovery-ux\.css/.test(root.text) && /nimiq-recovery-ux\.js/.test(root.text), "fail-closed recovery guidance must be wired after promotion");
   record("final-only-proof-copy", /Only FINAL changes custody/.test(root.text), "judge-facing custody law must remain visible");
   record("mature-positioning-copy", /Real people · one destination/.test(root.text) || /People move opportunity forward/.test(root.text), "human-route positioning must remain visible");
 
@@ -48,7 +49,13 @@ try {
   record("guided-demo-http-200", demo.response.ok, `${demo.response.status} in ${demo.ms}ms`);
   record("guided-demo-same-runtime", /final-human-craft\.css/.test(demo.text), "guided demo must use the same approved product runtime");
 
-  for (const assetPath of ["/nimcarry-mark.svg", "/final-human-craft.css", "/final-human-craft-max.css"]) {
+  for (const assetPath of [
+    "/nimcarry-mark.svg",
+    "/final-human-craft.css",
+    "/final-human-craft-max.css",
+    "/nimiq-recovery-ux.css",
+    "/nimiq-recovery-ux.js",
+  ]) {
     const asset = await get(assetPath);
     record(`asset-${assetPath.slice(1)}-http-200`, asset.response.ok, `${asset.response.status} in ${asset.ms}ms`);
   }
