@@ -6,6 +6,8 @@ on:
     branches:
       - main
     paths:
+      - scripts/demo-video-v2-cinematic.html
+      - scripts/demo-video-v2-cinematic.mjs
       - scripts/demo-video-v2-capture.mjs
       - scripts/demo-video-v2-render.sh
       - docs/demo/DEMO-V2-NARRATIVE.md
@@ -16,7 +18,7 @@ permissions:
 
 jobs:
   render:
-    name: Capture + narrate final UI demo
+    name: Cinematic + capture + narrate final UI demo
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -58,11 +60,18 @@ jobs:
           fi
           ffmpeg -version | head -n 1
 
-      - name: Capture the real final UI flow
+      - name: Render tactile cinematic opener
         shell: bash
         run: |
           set -euo pipefail
           rm -rf "$DEMO_VIDEO_OUTPUT"
+          mkdir -p "$DEMO_VIDEO_OUTPUT"
+          node scripts/demo-video-v2-cinematic.mjs
+
+      - name: Capture the real final UI flow
+        shell: bash
+        run: |
+          set -euo pipefail
           node scripts/demo-video-v2-capture.mjs "$NIMCARRY_DEMO_URL"
 
       - name: Render narrated MP4
@@ -79,6 +88,7 @@ jobs:
           name: nimcarry-demo-video-v2
           path: |
             demo-video-v2/nimcarry-demo-v2.mp4
+            demo-video-v2/nimcarry-cinematic-v2.webm
             demo-video-v2/nimcarry-demo-v2-raw.webm
             demo-video-v2/arrived-final.png
             demo-video-v2/capture-manifest.json
