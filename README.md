@@ -23,7 +23,7 @@
 > The live product and guided demo are available now. Real A→B→C TESTNET proof is still pending because two approved attempts were independently verified as not broadcast. The suspected Nimiq Pay 2.19.1 TESTNET submission issue remains unconfirmed. No real `FINAL` or `ARRIVED` is claimed.
 
 <p align="center">
-  <img src="docs/assets/readme/hero-product-screen.png" alt="NimCarry destination-bound human routing mission" width="100%" />
+  <img src="https://raw.githubusercontent.com/nimiq/miniappscompetition-submissions/a0c2466264376f117667c1a2992fe7e250552f34/cycle2/Faadil1/screenshot-1.jpg" alt="NimCarry destination-bound human routing mission — final V3.2 UI" width="100%" />
 </p>
 
 ## Why NimCarry exists
@@ -72,7 +72,7 @@ Without Nimiq, a bridge can only say “I forwarded it.” With NimCarry, the ha
 | Route / Arrival | Only finalized hops appear; ARRIVED produces the receipt |
 
 <p align="center">
-  <img src="docs/assets/readme/pass-1-nim-screen.png" alt="NimCarry Pass 1 NIM custody baton screen" width="100%" />
+  <img src="https://raw.githubusercontent.com/nimiq/miniappscompetition-submissions/a0c2466264376f117667c1a2992fe7e250552f34/cycle2/Faadil1/screenshot-2.jpg" alt="NimCarry Pass 1 NIM custody baton screen — final V3.2 UI" width="100%" />
 </p>
 
 The product story is simple: **I need to reach someone I cannot contact directly. I ask someone I trust to bridge the mission. They choose whether to accept. If they do, 1 NIM becomes the baton. The route moves only after verified finality.**
@@ -144,7 +144,7 @@ The recommended judge path is the deterministic [Guided Demo](https://nimcarry.f
 **Watch the final 84-second demo:** [NimCarry — One NIM. One Bridge at a Time.](https://youtu.be/SAyv8hyZG6Q)
 
 <p align="center">
-  <img src="docs/assets/readme/route-receipt-demo-arrived.png" alt="NimCarry guided demo Route Receipt" width="100%" />
+  <img src="https://raw.githubusercontent.com/nimiq/miniappscompetition-submissions/a0c2466264376f117667c1a2992fe7e250552f34/cycle2/Faadil1/screenshot-3.jpg" alt="NimCarry guided demo Route Receipt — final V3.2 UI" width="100%" />
 </p>
 <p align="center"><em>Guided Demo — simulated ARRIVED / Route Receipt. Presentation only; not real TESTNET finality evidence.</em></p>
 
