@@ -17,15 +17,27 @@
     const kicker = String(hero.querySelector(".kicker")?.textContent || "").trim();
     if (!/destination-bound human routing/i.test(kicker)) return;
 
-    setText(hero.querySelector("h1"), "Get a warm introduction to someone you can’t reach directly.");
-    setText(hero.querySelector(".wi-problem-first"), "Warm introductions often disappear after the first handoff.");
+    // Fresh-user hierarchy: outcome first, then the human flow, then the NIM mechanism.
+    // A tester remembered the baton but could not explain what NimCarry was for, so the
+    // first screen must answer the job-to-be-done before introducing custody mechanics.
+    setText(hero.querySelector("h1"), "Get introduced to someone you can’t reach directly.");
+    setText(
+      hero.querySelector(".wi-problem-first"),
+      "NimCarry helps trusted people carry your introduction from person to person until it reaches them."
+    );
     setText(
       hero.querySelector(".lede"),
-      "Choose one destination. Invite a trusted bridge. Exactly 1 NIM becomes the custody baton, and only verified FINAL moves the route forward."
+      "Create a mission → invite a trusted bridge → follow the route until it arrives."
     );
 
-    // Keep the approved memory sentence, but move it out of the explanatory H1.
+    // Keep the approved memory sentence as brand texture, below the explanatory copy.
     setText(hero.querySelector(".hc-script"), "People move opportunity forward.");
+
+    // Explain the NIM mechanism only after the user understands the outcome and route.
+    setText(
+      hero.querySelector(".hc-home-caption"),
+      "Exactly 1 NIM acts as the custody baton underneath the route. Only verified FINAL moves custody."
+    );
   }
 
   function schedule() {
