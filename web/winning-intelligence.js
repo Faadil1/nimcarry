@@ -157,14 +157,31 @@
 
     if (!/ARRIVED/i.test(status.textContent || "")) {
       routeCard.dataset.wiReceipt = "pending";
+
+      // A zero-hop route has no `.route` element. The previous fallback used
+      // `routeCard.after(note)`, which placed the note outside the card. When
+      // the screen re-rendered, the enhancer could not find that detached note
+      // and appended another one. Remove any stale detached copies first, then
+      // keep the single canonical note inside the current route card.
+      screen.querySelectorAll(".wi-finality-note").forEach((note) => {
+        if (!routeCard.contains(note)) note.remove();
+      });
+
       if (!routeCard.querySelector(".wi-finality-note")) {
         const note = node("div", "wi-finality-note");
         note.append(node("strong", "", "Only FINAL handoffs count."), node("span", "", "A pending transaction never changes the current holder or the verified route."));
         const route = routeCard.querySelector(".route");
-        (route || routeCard).after(note);
+        const buttons = routeCard.querySelector(":scope > .button-row");
+        if (route) route.after(note);
+        else if (buttons) routeCard.insertBefore(note, buttons);
+        else routeCard.appendChild(note);
       }
       return;
     }
+
+    // If a pending route becomes ARRIVED without a full page replacement,
+    // remove the pending-only note before composing the verified receipt.
+    screen.querySelectorAll(".wi-finality-note").forEach((note) => note.remove());
 
     routeCard.dataset.wiReceipt = "1";
     const steps = [...routeCard.querySelectorAll(".route-step")];
