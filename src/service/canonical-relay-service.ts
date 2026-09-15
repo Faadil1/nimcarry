@@ -1,4 +1,4 @@
-import type { Hop, HopStatus, PassIntent } from "../core/types.js";
+import type { Hop, HopStatus, NimiqTxLookup, PassIntent } from "../core/types.js";
 import { RelayStore, RelayValidationError, isDormant, isIntentStale, validateTransactionAgainstIntent } from "../core/relay.js";
 import type { NimiqRpcClient } from "../nimiq/rpc-client.js";
 import { hasReachedFinality, isIncluded } from "../nimiq/rpc-client.js";
@@ -82,15 +82,9 @@ export class CanonicalRelayService {
     return Boolean(hop?.txHash);
   }
 
-  recordBroadcast(batonId: string, txHash: string): Hop {
-    const intent = this.store.getActiveIntent(batonId);
-    if (!intent) throw new RelayValidationError("NO_ACTIVE_INTENT", `No active intent for baton ${batonId} to attach a broadcast to`);
-    if (isIntentStale(intent)) {
-      this.store.cancelIntent(batonId);
-      throw new RelayValidationError("STALE_INTENT", `Intent for baton ${batonId} at sequence ${intent.sequence} has expired`);
-    }
+  private recordObservedBroadcast(intent: PassIntent, txHash: string): Hop {
     const existingHop = this.store.findHopByTxHash(txHash);
-    if (existingHop && (existingHop.batonId !== batonId || existingHop.sequence !== intent.sequence)) {
+    if (existingHop && (existingHop.batonId !== intent.batonId || existingHop.sequence !== intent.sequence)) {
       throw new RelayValidationError(
         "DUPLICATE_TX_HASH",
         `Transaction hash ${txHash} has already been recorded for baton ${existingHop.batonId} at sequence ${existingHop.sequence}`
@@ -112,6 +106,16 @@ export class CanonicalRelayService {
     return hop;
   }
 
+  recordBroadcast(batonId: string, txHash: string): Hop {
+    const intent = this.store.getActiveIntent(batonId);
+    if (!intent) throw new RelayValidationError("NO_ACTIVE_INTENT", `No active intent for baton ${batonId} to attach a broadcast to`);
+    if (isIntentStale(intent)) {
+      this.store.cancelIntent(batonId);
+      throw new RelayValidationError("STALE_INTENT", `Intent for baton ${batonId} at sequence ${intent.sequence} has expired`);
+    }
+    return this.recordObservedBroadcast(intent, txHash);
+  }
+
   cancelPass(batonId: string): void {
     const intent = this.store.getActiveIntent(batonId);
     if (!intent) return;
@@ -125,12 +129,63 @@ export class CanonicalRelayService {
     this.store.cancelIntent(batonId);
   }
 
+  private async discoverMatchingBroadcast(intent: PassIntent): Promise<NimiqTxLookup | null> {
+    if (!this.rpc.getTransactionsByAddress) return null;
+    const observed = await this.rpc.getTransactionsByAddress(intent.recipient);
+    const matches = new Map<string, NimiqTxLookup>();
+    for (const tx of observed) {
+      try {
+        validateTransactionAgainstIntent(intent, tx);
+        matches.set(tx.hash, tx);
+      } catch {
+        // Address history is untrusted input. Only the exact committed sender,
+        // recipient, amount and opaque hop commitment can recover a broadcast.
+      }
+    }
+    if (matches.size > 1) {
+      throw new RelayValidationError(
+        "AMBIGUOUS_MATCHING_BROADCAST",
+        `More than one on-chain transaction matches baton ${intent.batonId} at sequence ${intent.sequence}; manual review is required`
+      );
+    }
+    return matches.values().next().value ?? null;
+  }
+
+  private async applyObservedTransaction(intent: PassIntent, hop: Hop, tx: NimiqTxLookup): Promise<Hop> {
+    try {
+      validateTransactionAgainstIntent(intent, tx);
+    } catch (err) {
+      this.store.updateHop(intent.batonId, intent.sequence, { status: "INVALID" });
+      throw err;
+    }
+
+    if (!isIncluded(tx)) return hop;
+    const headBlockNumber = await this.rpc.getBlockNumber();
+    const final = hasReachedFinality(tx, headBlockNumber);
+    return this.store.updateHop(intent.batonId, intent.sequence, {
+      status: final ? "FINAL" : "INCLUDED",
+      value: tx.value,
+      confirmedAt: final ? Date.now() : null,
+    });
+  }
+
   async reconcile(batonId: string): Promise<Hop | null> {
     const intent = this.store.getActiveIntent(batonId);
     if (!intent) return null;
 
-    const hop = this.store.getHop(batonId, intent.sequence);
+    let hop = this.store.getHop(batonId, intent.sequence);
     if (!hop || hop.txHash === null) {
+      // Nimiq Pay can fail after the approval UI without returning a hash. Before
+      // allowing the no-hash path to remain unresolved, independently scan the
+      // recipient's read-only chain history for the exact opaque commitment.
+      // This recovers a real broadcast without trusting wallet UI state and
+      // prevents a second 1 NIM send from being treated as the next action.
+      const discovered = await this.discoverMatchingBroadcast(intent);
+      if (discovered) {
+        hop = this.recordObservedBroadcast(intent, discovered.hash);
+        return this.applyObservedTransaction(intent, hop, discovered);
+      }
+
       if (isIntentStale(intent)) {
         if (hop) {
           const invalidHop = this.store.updateHop(batonId, intent.sequence, { status: "INVALID" });
@@ -166,21 +221,7 @@ export class CanonicalRelayService {
       return hop;
     }
 
-    try {
-      validateTransactionAgainstIntent(intent, tx);
-    } catch (err) {
-      this.store.updateHop(batonId, intent.sequence, { status: "INVALID" });
-      throw err;
-    }
-
-    if (!isIncluded(tx)) return hop;
-    const headBlockNumber = await this.rpc.getBlockNumber();
-    const final = hasReachedFinality(tx, headBlockNumber);
-    return this.store.updateHop(batonId, intent.sequence, {
-      status: final ? "FINAL" : "INCLUDED",
-      value: tx.value,
-      confirmedAt: final ? Date.now() : null,
-    });
+    return this.applyObservedTransaction(intent, hop, tx);
   }
 
   getHistory(batonId: string): PublicHop[] {

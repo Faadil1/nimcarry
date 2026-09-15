@@ -74,12 +74,12 @@
       };
     }
 
-    if (onPass && /bad request|http_?400|network|transport|timeout|provider|sync|transaction|broadcast|failed|failure|unavailable/.test(lower)) {
+    if (onPass && /bad request|http_?400|network|transport|timeout|provider|sync|transaction|broadcast|submission|recheck|failed|failure|unavailable/.test(lower)) {
       return {
         kind: "ambiguous",
         eyebrow: "Submission not proven",
         title: "Don’t send a second baton yet.",
-        body: "Nimiq Pay did not return enough evidence for NimCarry to prove this handoff. The route stays with the last verified holder unless FINAL is independently observed.",
+        body: "Nimiq Pay did not return enough evidence for NimCarry to prove this handoff. NimCarry checks the chain independently. The route stays with the last verified holder unless FINAL is independently observed.",
         primary: ["Check verified route", routePath()],
         secondary: ["Run provider check", providerCheckPath()],
         rule: "Approval ≠ broadcast ≠ FINAL",
