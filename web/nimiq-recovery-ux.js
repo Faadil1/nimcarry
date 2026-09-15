@@ -79,7 +79,7 @@
         kind: "ambiguous",
         eyebrow: "Submission not proven",
         title: "Don’t send a second baton yet.",
-        body: "Nimiq Pay did not return enough evidence for NimCarry to prove this handoff. NimCarry checks the chain independently; the route stays with the last verified holder unless FINAL is observed.",
+        body: "Nimiq Pay did not return enough evidence for NimCarry to prove this handoff. NimCarry checks the chain independently. The route stays with the last verified holder unless FINAL is independently observed.",
         primary: ["Check verified route", routePath()],
         secondary: ["Run provider check", providerCheckPath()],
         rule: "Approval ≠ broadcast ≠ FINAL",
