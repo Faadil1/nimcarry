@@ -18,6 +18,12 @@ const safeMissionPath = missionId ? `/mission/${encodeURIComponent(missionId)}` 
 const returnPath = requestedReturn.startsWith(safeMissionPath) ? requestedReturn : safeMissionPath;
 cancel.href = returnPath;
 
+function randomToken(prefix) {
+  if (typeof crypto.randomUUID === "function") return `${prefix}-${crypto.randomUUID()}`;
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return `${prefix}-${Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("")}`;
+}
+
 function setStatus(message, error = false) {
   status.textContent = message;
   status.classList.toggle("error", error);
@@ -25,11 +31,17 @@ function setStatus(message, error = false) {
 }
 
 async function api(path, { method = "GET", body } = {}) {
-  const response = await fetch(path, {
-    method,
-    headers: body === undefined
+  const headers = new Headers(
+    body === undefined
       ? { Accept: "application/json" }
       : { Accept: "application/json", "Content-Type": "application/json" },
+  );
+  if (method === "POST" && path !== "/auth/challenge") {
+    headers.set("Idempotency-Key", randomToken("recovery"));
+  }
+  const response = await fetch(path, {
+    method,
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await response.text();
