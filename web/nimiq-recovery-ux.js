@@ -20,11 +20,31 @@
     url.searchParams.set("provider-check", "1");
     return `${url.pathname}${url.search}`;
   };
+  const routeRecoveryPath = () => {
+    const id = missionId();
+    if (!id) return "/";
+    const url = new URL("/route-access-recovery.html", location.origin);
+    url.searchParams.set("mission", id);
+    url.searchParams.set("return", `${location.pathname}${location.search}`);
+    return `${url.pathname}${url.search}`;
+  };
 
   function classify(message) {
     const text = String(message || "");
     const lower = text.toLowerCase();
     const onPass = /\/mission\/[^/]+\/pass\/?$/.test(location.pathname);
+
+    if (/route_view_capability_(invalid|expired)|route view capability is unknown or expired|route view capability has expired/.test(lower)) {
+      return {
+        kind: "access",
+        eyebrow: "Mission access needs a fresh signature",
+        title: "Your mission is still safe.",
+        body: "A runtime restart can invalidate the short-lived read-only route capability. The mission, invitation state and verified custody are unchanged. Restore access with the creator/basic Nimiq Pay identity.",
+        primary: ["Restore mission access", routeRecoveryPath()],
+        secondary: ["NimCarry home", "/"],
+        rule: "Refreshing read access never changes custody",
+      };
+    }
 
     if (/verification_still_pending|verification delayed|still pending/.test(lower)) {
       return {
