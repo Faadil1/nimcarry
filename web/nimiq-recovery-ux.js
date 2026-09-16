@@ -20,13 +20,31 @@
     url.searchParams.set("provider-check", "1");
     return `${url.pathname}${url.search}`;
   };
+  const recoveryPathForMission = (id, returnPath = `/mission/${encodeURIComponent(id)}`) => {
+    const url = new URL("/route-access-recovery.html", location.origin);
+    url.searchParams.set("mission", id);
+    url.searchParams.set("return", returnPath);
+    return `${url.pathname}${url.search}`;
+  };
   const routeRecoveryPath = () => {
     const id = missionId();
     if (!id) return "/";
-    const url = new URL("/route-access-recovery.html", location.origin);
-    url.searchParams.set("mission", id);
-    url.searchParams.set("return", `${location.pathname}${location.search}`);
-    return `${url.pathname}${url.search}`;
+    return recoveryPathForMission(id, `${location.pathname}${location.search}`);
+  };
+  const sessionMissionIds = () => {
+    const prefix = "carryone.view.";
+    const found = [];
+    try {
+      for (let index = 0; index < sessionStorage.length; index += 1) {
+        const key = sessionStorage.key(index);
+        if (!key?.startsWith(prefix)) continue;
+        const id = key.slice(prefix.length);
+        if (id && !found.includes(id)) found.push(id);
+      }
+    } catch {
+      return [];
+    }
+    return found.slice(-5).reverse();
   };
 
   function classify(message) {
@@ -125,11 +143,47 @@
     document.querySelector("#nimiq-recovery-panel")?.remove();
   }
 
+  function ensurePanel() {
+    let panel = document.querySelector("#nimiq-recovery-panel");
+    if (!panel) {
+      panel = document.createElement("section");
+      panel.id = "nimiq-recovery-panel";
+      panel.className = "nimiq-recovery-panel";
+      panel.setAttribute("aria-live", "polite");
+      notice.insertAdjacentElement("afterend", panel);
+    }
+    return panel;
+  }
+
+  function renderHomeRecovery() {
+    if (location.pathname !== "/" || location.search) return false;
+    const ids = sessionMissionIds();
+    if (!ids.length) return false;
+
+    const panel = ensurePanel();
+    panel.dataset.kind = "access";
+    const actions = ids.map((id, index) => {
+      const fingerprint = id.length > 12 ? `${id.slice(0, 8)}…${id.slice(-4)}` : id;
+      return `<a class="button ${index === 0 ? "primary" : "ghost"}" href="${esc(recoveryPathForMission(id))}">Restore mission ${esc(fingerprint)}</a>`;
+    }).join("");
+    panel.innerHTML = `
+      <div class="nr-stamp">ROUTE SAFE</div>
+      <div class="nr-copy">
+        <div class="nr-eyebrow">Previous mission found in this Nimiq Pay session</div>
+        <h2>Resume without creating a new mission.</h2>
+        <p>NimCarry found a previous read-only mission capability in this browser session. Re-sign VIEW_ROUTE to restore access. This does not send NIM, re-invite a bridge, or change custody.</p>
+        <div class="nr-rule"><span>Custody rule</span><strong>Recovery is read-only · only FINAL changes custody</strong></div>
+      </div>
+      <div class="nr-actions">${actions}</div>`;
+    return true;
+  }
+
   function render() {
     const isError = notice.classList.contains("error") && !notice.hidden;
     const message = notice.textContent?.trim() || "";
     if (!isError || !message) {
       removePanel();
+      renderHomeRecovery();
       return;
     }
 
@@ -139,15 +193,7 @@
       return;
     }
 
-    let panel = document.querySelector("#nimiq-recovery-panel");
-    if (!panel) {
-      panel = document.createElement("section");
-      panel.id = "nimiq-recovery-panel";
-      panel.className = "nimiq-recovery-panel";
-      panel.setAttribute("aria-live", "polite");
-      notice.insertAdjacentElement("afterend", panel);
-    }
-
+    const panel = ensurePanel();
     panel.dataset.kind = recovery.kind;
     panel.innerHTML = `
       <div class="nr-stamp">ROUTE SAFE</div>
@@ -172,6 +218,9 @@
     subtree: true,
   });
 
-  addEventListener("popstate", removePanel);
+  addEventListener("popstate", () => {
+    removePanel();
+    render();
+  });
   render();
 })();
