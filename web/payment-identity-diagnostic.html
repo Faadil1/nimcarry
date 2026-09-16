@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#183f36" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>NimCarry — Payment identity diagnostic</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/final-human-craft.css" />
+</head>
+<body class="final-human-craft">
+  <div class="app-shell">
+    <header class="brandbar">
+      <a class="brand" href="/" aria-label="NimCarry home">
+        <img class="brand-logo" src="/nimcarry-mark.svg" alt="" width="44" height="44" />
+        <span><strong>NimCarry</strong><small>Payment identity diagnostic</small></span>
+      </a>
+      <div class="network-chip"><span class="pulse"></span><span>TESTNET</span></div>
+    </header>
+
+    <main class="screen">
+      <section class="card">
+        <div class="kicker">Read-only · diagnostic only</div>
+        <h1>Which address does Nimiq Pay expose?</h1>
+        <p class="lede">This page reads <code>listAccounts()</code>, consensus and block height. It does not sign, send, broadcast, or change a NimCarry route.</p>
+        <div class="notice error" style="display:block;margin:1rem 0;">Privacy note: the result contains your full TESTNET account address. Do not post the raw diagnostic publicly.</div>
+        <button id="run" class="button primary" type="button">Read Nimiq Pay identity</button>
+        <button id="copy" class="button ghost" type="button" hidden>Copy diagnostic JSON</button>
+        <p id="status" role="status" aria-live="polite">Ready.</p>
+        <pre id="result" style="white-space:pre-wrap;overflow-wrap:anywhere;background:#fffaf0;border:1px solid rgba(33,30,26,.14);padding:1rem;border-radius:7px;" hidden></pre>
+      </section>
+    </main>
+
+    <footer class="footer"><span>Diagnostic only · no transaction writes</span><span>Do not share full addresses publicly</span></footer>
+  </div>
+  <script type="module" src="/payment-identity-diagnostic.js"></script>
+</body>
+</html>
