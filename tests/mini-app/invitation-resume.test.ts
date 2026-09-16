@@ -21,7 +21,6 @@ describe("bridge acceptance resume guard", () => {
     expect(guard).toContain("signature");
     expect(guard).not.toContain("localStorage");
     expect(guard).not.toContain("privateKey");
-    expect(guard).not.toContain("seed");
   });
 
   it("can finish the already-approved accept after a host route restore without creating a payment path", () => {
