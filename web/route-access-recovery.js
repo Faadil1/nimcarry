@@ -36,7 +36,7 @@ async function api(path, { method = "GET", body } = {}) {
       ? { Accept: "application/json" }
       : { Accept: "application/json", "Content-Type": "application/json" },
   );
-  if (method === "POST" && path !== "/auth/challenge" && !/\/reconcile$/.test(path)) {
+  if (method === "POST" && path !== "/auth/challenge") {
     headers.set("Idempotency-Key", randomToken("recovery"));
   }
   const response = await fetch(path, {
