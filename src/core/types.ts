@@ -16,7 +16,7 @@ export type HopStatus = "PENDING" | "INCLUDED" | "FINAL" | "CANCELLED" | "INVALI
 export interface PassIntent {
   batonId: string;
   sequence: number; // expected next hop number
-  currentHolder: string; // wallet authorized to make this pass
+  currentHolder: string; // wallet identity authorized to make this pass
   recipient: string; // intended next holder
   nonce: string; // uniqueness guard against duplicate/replayed intents
   /**
@@ -48,13 +48,27 @@ export type RelayActivity = "ACTIVE" | "DORMANT";
 /** Minimal shape of what we need back from Nimiq RPC's getTransactionByHash. */
 export interface NimiqTxLookup {
   hash: string;
-  from: string; // human-readable address
+  from: string; // human-readable on-chain sender; may be a Nimiq Pay HTLC payment rail
   to: string; // human-readable address
   value: number; // Luna
   blockNumber: number | null; // null while still in mempool
   confirmations: number; // 0 while unconfirmed
   /** Recipient-data payload read back off-chain. Reach Mission canonical passes require it. */
   recipientData?: string;
+}
+
+/**
+ * Minimal account metadata needed to prove that a Nimiq Pay HTLC payment rail
+ * belongs to the wallet identity that signed AUTHORIZE_PASS. Unknown account
+ * types intentionally expose no ownership fields.
+ */
+export interface NimiqAccountLookup {
+  address: string;
+  balance: number;
+  type: "basic" | "vesting" | "htlc" | "staking" | string;
+  sender?: string;
+  recipient?: string;
+  totalAmount?: number;
 }
 
 /**
