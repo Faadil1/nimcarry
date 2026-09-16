@@ -21,6 +21,10 @@ function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
+function addressKey(value: string): string {
+  return String(value ?? "").replace(/\s+/g, "").toUpperCase();
+}
+
 /**
  * Canonical relay store. It is in-memory by default, but exposes a stable
  * snapshot/hydration boundary and a mutation hook so durable adapters can
@@ -171,11 +175,21 @@ export class RelayStore {
 }
 
 /** Validate an observed transaction against the committed intent. */
-export function validateTransactionAgainstIntent(intent: PassIntent, tx: NimiqTxLookup): void {
-  if (tx.from !== intent.currentHolder) {
-    throw new RelayValidationError("WRONG_SENDER", `Transaction sender ${tx.from} does not match committed holder ${intent.currentHolder}`);
+export function validateTransactionAgainstIntent(
+  intent: PassIntent,
+  tx: NimiqTxLookup,
+  options: { authorizedPaymentSender?: string | null } = {}
+): void {
+  const directHolder = addressKey(tx.from) === addressKey(intent.currentHolder);
+  const authorizedRail = Boolean(options.authorizedPaymentSender)
+    && addressKey(tx.from) === addressKey(options.authorizedPaymentSender!);
+  if (!directHolder && !authorizedRail) {
+    throw new RelayValidationError(
+      "WRONG_SENDER",
+      `Transaction sender ${tx.from} is neither the committed holder nor an independently verified payment rail for that holder`
+    );
   }
-  if (tx.to !== intent.recipient) {
+  if (addressKey(tx.to) !== addressKey(intent.recipient)) {
     throw new RelayValidationError("WRONG_RECIPIENT", `Transaction recipient ${tx.to} does not match committed recipient ${intent.recipient}`);
   }
   if (tx.value !== ONE_NIM_IN_LUNA) {
