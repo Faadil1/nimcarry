@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="theme-color" content="#183f36" />
+  <title>NimCarry — TESTNET preflight</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="brandbar">
+      <a class="brand" href="/" aria-label="NimCarry home">
+        <img class="brand-logo" src="/nimcarry-mark.svg" alt="" width="44" height="44" />
+        <span><strong>NimCarry</strong><small>Read-only TESTNET gate</small></span>
+      </a>
+      <div class="network-chip"><span class="pulse"></span><span>NO WRITES</span></div>
+    </header>
+
+    <main class="screen">
+      <section class="hero-card">
+        <div class="kicker">Payment safety check</div>
+        <h1>Prove Nimiq Pay is on TESTNET before spending 1 NIM.</h1>
+        <p class="lede">This check reads consensus and block height, then compares Nimiq Pay with an independent TESTNET head. It does not sign, approve, send, or change a NimCarry route.</p>
+        <div class="warning" style="margin-top:16px">If this fails, stop here. Do not retry a baton payment.</div>
+        <div class="button-row">
+          <button id="run-preflight" class="button primary" type="button">Run read-only TESTNET preflight</button>
+        </div>
+      </section>
+
+      <section class="card" id="result-card" hidden>
+        <div class="kicker">Result</div>
+        <p id="preflight-status" role="status" aria-live="polite"></p>
+        <pre id="preflight-json" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
+      </section>
+    </main>
+
+    <footer class="footer"><span>Diagnostic only · no transaction writes</span><span>PASS required before live baton test</span></footer>
+  </div>
+  <script type="module" src="/testnet-preflight.js"></script>
+</body>
+</html>
