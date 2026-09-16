@@ -1,4 +1,4 @@
-import type { NimiqTxLookup } from "../core/types.js";
+import type { NimiqAccountLookup, NimiqTxLookup } from "../core/types.js";
 import { NIMIQ_POLICY, lastMacroBlock } from "./policy.js";
 
 /**
@@ -20,6 +20,8 @@ export interface NimiqRpcClient {
   /** Height of the current chain head (for finality derivation). */
   getBlockNumber(): Promise<number>;
   getTransactionsByAddress?(address: string): Promise<NimiqTxLookup[]>;
+  /** Read-only account metadata used to verify Nimiq Pay HTLC payment rails. */
+  getAccountByAddress?(address: string): Promise<NimiqAccountLookup | null>;
 }
 
 /**
@@ -98,6 +100,31 @@ export class HttpNimiqRpcClient implements NimiqRpcClient {
         recipientData: tx.recipientData ?? tx.data ?? undefined,
       }];
     });
+  }
+
+  async getAccountByAddress(address: string): Promise<NimiqAccountLookup | null> {
+    const result = await this.rpc<unknown>("getAccountByAddress", [address]);
+    if (!result || typeof result !== "object") return null;
+    const account = result as Record<string, any>;
+    const extra = account.accountAdditionalFields && typeof account.accountAdditionalFields === "object"
+      ? account.accountAdditionalFields as Record<string, any>
+      : account;
+    const type = String(account.type ?? extra.type ?? "").toLowerCase();
+    if (!account.address || !type) return null;
+    const lookup: NimiqAccountLookup = {
+      address: String(account.address),
+      balance: Number(account.balance ?? 0),
+      type,
+    };
+    const sender = account.sender ?? extra.sender ?? account.senderAddress ?? extra.senderAddress;
+    const recipient = account.recipient ?? extra.recipient ?? account.recipientAddress ?? extra.recipientAddress;
+    const totalAmount = account.totalAmount ?? extra.totalAmount ?? account.total_amount ?? extra.total_amount;
+    if (sender !== undefined && sender !== null) lookup.sender = String(sender);
+    if (recipient !== undefined && recipient !== null) lookup.recipient = String(recipient);
+    if (totalAmount !== undefined && totalAmount !== null && Number.isFinite(Number(totalAmount))) {
+      lookup.totalAmount = Number(totalAmount);
+    }
+    return lookup;
   }
 }
 
