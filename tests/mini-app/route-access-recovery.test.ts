@@ -12,6 +12,13 @@ describe("route access self-recovery", () => {
     expect(ux).toContain("/route-access-recovery.html");
   });
 
+  it("can rediscover stale mission ids from session storage when browser history is lost", () => {
+    expect(ux).toContain('const prefix = "carryone.view."');
+    expect(ux).toContain("Previous mission found in this Nimiq Pay session");
+    expect(ux).toContain("Resume without creating a new mission");
+    expect(ux).toContain("recoveryPathForMission(id)");
+  });
+
   it("uses a signed VIEW_ROUTE challenge and returns to the same mission", () => {
     expect(page).toContain("Restore this mission without changing custody");
     expect(recovery).toContain('action: "VIEW_ROUTE"');
@@ -27,5 +34,6 @@ describe("route access self-recovery", () => {
     expect(recovery).not.toContain("AUTHORIZE_PASS");
     expect(recovery).not.toContain("pass-intent");
     expect(recovery).not.toContain("reconcile");
+    expect(ux).not.toContain("sendBasicTransactionWithData");
   });
 });
