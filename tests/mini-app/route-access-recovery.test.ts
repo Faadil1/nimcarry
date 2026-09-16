@@ -28,6 +28,11 @@ describe("route access self-recovery", () => {
     expect(recovery).toContain("nimiq.sign(message)");
   });
 
+  it("adds an Idempotency-Key to the signed route-view capability mutation", () => {
+    expect(recovery).toContain('headers.set("Idempotency-Key", randomToken("recovery"))');
+    expect(recovery).toContain('path !== "/auth/challenge"');
+  });
+
   it("contains no payment or custody mutation path", () => {
     expect(recovery).not.toContain("sendBasicTransaction");
     expect(recovery).not.toContain("sendBasicTransactionWithData");
