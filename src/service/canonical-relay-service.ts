@@ -15,6 +15,10 @@ function toPublicStatus(status: HopStatus): PublicStatus {
   }
 }
 
+function addressKey(value: string): string {
+  return String(value ?? "").replace(/\s+/g, "").toUpperCase();
+}
+
 export interface PublicHop {
   baton_id: string;
   sequence: number;
@@ -129,17 +133,52 @@ export class CanonicalRelayService {
     this.store.cancelIntent(batonId);
   }
 
+  /**
+   * Nimiq Pay can spend through an HTLC payment rail even though listAccounts()
+   * exposes the user's basic wallet identity. We accept that indirection only
+   * after proving on-chain that:
+   *   1) the observed tx sender is an HTLC account;
+   *   2) the HTLC declares the signed holder as its sender; and
+   *   3) the HTLC's original total amount was funded on-chain by that same holder.
+   *
+   * This keeps AUTHORIZE_PASS bound to the human wallet identity without
+   * weakening sender checks to "any HTLC" or trusting Nimiq Pay UI state.
+   */
+  private async verifiedPaymentRail(intent: PassIntent, tx: NimiqTxLookup): Promise<string | null> {
+    if (addressKey(tx.from) === addressKey(intent.currentHolder)) return null;
+    if (!this.rpc.getAccountByAddress || !this.rpc.getTransactionsByAddress) return null;
+
+    const account = await this.rpc.getAccountByAddress(tx.from);
+    if (!account || String(account.type).toLowerCase() !== "htlc") return null;
+    if (!account.sender || addressKey(account.sender) !== addressKey(intent.currentHolder)) return null;
+    if (!Number.isFinite(account.totalAmount) || Number(account.totalAmount) <= 0) return null;
+
+    const history = await this.rpc.getTransactionsByAddress(tx.from);
+    const creationFunding = history.find((candidate) =>
+      addressKey(candidate.to) === addressKey(tx.from)
+      && addressKey(candidate.from) === addressKey(intent.currentHolder)
+      && candidate.value === Number(account.totalAmount)
+    );
+    return creationFunding ? tx.from : null;
+  }
+
+  private async validateObservedTransaction(intent: PassIntent, tx: NimiqTxLookup): Promise<void> {
+    const authorizedPaymentSender = await this.verifiedPaymentRail(intent, tx);
+    validateTransactionAgainstIntent(intent, tx, { authorizedPaymentSender });
+  }
+
   private async discoverMatchingBroadcast(intent: PassIntent): Promise<NimiqTxLookup | null> {
     if (!this.rpc.getTransactionsByAddress) return null;
     const observed = await this.rpc.getTransactionsByAddress(intent.recipient);
     const matches = new Map<string, NimiqTxLookup>();
     for (const tx of observed) {
       try {
-        validateTransactionAgainstIntent(intent, tx);
+        await this.validateObservedTransaction(intent, tx);
         matches.set(tx.hash, tx);
       } catch {
-        // Address history is untrusted input. Only the exact committed sender,
-        // recipient, amount and opaque hop commitment can recover a broadcast.
+        // Address history is untrusted input. Only the exact committed recipient,
+        // amount and opaque hop commitment plus a verified holder/payment-rail
+        // relationship can recover a broadcast.
       }
     }
     if (matches.size > 1) {
@@ -153,7 +192,7 @@ export class CanonicalRelayService {
 
   private async applyObservedTransaction(intent: PassIntent, hop: Hop, tx: NimiqTxLookup): Promise<Hop> {
     try {
-      validateTransactionAgainstIntent(intent, tx);
+      await this.validateObservedTransaction(intent, tx);
     } catch (err) {
       this.store.updateHop(intent.batonId, intent.sequence, { status: "INVALID" });
       throw err;
