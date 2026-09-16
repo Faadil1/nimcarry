@@ -1,4 +1,4 @@
-import type { NimiqTxLookup } from "../core/types.js";
+import type { NimiqAccountLookup, NimiqTxLookup } from "../core/types.js";
 import type { NimiqRpcClient } from "./rpc-client.js";
 
 export class RpcVerificationDelayedError extends Error {
@@ -53,6 +53,22 @@ export class ResilientNimiqRpcClient implements NimiqRpcClient {
         // Try next.
       }
     }
+    throw new RpcVerificationDelayedError();
+  }
+
+  async getAccountByAddress(address: string): Promise<NimiqAccountLookup | null> {
+    let successfulNull = false;
+    for (const client of this.clients) {
+      try {
+        if (!client.getAccountByAddress) continue;
+        const account = await client.getAccountByAddress(address);
+        if (account) return account;
+        successfulNull = true;
+      } catch {
+        // Try next.
+      }
+    }
+    if (successfulNull) return null;
     throw new RpcVerificationDelayedError();
   }
 }

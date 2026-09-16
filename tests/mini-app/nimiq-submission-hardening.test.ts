@@ -39,10 +39,12 @@ describe("Nimiq Pay ambiguous-submission hardening", () => {
     expect(guard).not.toContain("seed");
   });
 
-  it("recovers a missing wallet hash only from an exact independent chain match", () => {
+  it("recovers a missing wallet hash only from an exact independently validated chain match", () => {
     expect(relay).toContain("discoverMatchingBroadcast");
     expect(relay).toContain("getTransactionsByAddress");
-    expect(relay).toContain("validateTransactionAgainstIntent(intent, tx)");
+    expect(relay).toContain("validateObservedTransaction");
+    expect(relay).toContain("await this.validateObservedTransaction(intent, tx)");
+    expect(relay).toContain("verifiedPaymentRail");
     expect(relay).toContain("AMBIGUOUS_MATCHING_BROADCAST");
     expect(relay).toContain("recordObservedBroadcast");
   });
