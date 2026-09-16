@@ -12,6 +12,7 @@
     "generate:secondary": "tsx scripts/generate-secondary-wallet.ts",
     "fund:wallet": "tsx scripts/fund-wallet.ts",
     "verify:testnet-canary": "tsx scripts/verify-testnet-canary.ts",
+    "diagnose:testnet-payment-identity": "tsx scripts/diagnose-testnet-payment-identity.ts",
     "start": "node dist/src/index.js",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
