@@ -1,6 +1,6 @@
 # NimCarry V2 — The Carried Letter reality contract
 
-Status: **V2 direction approved / foundation merged / handoff ceremony gate in build**
+Status: **V2 direction approved / Gates 1–7 merged / judge-facing convergence gate in build**
 
 The Carried Letter is a rendering and interaction model over the existing NimCarry state machine. It does not create new custody semantics.
 
@@ -51,7 +51,7 @@ The browser may emit presentation-only `nimcarry:handoff-phase` events so the V2
 - `authorized` — canonical pass intent exists; custody unchanged.
 - `wallet-approval-opened` — Nimiq Pay transfer approval surface opened; custody unchanged.
 - `broadcast-unproven` — wallet call did not return provable broadcast evidence; custody unchanged.
-- `broadcast-proven` — a transaction hash exists and was bound to the pass intent; custody unchanged.
+- `provider-reference-returned` — Nimiq Pay returned a transaction reference; this is not independent chain proof and custody is unchanged.\n- `broadcast-claim-recorded` — NimCarry recorded the reference for independent verification; this is still not custody.
 - `verification-pending` / `verification-status` — reconciliation is observing the chain; custody unchanged unless FINAL/CONFIRMED is returned.
 - `verification-delayed` — fail-closed waiting state; custody unchanged.
 - `final` — presentation ceremony after the canonical reconciliation path has earned FINAL/CONFIRMED/ARRIVED.
@@ -127,3 +127,19 @@ The presentation layer may humanize these states but cannot manufacture an actio
 - The generated invitation link is a private artifact for one person. Presentation may make it look like a sealed letter but must not change the token, expiry, capability or acceptance semantics.
 - The invitation recipient sees the human reason before protocol detail, with accept/decline remaining explicit.
 - Demo invitation artifacts remain visibly PRACTICE and do not imply wallet/network writes.
+
+
+## Gate 8 — Judge-facing truth and product convergence
+
+The public package must tell the same human-first story as the running V2 while preserving the evidence boundary.
+
+- Canonical short product sentence: **A private introduction, carried by people.**
+- Primary outcome: **Get introduced to someone you cannot reach directly.**
+- Browser title, install metadata, social card and README should converge on that language instead of legacy “opportunity forward” positioning.
+- The deterministic judge URL is the explicit guided practice route: `?demo=1&tour=1&reset=1`.
+- Practice/demo material must be described as simulated presentation evidence, never as real TESTNET FINAL.
+- Current chain evidence may state that a native Nimiq Pay TESTNET transfer was independently observed and that the read-only network preflight passes.
+- Current integration may state that Nimiq Pay can use an HTLC payment rail whose chain sender differs from the human/basic identity, and that NimCarry verifies the allowed sender relationship independently.
+- Until a fresh corrected NimCarry route itself reaches real FINAL, the public package must say that fresh A→B→C TESTNET FINAL proof is pending and must not claim real NimCarry ARRIVED.
+- The stale “likely external Nimiq Pay TESTNET submission regression” diagnosis is not canonical and must not appear as the current explanation.
+- Evidence vocabulary is: **authorization → provider reference → independent verification → FINAL**.
