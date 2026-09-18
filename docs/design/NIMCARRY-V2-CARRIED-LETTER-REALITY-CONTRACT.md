@@ -149,3 +149,13 @@ The presentation layer may humanize these states but cannot manufacture an actio
 - Demo route marks remain explicitly PRACTICE / not on record.
 - Human carrier marks shown on a route step remain subject to the Gate 5 authorization/privacy rules.
 - The same route artifact must remain readable on mobile and under reduced motion.
+
+
+## Gate 10 — One-object handoff compression
+
+- The pass screen must not repeat the same custody rule across multiple cards, ladders, illustrations and stamps.
+- The pre-send state converges into one handoff slip containing the accepted recipient, exactly 1 NIM as the custody seal, and the rule that the holder changes only at independent FINAL.
+- Older pass ritual / proof-ladder presentation blocks are removed when V2 takes over; canonical transaction logic remains untouched underneath.
+- A small disclosure may explain why 1 NIM exists, but it must frame it as custody rather than reward, stake, fee or incentive.
+- After the user acts, the Warm Wax → Postmark scene remains the single visual state machine for authorization, provider reference, independent verification, INCLUDED and FINAL.
+- Practice mode uses the same object model with indigo material treatment and no real wallet/network authority.
