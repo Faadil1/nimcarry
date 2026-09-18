@@ -80,3 +80,15 @@ These events are not state. Reloading the page derives truth again from the cano
 - Acceptance recovery may retain the optional label only inside the same five-minute session-scoped proof used to finish the already-approved acceptance.
 - Guided demo may prefill a practice mark, but must state that no wallet/network write occurred.
 - Historical carrier-line propagation is a separate Gate 5 concern; Gate 4 does not widen route visibility or export scope.
+
+
+## Gate 5 — Historical carrier provenance
+
+- A carrier mark may enter historical route provenance only after the matching invitation is `COMPLETED` and the relay hop is independently `CONFIRMED` / FINAL.
+- Pre-FINAL, pending, included-only, cancelled, invalid, expired, declined, withdrawn, or merely accepted invitations never contribute historical ink.
+- Reissuing an invitation clears any prior accepted display mark before the new invite cycle begins.
+- The finalized recipient's opted-in mark is retained in participant provenance with `display_name_opt_in=true`; absence of a mark remains an explicit non-opt-in.
+- Route DTOs expose historical marks only inside an authorized named viewer context. Anonymous / `UNLISTED_VIEWER` views receive `null` labels even when route fingerprints are otherwise visible.
+- Browser normalization may preserve a display label only if the server already emitted it; it must never infer a name from a candidate label, wallet, address, target label, or local state.
+- The back of the letter and the Carried Letter Receipt may render the same server-authorized label as ink. They do not gain new visibility or authority from that presentation.
+- Full wallet addresses and protected destination data remain excluded from the historical receipt.
