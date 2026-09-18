@@ -296,8 +296,10 @@
     }
 
     const step = practiceStep();
+    if (guide.dataset.renderedStep === String(step)) return;
     const [label, detail] = practiceStepCopy(step);
     guide.dataset.step = String(step);
+    guide.dataset.renderedStep = String(step);
     guide.innerHTML = `
       <div class="demo-tour-guide-head">
         <span>PRACTICE DESK</span>
