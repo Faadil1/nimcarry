@@ -19,6 +19,7 @@ export interface InvitationSummary {
   invitation_id: string;
   sequence: number;
   candidate_label: string | null;
+  candidate_display_label: string | null;
   candidate_wallet_fingerprint: string | null;
   why_you: string | null;
   status: InvitationStatus;
@@ -69,6 +70,7 @@ function toInvitationSummary(invitation: InvitationRecord, redacted: boolean): I
     invitation_id: invitation.id,
     sequence: invitation.sequence,
     candidate_label: redacted ? null : invitation.candidateLabel,
+    candidate_display_label: redacted ? null : invitation.candidateDisplayLabel,
     candidate_wallet_fingerprint: redacted
       ? null
       : invitation.candidateWalletNormalized
