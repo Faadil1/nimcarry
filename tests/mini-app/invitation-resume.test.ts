@@ -23,6 +23,20 @@ describe("bridge acceptance resume guard", () => {
     expect(guard).not.toContain("privateKey");
   });
 
+  it("keeps the optional carried-letter mark with the short-lived recovery proof", () => {
+    expect(guard).toContain('event.target instanceof Element ? event.target.closest("#accept")');
+    expect(guard).toContain('document.querySelector("#candidate-display-label")');
+    expect(guard).toContain("candidate_display_label");
+    expect(guard).toContain("pending.candidate_display_label");
+  });
+
+  it("replays the canonical flat signed envelope instead of a nested compatibility body", () => {
+    expect(guard).toContain("challenge_id: pending.challenge_id");
+    expect(guard).toContain("public_key: pending.public_key");
+    expect(guard).toContain("signature: pending.signature");
+    expect(guard).not.toContain("auth: {\n            challenge_id: pending.challenge_id");
+  });
+
   it("can finish the already-approved accept after a host route restore without creating a payment path", () => {
     expect(guard).toContain("resumeAcceptedSignature");
     expect(guard).toContain("/accept");
