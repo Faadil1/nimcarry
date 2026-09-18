@@ -14,7 +14,7 @@ describe("NimCarry V2 compose and invitation ritual", () => {
     expect(app).toContain('target_consent_confirmed');
     expect(v2).toContain("One person. One destination.");
     expect(v2).toContain("Write the human reason first. Delivery details stay sealed underneath.");
-    expect(v2).toContain("SEALED DELIVERY DETAIL");
+    expect(css).toContain("SEALED DELIVERY DETAIL");
   });
 
   it("turns a fresh mission into a clear first-human decision", () => {
