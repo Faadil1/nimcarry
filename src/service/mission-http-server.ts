@@ -662,6 +662,18 @@ async function buildMissionView(
     invitation = await deps.repository.getInvitationForSequence(missionId, record.currentSequence + 1);
   }
   const route = deps.relay.getHistory(missionId);
+  const finalizedCarrierLabels: Record<number, string | null> = {};
+  await Promise.all(
+    route
+      .filter((hop) => hop.status === "CONFIRMED" && hop.confirmed_at !== null)
+      .map(async (hop) => {
+        const historicalInvitation = await deps.repository.getInvitationForSequence(missionId, hop.sequence);
+        finalizedCarrierLabels[hop.sequence] =
+          historicalInvitation?.status === "COMPLETED"
+            ? historicalInvitation.candidateDisplayLabel
+            : null;
+      })
+  );
   const activeIntent = deps.relay.getActiveIntent(missionId);
   return composeMissionView({
     mission: record,
@@ -669,6 +681,7 @@ async function buildMissionView(
     route,
     protector: deps.protector,
     viewer: resolution.viewer,
+    finalizedCarrierLabels,
     hasActiveIntent: activeIntent !== null,
     activeIntentStale: activeIntent ? isIntentStale(activeIntent) : false,
     activeIntentHasBroadcast: activeIntent ? deps.relay.hasRecordedBroadcast(missionId) : false,
