@@ -22,7 +22,8 @@
       const missionId = stored?.mission?.mission_id;
       if (!missionId || stored?.invitation?.status !== "ACCEPTED") return;
 
-      history.pushState({}, "", `/mission/${encodeURIComponent(missionId)}?demo=1`);
+      const tour = query.get("tour") === "1" ? "&tour=1" : "";
+      history.pushState({}, "", `/mission/${encodeURIComponent(missionId)}?demo=1${tour}`);
       window.dispatchEvent(new PopStateEvent("popstate"));
     }, 0);
   });
