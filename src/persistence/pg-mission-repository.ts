@@ -381,7 +381,7 @@ export class PgMissionRepository implements MissionRepository {
       try {
         const updated = await client.query<InvitationRow>(
           `UPDATE invitations SET invite_token_hash=$2, candidate_label=$3, candidate_wallet_normalized=$4,
-             why_you=$5, status='INVITED', created_at=$6, expires_at=$7,
+             candidate_display_label=NULL, why_you=$5, status='INVITED', created_at=$6, expires_at=$7,
              accepted_at=NULL, pass_deadline_at=NULL, declined_at=NULL, withdrawn_at=NULL,
              completed_at=NULL, closed_at=NULL
            WHERE id=$1 RETURNING *`,
