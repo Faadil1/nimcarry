@@ -58,6 +58,8 @@ describe("NimCarry V2 carried-letter arrival", () => {
   it("gives the opened seal reduced-motion parity", () => {
     expect(css).toContain("@keyframes clv2-seal-left");
     expect(css).toContain("@keyframes clv2-seal-right");
+    expect(css).toContain("background:var(--cl-green-night)");
+    expect(css).not.toContain("background:#f8ecda");
     expect(css).toContain(".clv2-broken-seal::before");
     expect(css).toContain(".clv2-broken-seal::after");
     expect(css).toContain("@media(prefers-reduced-motion:reduce)");
