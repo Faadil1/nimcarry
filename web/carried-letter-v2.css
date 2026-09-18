@@ -590,31 +590,6 @@
 }
 
 
-.clv2-arrival-close{
-  display:grid;
-  grid-template-columns:auto 1fr;
-  column-gap:14px;
-  align-items:center;
-  margin:20px 0;
-  padding:19px 20px;
-  border:1px solid rgba(33,30,26,.16);
-  background:#f8ecda;
-}
-.clv2-arrival-close strong{
-  font:650 1.35rem/1.05 var(--hc-display,Georgia,serif);
-}
-.clv2-arrival-close p,.clv2-arrival-close small{grid-column:2}
-.clv2-arrival-close p{margin:5px 0 2px;font:italic 1rem/1.4 var(--hc-display,Georgia,serif)}
-.clv2-arrival-close small{color:var(--cl-muted);line-height:1.4}
-.clv2-broken-seal{
-  grid-row:1/4;
-  width:56px;
-  height:56px;
-  border-radius:48%;
-  background:linear-gradient(135deg,var(--cl-gold) 0 45%,transparent 46% 54%,#bb8730 55% 100%);
-  border:1px solid #8d651e;
-  transform:rotate(-8deg);
-}
 .clv2-no-letter{
   padding:34px!important;
   border-style:dashed!important;
