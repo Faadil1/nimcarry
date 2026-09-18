@@ -9,8 +9,9 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/styles.css" />
   <link rel="stylesheet" href="/final-human-craft.css" />
+  <link rel="stylesheet" href="/carried-letter-v2.css" />
 </head>
-<body class="final-human-craft">
+<body class="final-human-craft carried-letter-v2">
   <div class="app-shell">
     <header class="brandbar">
       <a class="brand" href="/" aria-label="NimCarry home">
@@ -21,10 +22,20 @@
     </header>
 
     <main class="screen">
-      <section class="card">
-        <div class="kicker">Read-only · diagnostic only</div>
-        <h1>Which address does Nimiq Pay expose?</h1>
-        <p class="lede">This page reads <code>listAccounts()</code>, consensus and block height. It does not sign, send, broadcast, or change a NimCarry route.</p>
+      <section class="card clv2-utility-surface">
+        <div class="clv2-utility-grid">
+          <div class="clv2-utility-copy">
+            <div class="kicker">Read-only · diagnostic only</div>
+            <h1>Which address does Nimiq Pay expose?</h1>
+            <p class="lede">This page reads <code>listAccounts()</code>, consensus and block height. It does not sign, send, broadcast, or change a NimCarry route.</p>
+          </div>
+          <div class="clv2-utility-letter" aria-hidden="true">
+            <span class="clv2-utility-kicker">IDENTITY CHECK</span>
+            <strong>Read the address. Do not move the letter.</strong>
+            <span class="clv2-utility-note">Diagnostic only · full address stays private</span>
+            <span class="clv2-utility-seal"></span>
+          </div>
+        </div>
         <div class="notice error" style="display:block;margin:1rem 0;">Privacy note: the result contains your full TESTNET account address. Do not post the raw diagnostic publicly.</div>
         <button id="run" class="button primary" type="button">Read Nimiq Pay identity</button>
         <button id="copy" class="button ghost" type="button" hidden>Copy diagnostic JSON</button>
