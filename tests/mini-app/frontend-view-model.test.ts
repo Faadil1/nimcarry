@@ -55,12 +55,16 @@ describe("five-screen Mini App view contract", () => {
     ]);
     expect(route.map((entry) => entry.sequence)).toEqual([1, 2]);
   });
-  it("normalizes the active backend route and excludes non-final hops", () => {
+  it("normalizes the active backend route, preserves authorized marks, and excludes non-final hops", () => {
     const route = normalizeRouteEntries([
-      { sequence: 2, current_holder: { wallet_fingerprint: "B" }, recipient: { wallet_fingerprint: "C" }, status: "PENDING", tx_hash: "b".repeat(64), confirmed_at: null },
-      { sequence: 1, current_holder: { wallet_fingerprint: "A" }, recipient: { wallet_fingerprint: "B" }, status: "CONFIRMED", tx_hash: "a".repeat(64), confirmed_at: "2026-09-07T12:00:00Z" },
+      { sequence: 2, current_holder: { display_label: "Bridge B", wallet_fingerprint: "B" }, recipient: { display_label: "Target", wallet_fingerprint: "C" }, status: "PENDING", tx_hash: "b".repeat(64), confirmed_at: null },
+      { sequence: 1, current_holder: { display_label: null, wallet_fingerprint: "A" }, recipient: { display_label: "Bridge B", wallet_fingerprint: "B" }, status: "CONFIRMED", tx_hash: "a".repeat(64), confirmed_at: "2026-09-07T12:00:00Z" },
     ]);
     expect(route).toHaveLength(1);
-    expect(route[0]).toMatchObject({ sequence: 1, from: { wallet_fingerprint: "A" }, to: { wallet_fingerprint: "B" } });
+    expect(route[0]).toMatchObject({
+      sequence: 1,
+      from: { display_label: null, wallet_fingerprint: "A" },
+      to: { display_label: "Bridge B", wallet_fingerprint: "B" },
+    });
   });
 });
