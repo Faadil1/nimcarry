@@ -70,12 +70,10 @@
         method: "POST",
         headers: { Accept: "application/json", "Content-Type": "application/json" },
         body: JSON.stringify({
-          auth: {
-            challenge_id: pending.challenge_id,
-            wallet: pending.wallet,
-            public_key: pending.public_key,
-            signature: pending.signature,
-          },
+          challenge_id: pending.challenge_id,
+          public_key: pending.public_key,
+          signature: pending.signature,
+          ...(pending.candidate_display_label ? { candidate_display_label: pending.candidate_display_label } : {}),
         }),
       });
       if (!response.ok) {
@@ -105,6 +103,16 @@
   // another NimCarry route in the host WebView.
   const initialToken = tokenFromPath();
   if (initialToken) writePending({ token: initialToken, invite_seen_at: now() });
+
+  // Keep the optional carried-letter signature label with the same short-lived
+  // acceptance recovery record. This is presentation metadata only; the Nimiq
+  // signature remains the consent proof.
+  document.addEventListener("click", (event) => {
+    const button = event.target instanceof Element ? event.target.closest("#accept") : null;
+    if (!button) return;
+    const label = document.querySelector("#candidate-display-label")?.value?.trim() || null;
+    writePending({ candidate_display_label: label });
+  }, true);
 
   // Capture only the ACCEPT_INVITATION challenge contract. No transaction request,
   // private key, seed phrase, or payment data is persisted.
