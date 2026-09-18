@@ -113,6 +113,8 @@ async function run(viewport) {
     activeStep = "home";
     await page.goto(`${baseUrl}/?demo=1&tour=1&reset=1`, { waitUntil: "networkidle", timeout: 20000 });
     await page.locator("#demo-banner").waitFor({ state: "visible" });
+    await page.locator("#demo-tour-rail").waitFor({ state: "visible" });
+    await page.locator(".clv2-demo-brief").waitFor({ state: "visible" });
     steps.push({ label: "home", path: new URL(page.url()).pathname });
 
     activeStep = "create";
@@ -144,6 +146,8 @@ async function run(viewport) {
     await page.locator("#demo-tour-open-invite").click();
     await page.waitForURL(/\/i\//, { timeout: 8000 });
     await page.locator("#accept").waitFor({ state: "visible" });
+    await page.getByRole("heading", { name: "You were chosen to carry this letter." }).waitFor({ state: "visible" });
+    await page.getByRole("button", { name: "Carry this letter" }).waitFor({ state: "visible" });
     steps.push({ label: "invitation-bridge-b", path: new URL(page.url()).pathname });
     await page.locator("#accept").click();
     steps.push(await expectPath(page, /^\/mission\/[^/]+$/, "mission-after-bridge-accept"));
@@ -159,11 +163,12 @@ async function run(viewport) {
     await page.locator(".hc-pass-ritual").waitFor({ state: "detached", timeout: 3000 }).catch(() => {});
     if (await page.locator(".hc-pass-ritual").count()) throw new Error("Legacy pass ritual leaked into V2 handoff surface");
     await page.locator("#send").click();
+    await page.locator(".clv2-wax-scene.is-warm").waitFor({ state: "visible", timeout: 3000 });
     activeStep = "route-after-first-final";
     steps.push(await expectPath(page, /^\/mission\/[^/]+\/route$/, "route-after-first-final"));
     await page.locator(".clv2-route-ledger-head").waitFor({ state: "visible" });
     await page.locator(".clv2-hop-stamp").first().waitFor({ state: "visible" });
-    await page.locator("#demo-tour-continue").waitFor({ state: "visible" });
+    await page.getByRole("button", { name: "Carry the letter to its destination" }).waitFor({ state: "visible" });
 
     activeStep = "refresh-route-after-first-final";
     const beforeRefresh = new URL(page.url());
@@ -189,6 +194,8 @@ async function run(viewport) {
     await page.locator("#demo-tour-open-invite").click();
     await page.waitForURL(/\/i\//, { timeout: 8000 });
     await page.locator("#accept").waitFor({ state: "visible" });
+    await page.getByRole("heading", { name: "A letter has been carried to you." }).waitFor({ state: "visible" });
+    await page.getByRole("button", { name: "Receive the letter" }).waitFor({ state: "visible" });
     steps.push({ label: "invitation-destination", path: new URL(page.url()).pathname });
     await page.locator("#accept").click();
     steps.push(await expectPath(page, /^\/mission\/[^/]+$/, "mission-after-destination-accept"));
@@ -208,6 +215,8 @@ async function run(viewport) {
     await page.locator(".clv2-route-ledger-head").waitFor({ state: "visible" });
     const postmarks = await page.locator(".clv2-hop-stamp").count();
     if (postmarks < 2) throw new Error(`Expected at least 2 verified letter-back postmarks, got ${postmarks}`);
+    await page.locator(".clv2-demo-finish").waitFor({ state: "visible" });
+    await page.getByText("2 simulated postmarks · 0 wallet writes").waitFor({ state: "visible" });
     await page.screenshot({ path: join(outputRoot, `${viewport.name}-arrived.png`), fullPage: true });
 
     if (pageErrors.length) {
