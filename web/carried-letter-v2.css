@@ -328,6 +328,121 @@
 }
 .carried-letter-v2 .clv2-seal-handoff #send{min-height:52px;border-radius:999px}
 
+/* Warm wax → postmark: one visual scene over multiple truthful pre-FINAL states. */
+.clv2-wax-scene{
+  display:grid;
+  grid-template-columns:132px minmax(0,1fr);
+  gap:18px;
+  align-items:center;
+  margin:16px 0 18px;
+  padding:18px 20px;
+  border:1px solid rgba(33,30,26,.17);
+  background:
+    linear-gradient(180deg,rgba(213,166,62,.055),rgba(255,248,233,.78)),
+    var(--cl-paper);
+  box-shadow:0 14px 32px rgba(68,49,30,.08);
+}
+.clv2-wax-scene[hidden]{display:none!important}
+.clv2-wax-object{
+  position:relative;
+  min-height:116px;
+  display:grid;
+  place-items:center;
+}
+.clv2-wax-disc{
+  width:92px;
+  height:92px;
+  display:block;
+  border-radius:49% 53% 47% 51%;
+  background:
+    radial-gradient(circle at 34% 28%,rgba(255,255,255,.72),transparent 18%),
+    radial-gradient(circle at 38% 32%,#f3d27b,var(--cl-gold) 40%,#a87722 100%);
+  border:1px solid #8d651e;
+  box-shadow:0 8px 16px rgba(83,56,17,.2),inset 0 3px 4px rgba(255,255,255,.34);
+  transform:rotate(4deg);
+}
+.clv2-wax-scene.is-warm .clv2-wax-disc{
+  animation:clv2-wax-gloss 2.4s ease-in-out infinite alternate;
+}
+.clv2-wax-scene.is-final .clv2-wax-disc{
+  background:
+    radial-gradient(circle at 42% 36%,#d7a846,#b97e28 58%,#8c5d1d 100%);
+  box-shadow:0 5px 10px rgba(83,56,17,.19),inset 0 1px 2px rgba(255,255,255,.22);
+}
+.clv2-wax-scene.is-error .clv2-wax-disc{
+  filter:saturate(.35);
+  opacity:.68;
+}
+.clv2-postmark{
+  position:absolute;
+  width:112px;
+  height:112px;
+  display:grid;
+  place-items:center;
+  padding:13px;
+  border:3px double var(--cl-vermilion);
+  border-radius:50%;
+  color:var(--cl-vermilion);
+  text-align:center;
+  font:900 .56rem/1.12 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.085em;
+  text-transform:uppercase;
+  opacity:0;
+  transform:rotate(-14deg) scale(1.7);
+  pointer-events:none;
+}
+.clv2-wax-scene.is-final .clv2-postmark{
+  opacity:1;
+  transform:rotate(-14deg) scale(1);
+  animation:clv2-postmark-strike .42s cubic-bezier(.2,.78,.25,1);
+}
+.carried-letter-v2-demo .clv2-wax-disc{
+  background:
+    radial-gradient(circle at 34% 28%,rgba(255,255,255,.56),transparent 18%),
+    radial-gradient(circle at 38% 32%,#8d89be,var(--cl-indigo) 45%,#353263 100%)!important;
+  border-color:#39366a!important;
+}
+.carried-letter-v2-demo .clv2-postmark{
+  color:var(--cl-indigo);
+  border-color:var(--cl-indigo);
+}
+.clv2-wax-kicker{
+  display:block;
+  margin-bottom:6px;
+  color:var(--cl-vermilion);
+  font:850 .59rem/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.13em;
+}
+.carried-letter-v2-demo .clv2-wax-kicker{color:var(--cl-indigo)}
+.clv2-wax-title{
+  margin:0;
+  font:650 clamp(1.45rem,4vw,2.1rem)/1 var(--hc-display,Georgia,serif);
+  letter-spacing:-.035em;
+}
+.clv2-wax-body{
+  margin:7px 0 5px;
+  color:#5f564a;
+  line-height:1.5;
+  font-size:.83rem;
+}
+.clv2-wax-truth{
+  display:block;
+  color:var(--cl-green);
+  font:750 .66rem/1.35 var(--hc-ui,system-ui,sans-serif);
+}
+.clv2-wax-scene.is-error .clv2-wax-kicker,
+.clv2-wax-scene.is-error .clv2-wax-truth{color:#8c4332}
+
+@keyframes clv2-wax-gloss{
+  from{filter:saturate(1) brightness(1);transform:rotate(4deg) scale(1)}
+  to{filter:saturate(1.08) brightness(1.045);transform:rotate(3deg) scale(1.018)}
+}
+@keyframes clv2-postmark-strike{
+  0%{opacity:0;transform:rotate(-14deg) scale(1.7)}
+  52%{opacity:1;transform:rotate(-14deg) scale(.95)}
+  100%{opacity:1;transform:rotate(-14deg) scale(1)}
+}
+
 /* Arrival + fail-closed errors. */
 .clv2-arrival-close{
   display:grid;
@@ -366,6 +481,10 @@
 
 /* Demo and responsive / accessible behavior. */
 @media(max-width:640px){
+  .clv2-wax-scene{grid-template-columns:92px minmax(0,1fr);padding:16px 14px;gap:12px}
+  .clv2-wax-object{min-height:92px}
+  .clv2-wax-disc{width:72px;height:72px}
+  .clv2-postmark{width:86px;height:86px;font-size:.47rem;padding:9px}
   .clv2-letter-stage{grid-template-columns:1fr;padding:19px 0;gap:18px}
   .clv2-envelope{min-height:190px;margin-inline:4px;padding-inline:25px}
   .clv2-stage-caption{grid-column:1}
@@ -394,4 +513,7 @@
     transition:none!important;
   }
   .clv2-envelope{transform:none}
+  .clv2-wax-scene.is-warm .clv2-wax-disc,
+  .clv2-wax-scene.is-final .clv2-postmark{animation:none!important}
+  .clv2-wax-scene.is-final .clv2-postmark{opacity:1;transform:rotate(-14deg) scale(1)}
 }
