@@ -159,3 +159,18 @@ The presentation layer may humanize these states but cannot manufacture an actio
 - A small disclosure may explain why 1 NIM exists, but it must frame it as custody rather than reward, stake, fee or incentive.
 - After the user acts, the Warm Wax → Postmark scene remains the single visual state machine for authorization, provider reference, independent verification, INCLUDED and FINAL.
 - Practice mode uses the same object model with indigo material treatment and no real wallet/network authority.
+
+
+## Gate 11 — Guided practice parity
+
+The guided demo is a first-class rehearsal of the V2 product, not a cosmetically similar fake live mode.
+
+- Every guided screen carries a persistent `PRACTICE DESK` identity and a five-step narrative: Write → Choose → Consent → Handoff → Arrival.
+- Practice-mode navigation must preserve `demo=1&tour=1` across SPA navigation, deep links and refresh.
+- The practice invite explicitly says practice; Nimiq Pay deep links remain hidden in the browser-only tour.
+- The practice acceptance may update browser-local demo state, but it must state that no Nimiq signature is created.
+- The practice handoff button must never be worded as a real wallet send.
+- On handoff, the tour reuses the same V2 Warm Wax → Postmark presentation states, but the state source is an explicit simulated event and all copy remains practice/off-chain.
+- Practice warm wax must remain visible long enough for a human to understand the waiting state; the practice postmark must be visible before navigation.
+- Guided ARRIVED includes a `PRACTICE COMPLETE` disclosure stating that no wallet approval, NIM transfer or chain finality occurred.
+- The judge smoke must exercise these practice states on mobile and desktop and fail if practice identity disappears.

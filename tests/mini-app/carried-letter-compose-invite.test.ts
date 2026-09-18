@@ -51,7 +51,7 @@ describe("NimCarry V2 compose and invitation ritual", () => {
   });
 
   it("keeps practice invitation material visually distinct", () => {
-    expect(tour).toContain("Open demo invite");
+    expect(tour).toContain("Open practice invite");
     expect(css).toContain('.carried-letter-v2-demo .clv2-invite-ready::after');
     expect(css).toContain('content:"PRACTICE"');
   });
