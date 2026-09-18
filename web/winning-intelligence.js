@@ -61,13 +61,18 @@
       ""
     ).trim().toUpperCase();
 
+    const invitationStatus = String(card.dataset.invitationStatus || "").trim().toUpperCase();
+    const primaryAction = String(card.dataset.primaryAction || "").trim().toUpperCase();
+
     if (status === "ARRIVED") return 4;
-    if (/\/route$/.test(path)) return 3;
+    if (/\/route$/.test(path)) {
+      if (primaryAction === "PASS_1_NIM" || invitationStatus === "ACCEPTED") return 3;
+      if (invitationStatus === "INVITED") return 2;
+      if (primaryAction === "CREATE_INVITATION" || primaryAction === "REROUTE") return 1;
+      return 3;
+    }
 
     if (/^\/mission\//.test(path)) {
-      const invitationStatus = String(card.dataset.invitationStatus || "").trim().toUpperCase();
-      const primaryAction = String(card.dataset.primaryAction || "").trim().toUpperCase();
-
       // Mission Home is state-driven. After an invitation is sent, the next
       // unresolved human act is acceptance (3). Once accepted, the next act is
       // the verified pass (4). ARRIVED above always resolves to step 5.
