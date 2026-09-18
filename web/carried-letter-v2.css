@@ -396,6 +396,81 @@
 .carried-letter-v2-demo .route-step .carrier-mark,
 .carried-letter-v2-demo .wi-receipt-hop .wi-carrier-mark{color:var(--cl-indigo)}
 
+/* Interruption and recovery states — every failure says where the letter is. */
+.clv2-route-state{
+  display:grid;
+  gap:6px;
+  margin:14px 0 18px;
+  padding:16px 18px;
+  border:1px dashed rgba(33,30,26,.2);
+  background:
+    linear-gradient(180deg,rgba(255,248,233,.9),rgba(245,235,219,.78)),
+    var(--cl-paper);
+  box-shadow:0 10px 24px rgba(68,49,30,.07);
+}
+.clv2-route-state-stamp{
+  justify-self:start;
+  padding:5px 8px 4px;
+  border:1.5px solid currentColor;
+  border-radius:5px;
+  color:var(--cl-vermilion);
+  font:900 .54rem/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  transform:rotate(-1.5deg);
+}
+.clv2-route-state-title{
+  color:var(--cl-green);
+  font:650 clamp(1.18rem,3vw,1.55rem)/1.08 var(--hc-display,Georgia,serif);
+  letter-spacing:-.03em;
+}
+.clv2-route-state-body{
+  margin:0;
+  color:#64594d;
+  font-size:.79rem;
+  line-height:1.5;
+}
+.clv2-route-state-rule{
+  padding-top:7px;
+  border-top:1px solid rgba(33,30,26,.09);
+  color:var(--cl-muted);
+  line-height:1.4;
+}
+.clv2-route-state[data-kind="accepted"] .clv2-route-state-stamp{color:var(--cl-green)}
+.clv2-route-state[data-kind="waiting"] .clv2-route-state-stamp{color:var(--cl-gold-dark)}
+.clv2-route-state[data-kind="expired"] .clv2-route-state-stamp,
+.clv2-route-state[data-kind="stalled"] .clv2-route-state-stamp{color:#8b6d37}
+.clv2-route-state[data-kind="declined"] .clv2-route-state-stamp,
+.clv2-route-state[data-kind="withdrawn"] .clv2-route-state-stamp,
+.clv2-route-state[data-kind="closed"] .clv2-route-state-stamp{color:#76695d}
+
+.clv2-unavailable-letter{
+  position:relative;
+  padding:30px!important;
+  border-style:dashed!important;
+  background:
+    linear-gradient(135deg,transparent 0 48%,rgba(169,79,55,.035) 49% 51%,transparent 52%),
+    var(--cl-paper)!important;
+}
+.clv2-unavailable-letter::before{
+  content:"RETURN TO SENDER";
+  display:inline-block;
+  margin-bottom:12px;
+  padding:5px 8px 4px;
+  border:1.5px solid rgba(169,79,55,.5);
+  border-radius:4px;
+  color:var(--cl-vermilion);
+  font:900 .54rem/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.11em;
+  transform:rotate(-2deg);
+}
+.clv2-unavailable-letter h2{
+  margin-top:0;
+  font:650 clamp(1.8rem,6vw,2.8rem)/.98 var(--hc-display,Georgia,serif);
+  letter-spacing:-.045em;
+}
+.clv2-unavailable-letter p{color:var(--cl-muted);line-height:1.55}
+
 /* Pre-handoff ceremony. Warm-wax verification state is added in the next gate. */
 .clv2-ready-seal{
   display:flex;
@@ -731,6 +806,8 @@
   }
   .clv2-envelope{transform:none}
   .clv2-ink-signature{transform:none}
+  .clv2-route-state-stamp,
+  .clv2-unavailable-letter::before{transform:none}
   .clv2-wax-scene.is-warm .clv2-wax-disc,
   .clv2-wax-scene.is-final .clv2-postmark,
   .clv2-broken-seal::before,
