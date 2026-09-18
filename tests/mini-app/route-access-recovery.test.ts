@@ -7,7 +7,7 @@ const recovery = readFileSync("web/route-access-recovery.js", "utf8");
 
 describe("route access self-recovery", () => {
   it("surfaces a dedicated recovery action for invalid or expired route capabilities", () => {
-    expect(ux).toContain("route_view_capability_(invalid|expired)");
+    expect(ux).toContain("route_view_capability_(invalid|expired|required)");
     expect(ux).toContain("Restore mission access");
     expect(ux).toContain("/route-access-recovery.html");
   });
@@ -20,7 +20,8 @@ describe("route access self-recovery", () => {
   });
 
   it("uses a signed VIEW_ROUTE challenge and returns to the same mission", () => {
-    expect(page).toContain("Restore this mission without changing custody");
+    expect(page).toContain("The letter is still safe. Restore your view.");
+    expect(page).toContain("This restores access, not custody.");
     expect(recovery).toContain('action: "VIEW_ROUTE"');
     expect(recovery).toContain("/auth/challenge");
     expect(recovery).toContain("/view");
