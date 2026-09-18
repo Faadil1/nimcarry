@@ -37,6 +37,12 @@ describe("bridge acceptance resume guard", () => {
     expect(guard).not.toContain("auth: {\n            challenge_id: pending.challenge_id");
   });
 
+  it("uses a stable idempotency key for direct acceptance recovery", () => {
+    expect(guard).toContain('pending.accept_idempotency_key || randomToken("accept-resume")');
+    expect(guard).toContain('"Idempotency-Key": acceptIdempotencyKey');
+    expect(guard).toContain("accept_idempotency_key: acceptIdempotencyKey");
+  });
+
   it("can finish the already-approved accept after a host route restore without creating a payment path", () => {
     expect(guard).toContain("resumeAcceptedSignature");
     expect(guard).toContain("/accept");
