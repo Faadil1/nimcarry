@@ -22,6 +22,8 @@ describe("route access self-recovery", () => {
   it("uses a signed VIEW_ROUTE challenge and returns to the same mission", () => {
     expect(page).toContain("The letter is still safe. Restore your view.");
     expect(page).toContain("This restores access, not custody.");
+    expect(page).toContain('class="hero-card clv2-utility-surface"');
+    expect(page).toContain("Restore the view. Never move the letter.");
     expect(recovery).toContain('action: "VIEW_ROUTE"');
     expect(recovery).toContain("/auth/challenge");
     expect(recovery).toContain("/view");
