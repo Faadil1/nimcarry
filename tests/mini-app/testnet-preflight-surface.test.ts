@@ -8,10 +8,11 @@ describe("live TESTNET preflight surface", () => {
   it("is explicitly read-only and requires a PASS before payment", () => {
     expect(html).toContain('name="robots" content="noindex,nofollow"');
     expect(html).toContain("Diagnostic only · no transaction writes");
-    expect(html).toContain("PASS required before live baton test");
+    expect(html).toContain("PASS → plain TESTNET canary → live baton test");
     expect(js).toContain("assertTestnetPreflight");
     expect(js).toContain("writes_performed: false");
     expect(js).toContain('safe_next_step: "STOP_NO_PAYMENT"');
+    expect(js).toContain('safe_next_step: "PLAIN_TESTNET_CANARY_THEN_ONE_CONTROLLED_NIMCARRY_A_TO_B"');
   });
 
   it("cannot sign or broadcast from the preflight surface", () => {
