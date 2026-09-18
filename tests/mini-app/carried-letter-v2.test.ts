@@ -32,7 +32,7 @@ describe("NimCarry V2 carried-letter foundation", () => {
   it("keeps Nimiq visible but progressively disclosed", () => {
     expect(js).toContain("An independent record — the Nimiq network — verifies every handover before it counts.");
     expect(js).toContain("Nimiq Pay authorization is the consent proof.");
-    expect(js).toContain("Approval and broadcast alone never move it.");
+    expect(js).toContain("Approval can open the handoff. Broadcast can make it observable. Neither changes the holder.");
     expect(html).toContain('id="network-label"');
   });
 
@@ -53,7 +53,7 @@ describe("NimCarry V2 carried-letter foundation", () => {
   it("preserves privacy and FINAL semantics in the new metaphor", () => {
     expect(js).toContain("Their address stays sealed from every carrier.");
     expect(js).toContain("Only independently verified handoffs are inked onto this letter.");
-    expect(js).toContain("The letter stays in your hands until NimCarry independently verifies the handover as FINAL.");
+    expect(js).toContain("Exactly 1 NIM carries custody to this person only after independent FINAL.");
     expect(js).toContain("No one was paid. Everyone chose.");
   });
 
