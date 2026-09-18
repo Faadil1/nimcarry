@@ -231,7 +231,10 @@
     open.type = "button";
     open.className = "button primary";
     open.textContent = "Open sealed practice invite";
-    open.addEventListener("click", () => { location.href = url.toString(); });
+    open.addEventListener("click", () => {
+      history.pushState({}, "", tourPath(url.pathname));
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
     row.prepend(open);
   }
 
