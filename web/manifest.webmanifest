@@ -1,7 +1,7 @@
 {
-  "name": "NimCarry — People move opportunity forward",
+  "name": "NimCarry — A private introduction, carried by people",
   "short_name": "NimCarry",
-  "description": "Human routes for warm introductions, referrals, opportunities and community access. One destination; consenting human bridges; exactly 1 NIM as the verified custody baton.",
+  "description": "Get introduced to someone you cannot reach directly. One private destination, consenting human carriers, exactly 1 NIM as the custody seal, and FINAL-only verified handoffs.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
