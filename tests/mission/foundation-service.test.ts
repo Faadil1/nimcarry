@@ -207,6 +207,36 @@ describe("Reach Mission foundation service", () => {
     expect((await repo.snapshot()).auditEvents).toHaveLength(1);
   });
 
+  it("clears an accepted display mark when the file-store invitation is reissued", async () => {
+    const { repo, service } = fixture();
+    const creator = wallet();
+    const candidate = wallet();
+    const mission = await service.createMission(consentedMissionInput(creator, 55_000));
+    const original = await service.createInvitation({
+      missionId: mission.id,
+      auth: auth(creator, "CREATE_INVITATION", mission.id, undefined, 1),
+      candidateWallet: candidate,
+      now: 55_100,
+    });
+    await service.acceptInvitation({
+      token: original.inviteToken,
+      auth: auth(candidate, "ACCEPT_INVITATION", mission.id, original.invitation.id, 1),
+      candidateDisplayLabel: "Old mark",
+      now: 55_200,
+    });
+    await service.expireDueInvitations(55_200 + 60 * 60 * 1000 + 1);
+    await service.reissueInvitation({
+      missionId: mission.id,
+      invitationId: original.invitation.id,
+      auth: auth(creator, "CREATE_INVITATION", mission.id, original.invitation.id, 1),
+      candidateWallet: candidate,
+      activePassRecipient: candidate,
+      now: 55_300,
+    });
+    const stored = (await repo.snapshot()).invitations.find((item) => item.id === original.invitation.id);
+    expect(stored?.candidateDisplayLabel).toBeNull();
+  });
+
   it("fails closed when reissued candidate differs from an active pass intent", async () => {
     const { service } = fixture();
     const creator = wallet(); const candidate = wallet(); const wrong = wallet();

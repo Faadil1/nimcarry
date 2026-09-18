@@ -202,6 +202,15 @@ describe("static Mini App skeleton", () => {
     expect(finalHumanCss).toContain("hc-route-arrived");
     expect(finalHumanCss).toContain("hc-route-person");
   });
+  it("propagates only server-authorized finalized carrier marks into route and receipt UI", () => {
+    expect(compat).toContain("entry.current_holder?.display_label || null");
+    expect(compat).toContain("entry.recipient?.display_label || null");
+    expect(js).toContain('data-carrier-mark="${esc(carrierMark || "")}"');
+    expect(js).toContain('class="${carrierMark ? "carrier-mark" : ""}"');
+    expect(winning).toContain("const carrierMark = step.dataset.carrierMark ||");
+    expect(winning).toContain('carrierMark ? "wi-carrier-mark" : ""');
+  });
+
   it("makes ARRIVED a human outcome plus privacy-safe proof rather than a transaction toast", () => {
     expect(winning).toContain("Each displayed handoff was independently finalized before custody moved.");
     expect(winning).toContain("Private destination and full participant wallet data stay hidden from this receipt.");

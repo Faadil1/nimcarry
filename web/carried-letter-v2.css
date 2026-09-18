@@ -370,6 +370,32 @@
 .carried-letter-v2-demo .clv2-signed-kicker{color:var(--cl-indigo)}
 .carried-letter-v2-demo .clv2-ink-signature{color:var(--cl-indigo)}
 
+.carried-letter-v2 .route-step .carrier-mark,
+.carried-letter-v2 .wi-receipt-hop .wi-carrier-mark{
+  color:#293d35;
+  font-family:var(--hc-hand,"Segoe Print",cursive);
+  font-weight:600;
+  letter-spacing:.01em;
+}
+.carried-letter-v2 .route-step[data-carrier-mark]:not([data-carrier-mark=""])::after{
+  content:"signed after consent";
+  display:block;
+  margin:2px 0 0 27px;
+  color:var(--cl-vermilion);
+  font:800 .48rem/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+.carried-letter-v2 .wi-receipt-hop .wi-carrier-mark::after{
+  content:" · opted-in mark";
+  color:var(--cl-vermilion);
+  font:800 .46rem/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.carried-letter-v2-demo .route-step .carrier-mark,
+.carried-letter-v2-demo .wi-receipt-hop .wi-carrier-mark{color:var(--cl-indigo)}
+
 /* Pre-handoff ceremony. Warm-wax verification state is added in the next gate. */
 .clv2-ready-seal{
   display:flex;

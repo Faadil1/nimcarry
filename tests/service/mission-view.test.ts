@@ -42,4 +42,66 @@ describe("mission primary action for accepted pass intents", () => {
     const stranger = PublicKey.derive(PrivateKey.generate()).toAddress().toUserFriendlyAddress();
     expect(view({ hasActiveIntent: false, viewer: stranger }).invitation?.candidate_display_label).toBeNull();
   });
+
+  it("attaches opted-in carrier marks only to independently finalized route entries", () => {
+    const route = [{
+      baton_id: "mission-1",
+      sequence: 1,
+      current_holder: A,
+      recipient: B,
+      tx_hash: "a".repeat(64),
+      status: "CONFIRMED" as const,
+      created_at: "2026-09-18T00:00:00.000Z",
+      confirmed_at: "2026-09-18T00:01:00.000Z",
+    }];
+    const creatorView = composeMissionView({
+      mission,
+      invitation,
+      route,
+      protector,
+      viewer: A,
+      hasActiveIntent: false,
+      finalizedCarrierLabels: { 1: "Bridge B" },
+      now: 1,
+    });
+    expect(creatorView.route[0].recipient.display_label).toBe("Bridge B");
+
+    const pendingView = composeMissionView({
+      mission,
+      invitation,
+      route: [{ ...route[0], status: "PENDING" as const, confirmed_at: null }],
+      protector,
+      viewer: A,
+      hasActiveIntent: false,
+      finalizedCarrierLabels: { 1: "Bridge B" },
+      now: 1,
+    });
+    expect(pendingView.route[0].recipient.display_label).toBeNull();
+  });
+
+  it("redacts historical carrier marks from anonymous/unlisted route viewers", () => {
+    const stranger = PublicKey.derive(PrivateKey.generate()).toAddress().toUserFriendlyAddress();
+    const route = [{
+      baton_id: "mission-1",
+      sequence: 1,
+      current_holder: A,
+      recipient: B,
+      tx_hash: "b".repeat(64),
+      status: "CONFIRMED" as const,
+      created_at: "2026-09-18T00:00:00.000Z",
+      confirmed_at: "2026-09-18T00:01:00.000Z",
+    }];
+    const publicStyleView = composeMissionView({
+      mission: { ...mission, visibility: "PUBLIC" },
+      invitation,
+      route,
+      protector,
+      viewer: stranger,
+      hasActiveIntent: false,
+      finalizedCarrierLabels: { 1: "Bridge B" },
+      now: 1,
+    });
+    expect(publicStyleView.viewer_role).toBe("UNLISTED_VIEWER");
+    expect(publicStyleView.route[0].recipient.display_label).toBeNull();
+  });
 });

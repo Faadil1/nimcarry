@@ -381,7 +381,7 @@ export class PgMissionRepository implements MissionRepository {
       try {
         const updated = await client.query<InvitationRow>(
           `UPDATE invitations SET invite_token_hash=$2, candidate_label=$3, candidate_wallet_normalized=$4,
-             why_you=$5, status='INVITED', created_at=$6, expires_at=$7,
+             candidate_display_label=NULL, why_you=$5, status='INVITED', created_at=$6, expires_at=$7,
              accepted_at=NULL, pass_deadline_at=NULL, declined_at=NULL, withdrawn_at=NULL,
              completed_at=NULL, closed_at=NULL
            WHERE id=$1 RETURNING *`,
@@ -642,11 +642,17 @@ export class PgMissionRepository implements MissionRepository {
       // (or on a previous hop) and that is the same record.
       try {
         await client.query(
-          `INSERT INTO participants (mission_id, wallet_normalized, display_label, first_final_sequence)
-           VALUES ($1, $2, $3, $4)
+          `INSERT INTO participants (mission_id, wallet_normalized, display_label, display_name_opt_in, first_final_sequence)
+           VALUES ($1, $2, $3, $4, $5)
            ON CONFLICT (mission_id, wallet_normalized) DO UPDATE
              SET first_final_sequence = COALESCE(participants.first_final_sequence, EXCLUDED.first_final_sequence)`,
-          [input.missionId, input.recipientWallet, null, input.sequence]
+          [
+            input.missionId,
+            input.recipientWallet,
+            invitationRow.candidate_display_label,
+            invitationRow.candidate_display_label !== null,
+            input.sequence,
+          ]
         );
       } catch (error) {
         throw mapPgErrorToMission(error, `completeFinalHop participant guard failed for ${input.missionId}`);

@@ -169,6 +169,7 @@ export class FileMissionRepository implements MissionRepository {
       Object.assign(invitation, {
         candidateLabel: input.candidateLabel,
         candidateWalletNormalized: input.candidateWalletNormalized,
+        candidateDisplayLabel: null,
         whyYou: input.whyYou,
         inviteTokenHash: input.inviteTokenHash,
         status: "INVITED" as const,

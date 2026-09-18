@@ -23,6 +23,7 @@ export interface UiInvitationSummary {
   sequence: number;
   status: UiInvitationStatus;
   candidate_label: string | null;
+  candidate_display_label?: string | null;
   candidate_wallet_fingerprint?: string | null;
   accepted_wallet_fingerprint?: string | null;
   why_you?: string | null;
@@ -33,8 +34,8 @@ export interface UiInvitationSummary {
 /** Participant-safe route shape emitted by the active Mission HTTP branch. */
 export interface BackendRouteEntry {
   sequence: number;
-  current_holder: { wallet_fingerprint: string; is_viewer?: boolean };
-  recipient: { wallet_fingerprint: string; is_viewer?: boolean };
+  current_holder: { display_label?: string | null; wallet_fingerprint: string; is_viewer?: boolean };
+  recipient: { display_label?: string | null; wallet_fingerprint: string; is_viewer?: boolean };
   status: "READY" | "PENDING" | "CONFIRMED" | "CANCELLED" | "INVALID";
   tx_hash: string | null;
   confirmed_at: string | null;
@@ -170,8 +171,8 @@ export function normalizeRouteEntries(entries: BackendRouteEntry[] | UiRouteEntr
         if (entry.status !== "CONFIRMED" || entry.confirmed_at === null) return [];
         return [{
           sequence: entry.sequence,
-          from: { display_label: null, wallet_fingerprint: entry.current_holder.wallet_fingerprint },
-          to: { display_label: null, wallet_fingerprint: entry.recipient.wallet_fingerprint },
+          from: { display_label: entry.current_holder.display_label ?? null, wallet_fingerprint: entry.current_holder.wallet_fingerprint },
+          to: { display_label: entry.recipient.display_label ?? null, wallet_fingerprint: entry.recipient.wallet_fingerprint },
           finalized_at: entry.confirmed_at,
           tx_hash_short: txShort(entry.tx_hash),
         } satisfies UiRouteEntry];
