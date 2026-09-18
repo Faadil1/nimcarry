@@ -14,6 +14,8 @@ describe("NimCarry V2 guided practice parity", () => {
     expect(tour).toContain('["Write","Choose","Consent","Handoff","Arrival"]');
     expect(tour).toContain("Practice acceptance is local only; no Nimiq signature is created.");
     expect(css).toContain(".demo-tour-progress");
+    expect(tour).toContain('guide.dataset.renderedStep === String(step)');
+    expect(tour).toContain('guide.dataset.renderedStep = String(step)');
   });
 
   it("never presents the guided handoff button as a real NIM send", () => {
