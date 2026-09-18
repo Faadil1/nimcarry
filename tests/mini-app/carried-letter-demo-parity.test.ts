@@ -8,7 +8,9 @@ const smoke = readFileSync("scripts/judge-flow-smoke.mjs", "utf8");
 describe("NimCarry V2 guided practice parity", () => {
   it("keeps a persistent five-step practice narrative", () => {
     expect(tour).toContain("PRACTICE DESK");
-    expect(tour).toContain("GUIDED PRACTICE");
+    expect(tour).toContain('banner.dataset.guided = "1"');
+    expect(css).toContain('content:" · GUIDED PRACTICE"');
+    expect(tour).not.toContain("banner.appendChild(badge)");
     expect(tour).toContain('["Write","Choose","Consent","Handoff","Arrival"]');
     expect(tour).toContain("Practice acceptance is local only; no Nimiq signature is created.");
     expect(css).toContain(".demo-tour-progress");
