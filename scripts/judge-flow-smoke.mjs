@@ -160,6 +160,20 @@ async function run(viewport) {
     steps.push(await expectPath(page, /^\/mission\/[^/]+\/route$/, "route-after-first-final"));
     await page.locator("#demo-tour-continue").waitFor({ state: "visible" });
 
+    activeStep = "refresh-route-after-first-final";
+    const beforeRefresh = new URL(page.url());
+    if (beforeRefresh.searchParams.get("demo") !== "1" || beforeRefresh.searchParams.get("tour") !== "1") {
+      throw new Error(`Practice context missing before refresh: ${beforeRefresh.search}`);
+    }
+    await page.reload({ waitUntil: "networkidle", timeout: 20000 });
+    const afterRefresh = new URL(page.url());
+    if (afterRefresh.searchParams.get("demo") !== "1" || afterRefresh.searchParams.get("tour") !== "1") {
+      throw new Error(`Practice context missing after refresh: ${afterRefresh.search}`);
+    }
+    await page.locator("#demo-banner").waitFor({ state: "visible" });
+    await page.locator("#demo-tour-continue").waitFor({ state: "visible" });
+    steps.push({ label: "refresh-preserved-practice-context", path: afterRefresh.pathname, search: afterRefresh.search });
+
     activeStep = "invite-destination";
     await page.locator("#demo-tour-continue").click();
     await page.locator("#invite-dialog").waitFor({ state: "visible" });

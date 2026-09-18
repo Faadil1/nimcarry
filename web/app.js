@@ -94,7 +94,13 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     if (phase === "pass_intent" || phase === "transaction_construction" || /recipient|fee|data|transaction/.test(message)) return "transaction_construction_or_contract";
     return phase;
   };
-  const navigate = (path) => { history.pushState({}, "", path); route(); };
+  const preserveModePath = (path) => {
+    const url = new URL(path, location.origin);
+    if (state.demo) url.searchParams.set("demo", "1");
+    if (query.get("tour") === "1") url.searchParams.set("tour", "1");
+    return `${url.pathname}${url.search}${url.hash}`;
+  };
+  const navigate = (path) => { history.pushState({}, "", preserveModePath(path)); route(); };
   els.brandHome.addEventListener("click", () => navigate(state.mission?.mission_id ? `/mission/${encodeURIComponent(state.mission.mission_id)}` : "/"));
   addEventListener("popstate", route);
 

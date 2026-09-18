@@ -33,6 +33,12 @@
     notice.classList.remove("error");
   };
   const sameText = (a, b) => String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+  const tourPath = (path) => {
+    const url = new URL(path, location.origin);
+    url.searchParams.set("demo", "1");
+    url.searchParams.set("tour", "1");
+    return `${url.pathname}${url.search}${url.hash}`;
+  };
 
   function prefillCreate() {
     const form = screen.querySelector("#create-form");
@@ -216,7 +222,7 @@
     writeDemo({ mission, invitation });
     showNotice(targetReached ? "DEMO FINAL — destination reached. ARRIVED." : "DEMO FINAL — custody moved to Bridge B.");
     await new Promise((resolve) => setTimeout(resolve, 300));
-    history.pushState({}, "", `/mission/${encodeURIComponent(mission.mission_id)}/route`);
+    history.pushState({}, "", tourPath(`/mission/${encodeURIComponent(mission.mission_id)}/route`));
     window.dispatchEvent(new PopStateEvent("popstate"));
   }
 
@@ -235,7 +241,7 @@
     button.textContent = "Continue demo to destination";
     button.addEventListener("click", () => {
       writeMeta({ ...readMeta(), autoOpenNextInvite: true });
-      history.pushState({}, "", `/mission/${encodeURIComponent(demo.mission.mission_id)}`);
+      history.pushState({}, "", tourPath(`/mission/${encodeURIComponent(demo.mission.mission_id)}`));
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
     row.prepend(button);
