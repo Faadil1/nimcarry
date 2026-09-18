@@ -158,6 +158,8 @@ async function run(viewport) {
     await page.locator("#send").click();
     activeStep = "route-after-first-final";
     steps.push(await expectPath(page, /^\/mission\/[^/]+\/route$/, "route-after-first-final"));
+    await page.locator(".clv2-route-ledger-head").waitFor({ state: "visible" });
+    await page.locator(".clv2-hop-stamp").first().waitFor({ state: "visible" });
     await page.locator("#demo-tour-continue").waitFor({ state: "visible" });
 
     activeStep = "refresh-route-after-first-final";
@@ -199,6 +201,9 @@ async function run(viewport) {
     const arrived = await page.locator(".status-pill").textContent();
     if (!/ARRIVED/i.test(arrived || "")) throw new Error(`Expected ARRIVED, got ${arrived || "empty status"}`);
     await page.locator(".hc-arrived-moment").waitFor({ state: "visible" });
+    await page.locator(".clv2-route-ledger-head").waitFor({ state: "visible" });
+    const postmarks = await page.locator(".clv2-hop-stamp").count();
+    if (postmarks < 2) throw new Error(`Expected at least 2 verified letter-back postmarks, got ${postmarks}`);
     await page.screenshot({ path: join(outputRoot, `${viewport.name}-arrived.png`), fullPage: true });
 
     if (pageErrors.length) {

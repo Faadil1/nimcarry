@@ -671,6 +671,45 @@
     if (card.dataset.clv2Route !== "1") {
       card.dataset.clv2Route = "1";
       card.classList.add("clv2-route");
+
+      // Converge older route embellishments into one artifact world.
+      card.querySelectorAll(".hc-route-heading,.hc-max-route-motto,.cf-route-heading").forEach((node) => node.remove());
+
+      const steps = [...card.querySelectorAll(".route-step")];
+      const metaKicker = card.querySelector(".meta-row .kicker");
+      text(metaKicker, "BACK OF THE LETTER · VERIFIED JOURNEY");
+      const lede = card.querySelector(".lede");
+      text(
+        lede,
+        steps.length
+          ? "Every mark below exists because a handoff reached independent FINAL. Pending activity never writes on this letter."
+          : "This side stays blank until the first handoff reaches independent FINAL."
+      );
+
+      const ledger = el("section", "clv2-route-ledger-head");
+      ledger.setAttribute("aria-label", "Verified journey legend");
+      ledger.append(
+        el("span", "clv2-route-ledger-kicker", isDemo ? "PRACTICE LETTER BACK" : "LETTER BACK"),
+        el("strong", "", steps.length ? `${steps.length} verified handoff${steps.length === 1 ? "" : "s"}` : "No verified handoff yet"),
+        el("small", "", isDemo ? "Simulated practice marks · not on record" : "Only FINAL handoffs earn a postmark")
+      );
+      const routeList = card.querySelector(".route");
+      if (routeList) routeList.before(ledger);
+      else {
+        const buttons = card.querySelector(":scope > .button-row");
+        if (buttons) buttons.before(ledger);
+        else card.append(ledger);
+      }
+
+      steps.forEach((step, index) => {
+        step.classList.add("clv2-route-postmark-step");
+        step.dataset.sequence = String(index + 1);
+        const copy = step.querySelector(":scope > div:last-child");
+        if (copy && !step.querySelector(".clv2-hop-stamp")) {
+          const stamp = el("span", "clv2-hop-stamp", isDemo ? `PRACTICE ${String(index + 1).padStart(2, "0")}` : `FINAL ${String(index + 1).padStart(2, "0")}`);
+          copy.prepend(stamp);
+        }
+      });
     }
 
     if (arrived) {
