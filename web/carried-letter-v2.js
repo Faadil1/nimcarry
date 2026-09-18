@@ -795,7 +795,9 @@
       text(close.querySelector(".clv2-arrival-title"), isTargetViewer ? "This was meant for you." : "It reached the intended person.");
       text(
         close.querySelector(".clv2-arrival-line"),
-        isTargetViewer ? "People chose to carry it until it reached you." : "No one was paid. Everyone chose."
+        isTargetViewer
+          ? "People chose to carry it until it reached you."
+          : "No bridge was rewarded. The 1 NIM moved only as the custody baton."
       );
       text(
         close.querySelector(".clv2-arrival-proof"),
