@@ -25,6 +25,39 @@ export interface NimiqRpcClient {
 }
 
 /**
+ * Nimiq JSON-RPC serializes transaction recipient data as a hex string.
+ * Some higher-level/plain transaction shapes instead expose { raw: <hex> }.
+ * NimCarry's canonical intent stores the human/provider text form (co:v1:...),
+ * so normalize every RPC representation back to UTF-8 before validation.
+ */
+function normalizeRecipientData(value: unknown): string | undefined {
+  if (value === undefined || value === null) return undefined;
+
+  const raw =
+    typeof value === "object" && value !== null && "raw" in value
+      ? (value as { raw?: unknown }).raw
+      : value;
+
+  if (typeof raw !== "string") {
+    if (Array.isArray(raw) && raw.every((byte) => Number.isInteger(byte) && byte >= 0 && byte <= 255)) {
+      return Buffer.from(raw).toString("utf8");
+    }
+    return String(raw);
+  }
+
+  const trimmed = raw.trim();
+  const hex = trimmed.startsWith("0x") ? trimmed.slice(2) : trimmed;
+  if (hex.length > 0 && hex.length % 2 === 0 && /^[0-9a-f]+$/i.test(hex)) {
+    return Buffer.from(hex, "hex").toString("utf8");
+  }
+  return raw;
+}
+
+function rpcRecipientData(tx: Record<string, any>): string | undefined {
+  return normalizeRecipientData(tx.recipientData ?? tx.data ?? undefined);
+}
+
+/**
  * Real JSON-RPC implementation. Points at the Nimiq testnet history node by
  * default (free, rate limited, read-only). Swap `rpcUrl` for your own node.
  * This client only ever READS the chain — it never signs or broadcasts.
@@ -71,7 +104,7 @@ export class HttpNimiqRpcClient implements NimiqRpcClient {
       value: r.value,
       blockNumber: r.blockNumber ?? null,
       confirmations: r.confirmations ?? 0,
-      recipientData: r.recipientData ?? r.data ?? undefined,
+      recipientData: rpcRecipientData(r),
     };
   }
 
@@ -97,7 +130,7 @@ export class HttpNimiqRpcClient implements NimiqRpcClient {
         value: Number(tx.value),
         blockNumber: tx.blockNumber ?? null,
         confirmations: Number(tx.confirmations ?? 0),
-        recipientData: tx.recipientData ?? tx.data ?? undefined,
+        recipientData: rpcRecipientData(tx),
       }];
     });
   }
