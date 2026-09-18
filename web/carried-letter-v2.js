@@ -255,6 +255,175 @@
     }
   }
 
+  function ensureHandoffScene() {
+    const hero = screen.querySelector(".clv2-seal-handoff");
+    if (!hero) return null;
+    let scene = hero.querySelector(".clv2-wax-scene");
+    if (scene) return scene;
+
+    scene = el("section", "clv2-wax-scene");
+    scene.hidden = true;
+    scene.setAttribute("role", "status");
+    scene.setAttribute("aria-live", "polite");
+
+    const object = el("div", "clv2-wax-object");
+    const wax = el("span", "clv2-wax-disc");
+    const postmark = el("span", "clv2-postmark", isDemo ? "PRACTICE · NOT ON RECORD" : "FINAL · VERIFIED · TESTNET");
+    object.append(wax, postmark);
+
+    const copy = el("div", "clv2-wax-copy");
+    copy.append(
+      el("span", "clv2-wax-kicker", "HANDOVER"),
+      el("h2", "clv2-wax-title", "Ready to verify."),
+      el("p", "clv2-wax-body", "The letter is still with the last verified holder."),
+      el("small", "clv2-wax-truth", "Approval is not custody. Broadcast is not custody. Only FINAL changes the holder.")
+    );
+    scene.append(object, copy);
+
+    const ready = hero.querySelector(".clv2-ready-seal");
+    if (ready) ready.after(scene);
+    else hero.querySelector(".button-row")?.before(scene);
+    return scene;
+  }
+
+  function phaseCopy(phase, status) {
+    if (phase === "authorization-requested") {
+      return {
+        mode: "warm",
+        kicker: "AUTHORIZE",
+        title: "Authorize the handover.",
+        body: "Nimiq Pay is binding this exact handover to you. Nothing has moved yet.",
+        truth: "The letter is still yours.",
+      };
+    }
+    if (phase === "authorized") {
+      return {
+        mode: "warm",
+        kicker: "AUTHORIZED · NOT CARRIED",
+        title: "Authorized, not carried.",
+        body: "Your intent is locked. NimCarry still has no proof that the 1 NIM seal reached the record.",
+        truth: "The letter is still yours.",
+      };
+    }
+    if (phase === "wallet-approval-opened") {
+      return {
+        mode: "warm",
+        kicker: "NIMIQ PAY",
+        title: "Approve the seal transfer.",
+        body: "Nimiq Pay is asking to send exactly 1 NIM. Approval still does not move custody.",
+        truth: "The letter is still yours.",
+      };
+    }
+    if (phase === "broadcast-unproven") {
+      return {
+        mode: "warm",
+        kicker: "APPROVED · UNPROVEN",
+        title: "Approved, not yet on the record.",
+        body: "NimCarry does not have a provable transaction hash for this handover.",
+        truth: "The letter is still yours.",
+      };
+    }
+    if (phase === "broadcast-proven") {
+      return {
+        mode: "warm",
+        kicker: "ON THE RECORD · NOT FINAL",
+        title: "The wax is still warm.",
+        body: "The handover reached the record. NimCarry is now waiting for independent finality.",
+        truth: "The letter is still yours until the postmark lands.",
+      };
+    }
+    if (phase === "verification-pending") {
+      return {
+        mode: "warm",
+        kicker: isDemo ? "PRACTICE VERIFICATION" : "VERIFYING",
+        title: "The wax is still warm.",
+        body: isDemo
+          ? "Practice wax sets on a timer. No real chain write is happening."
+          : "The handover is being checked independently. No countdown can make it FINAL.",
+        truth: "Custody is unchanged.",
+      };
+    }
+    if (phase === "verification-status") {
+      if (/FINAL|CONFIRMED|ARRIVED/i.test(String(status || ""))) {
+        return {
+          mode: "final",
+          kicker: isDemo ? "PRACTICE POSTMARK" : "FINAL · VERIFIED",
+          title: "Carried.",
+          body: "The postmark landed. The verified holder has changed.",
+          truth: isDemo ? "Practice only — not on the record." : "This is the only moment custody moves.",
+        };
+      }
+      if (/INCLUDED/i.test(String(status || ""))) {
+        return {
+          mode: "warm",
+          kicker: "SEEN ON THE RECORD · NOT FINAL",
+          title: "Seen, not settled.",
+          body: "The handover is included but has not earned its postmark yet.",
+          truth: "The letter is still yours.",
+        };
+      }
+      return {
+        mode: "warm",
+        kicker: "VERIFYING",
+        title: "The wax is still warm.",
+        body: "The network can see the handover, but NimCarry has not verified FINAL yet.",
+        truth: "The letter is still yours.",
+      };
+    }
+    if (phase === "verification-delayed") {
+      return {
+        mode: "warm",
+        kicker: "VERIFICATION DELAYED",
+        title: "Still warm. Still yours.",
+        body: "Verification is taking longer than usual. NimCarry will not guess.",
+        truth: "Do not reroute while this handover may still finalize.",
+      };
+    }
+    if (phase === "final") {
+      return {
+        mode: "final",
+        kicker: isDemo ? "PRACTICE POSTMARK" : "FINAL · VERIFIED",
+        title: "Carried.",
+        body: "The postmark landed. The verified holder has changed.",
+        truth: isDemo ? "Practice only — not on the record." : "This is the only moment custody moves.",
+      };
+    }
+    if (phase === "error") {
+      return {
+        mode: "error",
+        kicker: "NO VERIFIED POSTMARK",
+        title: "Nothing moved.",
+        body: "This handover did not become a verified custody change.",
+        truth: "The letter remains with the last verified holder.",
+      };
+    }
+    return null;
+  }
+
+  function renderHandoffPhase(event) {
+    const phase = String(event?.detail?.phase || "");
+    const status = String(event?.detail?.status || "");
+    const model = phaseCopy(phase, status);
+    if (!model) return;
+
+    const scene = ensureHandoffScene();
+    if (!scene) return;
+    scene.hidden = false;
+    scene.dataset.phase = phase;
+    scene.classList.remove("is-warm", "is-final", "is-error");
+    scene.classList.add(`is-${model.mode}`);
+
+    text(scene.querySelector(".clv2-wax-kicker"), model.kicker);
+    text(scene.querySelector(".clv2-wax-title"), model.title);
+    text(scene.querySelector(".clv2-wax-body"), model.body);
+    text(scene.querySelector(".clv2-wax-truth"), model.truth);
+
+    if (model.mode !== "error") {
+      const ready = screen.querySelector(".clv2-ready-seal");
+      if (ready) ready.hidden = true;
+    }
+  }
+
   function route() {
     if (!/^\/mission\/[^/]+\/route$/.test(location.pathname)) return;
     const unavailable = screen.querySelector(".card");
@@ -335,6 +504,7 @@
     });
   }
 
+  addEventListener("nimcarry:handoff-phase", renderHandoffPhase);
   new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true, characterData: true });
   addEventListener("popstate", schedule);
   schedule();
