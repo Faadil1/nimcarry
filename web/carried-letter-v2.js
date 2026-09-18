@@ -151,6 +151,24 @@
     const targetWallet = card.querySelector('input[name="target_wallet"]');
     const missionNote = card.querySelector('textarea[name="mission_note"]');
     const creatorLabel = card.querySelector('input[name="creator_display_label"]');
+
+    targetLabel?.closest("label")?.classList.add("clv2-compose-human");
+    missionNote?.closest("label")?.classList.add("clv2-compose-human");
+    creatorLabel?.closest("label")?.classList.add("clv2-compose-human", "clv2-compose-signoff");
+    targetWallet?.closest("label")?.classList.add("clv2-compose-technical");
+
+    if (!card.querySelector(".clv2-compose-sheet")) {
+      const sheet = el("section", "clv2-compose-sheet");
+      sheet.setAttribute("aria-hidden", "true");
+      sheet.append(
+        el("span", "clv2-compose-sheet-kicker", "PRIVATE LETTER"),
+        el("strong", "", "One person. One destination."),
+        el("p", "", "Write the human reason first. Delivery details stay sealed underneath."),
+        el("span", "clv2-compose-mini-seal")
+      );
+      const form = card.querySelector("#create-form");
+      if (form) form.before(sheet);
+    }
     setLabelText(targetLabel?.closest("label"), "Who is the letter for?");
     setLabelText(targetWallet?.closest("label"), "Private destination address");
     setLabelText(missionNote?.closest("label"), "What should they know?");
@@ -171,6 +189,11 @@
       targetWallet.closest("label")?.after(note);
     }
 
+    if (targetWallet && !card.querySelector(".clv2-delivery-caption")) {
+      const caption = el("small", "clv2-delivery-caption", "Delivery detail · required by the real route, hidden from carriers.");
+      targetWallet.closest("label")?.before(caption);
+    }
+
     if (submit && !card.querySelector(".clv2-create-truth")) {
       const truth = el("small", "clv2-create-truth", "Sealing creates the private mission. It does not move the 1 NIM handoff.");
       submit.before(truth);
@@ -187,6 +210,15 @@
     text(hero.querySelector(".kicker"), "A private letter reached you");
     const h1 = hero.querySelector("h1");
     if (h1) text(h1, "You were chosen to carry this.");
+
+    const destinationLine = hero.querySelector(".lede");
+    const destinationStrong = destinationLine?.querySelector("strong");
+    if (destinationLine && destinationStrong) {
+      const firstText = [...destinationLine.childNodes].find((node) => node.nodeType === Node.TEXT_NODE);
+      if (firstText) firstText.textContent = "Trying to reach: ";
+    }
+    const whyCard = [...hero.querySelectorAll(".card")].find((node) => /why you/i.test(node.querySelector(".kicker")?.textContent || ""));
+    if (whyCard) text(whyCard.querySelector(".kicker"), "Why you were chosen");
 
     const accept = hero.querySelector("#accept");
     const decline = hero.querySelector("#decline");
@@ -332,6 +364,28 @@
         el("small", "", "This ink is the human mark on the letter. The signed Nimiq authorization — not the ink — is the consent proof. Custody has not moved.")
       );
       route.after(signed);
+    }
+
+    const finalizedCount = Number(hero.dataset.finalizedHopCount || 0);
+    const primaryAction = clean(hero.dataset.primaryAction).toUpperCase();
+    const invitationStatusForStart = clean(hero.dataset.invitationStatus).toUpperCase();
+    if (
+      finalizedCount === 0 &&
+      primaryAction === "CREATE_INVITATION" &&
+      !invitationStatusForStart &&
+      !hero.querySelector(".clv2-first-carrier")
+    ) {
+      const first = el("section", "clv2-first-carrier");
+      first.append(
+        el("span", "clv2-first-carrier-kicker", "LETTER SEALED"),
+        el("strong", "", "Who do you trust to carry it first?"),
+        el("p", "", "Choose one person who can move the introduction closer. They still have to say yes before any handoff can begin.")
+      );
+      const buttons = hero.querySelector(".button-row");
+      if (buttons) buttons.before(first);
+      else hero.append(first);
+      const inviteButton = hero.querySelector("#invite-button");
+      if (inviteButton) text(inviteButton, "Choose first carrier");
     }
 
     const stateCopy = missionStateCopy(hero);
@@ -692,9 +746,48 @@
     const dialog = document.querySelector("#invite-dialog");
     if (!dialog || dialog.dataset.clv2Dialog === "1") return;
     dialog.dataset.clv2Dialog = "1";
-    text(dialog.querySelector(".dialog-kicker"), "Choose the next carrier");
-    text(dialog.querySelector("h2"), "Who can carry this one step closer?");
-    text(dialog.querySelector("#invite-confirm"), "Prepare private letter");
+    dialog.classList.add("clv2-invite-dialog");
+    text(dialog.querySelector(".dialog-kicker"), "Address the next handoff");
+    text(dialog.querySelector("h2"), "Who do you trust to carry this one step closer?");
+
+    const candidate = dialog.querySelector("#candidate-label");
+    const why = dialog.querySelector("#why-you");
+    const wallet = dialog.querySelector("#candidate-wallet");
+    setLabelText(candidate?.closest("label"), "Their name or label");
+    setLabelText(why?.closest("label"), "Why them?");
+    setLabelText(wallet?.closest("label"), "Known Nimiq address (optional)");
+
+    if (why && !dialog.querySelector(".clv2-why-helper")) {
+      const helper = el("small", "clv2-why-helper", "Give them enough context to choose freely. This is not an obligation.");
+      why.closest("label")?.append(helper);
+    }
+    if (wallet && !dialog.querySelector(".clv2-wallet-helper")) {
+      const helper = el("small", "clv2-wallet-helper", "Only add this if you already know it. Otherwise their Nimiq identity binds when they accept.");
+      wallet.closest("label")?.append(helper);
+    }
+
+    text(dialog.querySelector("#invite-confirm"), "Seal private invitation");
+  }
+
+  function inviteCreatedCard() {
+    const link = screen.querySelector(".invite-link");
+    const card = link?.closest(".card");
+    if (!link || !card || card.dataset.clv2InviteReady === "1") return;
+    card.dataset.clv2InviteReady = "1";
+    card.classList.add("clv2-invite-ready");
+    text(card.querySelector(".kicker"), "SEALED INVITATION");
+
+    const copy = el("div", "clv2-invite-ready-copy");
+    copy.append(
+      el("strong", "", "Hand this private link to one person."),
+      el("p", "", "They can accept or decline. Until they accept — and a later handoff reaches FINAL — the letter stays with its verified holder.")
+    );
+    link.before(copy);
+
+    const copyButton = card.querySelector("#copy-invite");
+    const openNimiq = card.querySelector("#open-nimiq");
+    if (copyButton) text(copyButton, "Copy sealed invite");
+    if (openNimiq) text(openNimiq, "Open letter in Nimiq Pay");
   }
 
   function humanizeRecoverableErrors() {
@@ -709,6 +802,7 @@
   function apply() {
     globalChrome();
     inviteDialog();
+    inviteCreatedCard();
     home();
     createMission();
     invitation();
