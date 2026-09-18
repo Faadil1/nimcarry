@@ -407,6 +407,12 @@
 .carried-letter-v2-demo .clv2-compose-mini-seal{background:var(--cl-indigo);border-color:#39366a}
 
 /* Guided practice desk — the demo is a first-class V2 surface, never a fake TESTNET screenshot. */
+#demo-banner[data-guided="1"]::after{
+  content:" · GUIDED PRACTICE";
+  font-weight:900;
+  letter-spacing:.08em;
+}
+
 .demo-tour-guide{
   display:grid;
   gap:8px;
