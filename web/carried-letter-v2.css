@@ -1,0 +1,397 @@
+/*
+ * NimCarry V2 — The Carried Letter
+ * Presentation-only convergence layer. The existing state machine remains authoritative.
+ */
+:root{
+  --cl-paper:#fff8e9;
+  --cl-paper-deep:#efe0c7;
+  --cl-ink:#211e1a;
+  --cl-muted:#786d60;
+  --cl-green:#173f36;
+  --cl-green-night:#0f302a;
+  --cl-gold:#d5a63e;
+  --cl-gold-dark:#9f7221;
+  --cl-vermilion:#a94f37;
+  --cl-indigo:#4e4b86;
+  --cl-indigo-soft:#ddd9f2;
+  --cl-line:rgba(33,30,26,.18);
+  --cl-shadow:0 28px 70px rgba(68,49,30,.17),0 4px 12px rgba(68,49,30,.09);
+}
+
+.carried-letter-v2 .app-shell{width:min(800px,100%)}
+.carried-letter-v2 .brand small{letter-spacing:.075em}
+.carried-letter-v2 .network-chip{
+  opacity:.72;
+  border-style:dashed;
+  background:rgba(255,248,233,.76);
+}
+.carried-letter-v2 .network-chip #network-label{font-weight:750}
+.carried-letter-v2 .footer{
+  font-family:var(--hc-display,Georgia,serif);
+  font-size:.69rem;
+  letter-spacing:.01em;
+}
+.carried-letter-v2 .footer span:last-child{
+  font-family:var(--hc-ui,system-ui,sans-serif);
+  text-transform:uppercase;
+  letter-spacing:.09em;
+  font-size:.58rem;
+}
+
+.carried-letter-v2-demo .demo-banner{
+  display:block!important;
+  position:sticky;
+  top:74px;
+  z-index:35;
+  background:var(--cl-indigo);
+  color:#fff;
+  border:1px solid #3f3b72;
+  letter-spacing:.085em;
+  text-transform:uppercase;
+  box-shadow:0 8px 24px rgba(51,47,104,.18);
+}
+.carried-letter-v2-demo :is(.hero-card,.form-card,.route-card){
+  position:relative;
+  overflow:hidden;
+}
+.carried-letter-v2-demo :is(.hero-card,.form-card,.route-card)::before{
+  content:"PRACTICE LETTER";
+  position:absolute;
+  inset:46% auto auto 50%;
+  transform:translate(-50%,-50%) rotate(-13deg);
+  z-index:0;
+  pointer-events:none;
+  white-space:nowrap;
+  color:rgba(78,75,134,.07);
+  font:800 clamp(1.7rem,8vw,4.8rem)/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.12em;
+}
+.carried-letter-v2-demo :is(.hero-card,.form-card,.route-card)>*{position:relative;z-index:1}
+.carried-letter-v2-demo .clv2-seal,
+.carried-letter-v2-demo .clv2-ready-seal-disc,
+.carried-letter-v2-demo .clv2-broken-seal{background:var(--cl-indigo)!important;border-color:#39366a!important}
+.carried-letter-v2-demo .clv2-seal::after{content:"P";color:#fff}
+.carried-letter-v2:not(.carried-letter-v2-demo) .clv2-seal::after{content:"N";color:#4c3510}
+
+/* Landing — one object, human outcome first. */
+.carried-letter-v2 .clv2-home{
+  padding:clamp(20px,5vw,38px);
+  background:
+    radial-gradient(circle at 100% 0,rgba(213,166,62,.08),transparent 34%),
+    linear-gradient(180deg,#fffaf0 0%,#f9eddb 100%);
+}
+.carried-letter-v2 .clv2-home>.kicker{
+  color:var(--cl-vermilion);
+  letter-spacing:.12em;
+}
+.carried-letter-v2 .clv2-home h1{
+  max-width:690px;
+  margin-bottom:12px;
+  font-size:clamp(2.25rem,7vw,4.65rem);
+  line-height:.92;
+  letter-spacing:-.055em;
+}
+.carried-letter-v2 .clv2-home .wi-problem-first{
+  max-width:620px;
+  margin:0 0 9px;
+  color:var(--cl-green);
+  font:700 clamp(.93rem,2vw,1.05rem)/1.45 var(--hc-ui,system-ui,sans-serif);
+}
+.carried-letter-v2 .clv2-home>.lede{
+  max-width:620px;
+  margin:0;
+  color:#5e5549;
+  font-size:clamp(.94rem,2.1vw,1.08rem);
+  line-height:1.62;
+}
+.carried-letter-v2 .clv2-home .button-row{margin-top:22px}
+.carried-letter-v2 .clv2-home #create-button{
+  min-height:52px;
+  padding-inline:24px;
+  border-radius:999px;
+  box-shadow:0 10px 24px rgba(23,63,54,.18);
+}
+.carried-letter-v2 .clv2-practice-link{
+  display:inline-flex;
+  margin-top:10px;
+  color:#595180;
+  font-size:.78rem;
+  text-decoration-thickness:1px;
+  text-underline-offset:4px;
+}
+.carried-letter-v2:not(.carried-letter-v2-demo) .clv2-practice-link{color:#685f54}
+
+.clv2-letter-stage{
+  display:grid;
+  grid-template-columns:minmax(0,1.08fr) minmax(220px,.92fr);
+  gap:20px 26px;
+  align-items:center;
+  margin:26px 0 6px;
+  padding:24px;
+  border-top:1px dashed rgba(33,30,26,.16);
+  border-bottom:1px dashed rgba(33,30,26,.16);
+}
+.clv2-envelope{
+  position:relative;
+  min-height:208px;
+  padding:42px 34px 30px;
+  background:
+    linear-gradient(135deg,rgba(33,30,26,.025),transparent 30%),
+    var(--cl-paper);
+  border:1px solid rgba(33,30,26,.2);
+  border-radius:3px;
+  box-shadow:var(--cl-shadow);
+  transform:rotate(-1.25deg);
+}
+.clv2-envelope::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent 0 18px,rgba(85,66,42,.017) 18px 19px);
+}
+.clv2-envelope-flap{
+  position:absolute;
+  inset:0 0 auto;
+  height:46%;
+  clip-path:polygon(0 0,100% 0,50% 100%);
+  background:linear-gradient(180deg,#f8eddc,#ead9bf);
+  border-top:1px solid rgba(33,30,26,.08);
+}
+.clv2-address{
+  position:relative;
+  z-index:2;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  max-width:75%;
+  margin-top:52px;
+}
+.clv2-address small{
+  font:800 .58rem/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.14em;
+  color:var(--cl-vermilion);
+}
+.clv2-address strong{
+  font:600 clamp(1.25rem,4vw,1.8rem)/1.05 var(--hc-display,Georgia,serif);
+  letter-spacing:-.03em;
+}
+.clv2-address span{font-size:.68rem;color:var(--cl-muted)}
+.clv2-seal{
+  position:absolute;
+  right:28px;
+  bottom:27px;
+  z-index:3;
+  width:58px;
+  height:58px;
+  display:grid;
+  place-items:center;
+  border-radius:50% 47% 52% 48%;
+  background:radial-gradient(circle at 34% 30%,#f0ca69,var(--cl-gold) 38%,var(--cl-gold-dark) 100%);
+  border:1px solid #8d651e;
+  box-shadow:0 5px 9px rgba(83,56,17,.23),inset 0 2px 3px rgba(255,255,255,.33);
+  transform:rotate(8deg);
+}
+.clv2-seal::after{
+  display:grid;
+  place-items:center;
+  width:32px;
+  height:32px;
+  border:1px solid rgba(76,53,16,.42);
+  border-radius:50%;
+  font:800 1rem/1 var(--hc-display,Georgia,serif);
+}
+.clv2-human-chain{
+  display:grid;
+  grid-template-columns:1fr auto 1fr auto 1fr;
+  align-items:center;
+  gap:7px;
+}
+.clv2-chain-person{text-align:center}
+.clv2-chain-person strong,.clv2-chain-person small{display:block}
+.clv2-chain-person strong{
+  margin-top:8px;
+  font:650 .76rem/1.2 var(--hc-display,Georgia,serif);
+}
+.clv2-chain-person small{margin-top:3px;color:var(--cl-muted);font-size:.61rem}
+.clv2-chain-mark{
+  display:block;
+  width:38px;
+  height:38px;
+  margin:auto;
+  border-radius:50% 46% 51% 45%;
+  background:var(--cl-green);
+  box-shadow:inset 0 0 0 7px rgba(255,255,255,.16);
+}
+.clv2-chain-person.destination .clv2-chain-mark{
+  background:transparent;
+  border:2px dashed rgba(33,30,26,.34);
+  box-shadow:none;
+}
+.clv2-chain-line{color:var(--cl-vermilion);font:700 1rem/1 var(--hc-display,Georgia,serif)}
+.clv2-stage-caption{
+  grid-column:1/-1;
+  margin:1px 0 0;
+  color:#685e51;
+  text-align:center;
+  font:italic .78rem/1.5 var(--hc-display,Georgia,serif);
+}
+.clv2-record-disclosure{
+  margin-top:20px;
+  border-top:1px solid rgba(33,30,26,.1);
+  padding-top:12px;
+  color:#5f574e;
+  font-size:.72rem;
+}
+.clv2-record-disclosure summary{cursor:pointer;font-weight:750;color:var(--cl-green)}
+.clv2-record-disclosure p{max-width:610px;margin:9px 0 0;line-height:1.55}
+
+/* Write, invitation and mission — preserve data contracts, change the human framing. */
+.carried-letter-v2 .clv2-write-letter>.kicker,
+.carried-letter-v2 .clv2-invitation>.kicker,
+.carried-letter-v2 .clv2-seal-handoff>.kicker{
+  color:var(--cl-vermilion);
+}
+.carried-letter-v2 .clv2-private-note{
+  margin:-2px 0 6px;
+  padding:9px 11px 9px 32px;
+  border-left:3px solid var(--cl-gold);
+  background:rgba(213,166,62,.08);
+  color:#675c4d;
+  font-size:.69rem;
+  line-height:1.45;
+}
+.carried-letter-v2 .clv2-private-note::before{
+  content:"✦";
+  float:left;
+  margin-left:-21px;
+  color:var(--cl-gold-dark);
+}
+.carried-letter-v2 .clv2-create-truth{
+  display:block;
+  margin:5px 0 10px;
+  color:var(--cl-muted);
+  line-height:1.4;
+}
+.carried-letter-v2 .clv2-consent-truth{
+  margin:14px 0;
+  padding:10px 12px;
+  border:1px dashed rgba(33,30,26,.18);
+  background:rgba(255,248,233,.5);
+  font-size:.7rem;
+}
+.carried-letter-v2 .clv2-consent-truth summary{cursor:pointer;color:var(--cl-green);font-weight:750}
+.carried-letter-v2 .clv2-consent-truth p{margin:8px 0 0;line-height:1.5}
+
+.clv2-letter-back{
+  margin:14px 0;
+  padding:18px 20px;
+  background:
+    linear-gradient(180deg,rgba(169,79,55,.035),transparent),
+    var(--cl-paper);
+  border:1px solid rgba(33,30,26,.17);
+  box-shadow:0 12px 24px rgba(67,49,31,.08);
+  transform:rotate(.25deg);
+}
+.clv2-letter-back-label{
+  display:block;
+  margin-bottom:9px;
+  color:var(--cl-vermilion);
+  font:800 .58rem/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.14em;
+}
+.clv2-letter-back strong{font:600 1.2rem/1 var(--hc-display,Georgia,serif)}
+.clv2-letter-back p{margin:5px 0 8px;font:italic 1rem/1.3 var(--hc-display,Georgia,serif)}
+.clv2-letter-back small{color:var(--cl-muted);line-height:1.45}
+
+/* Pre-handoff ceremony. Warm-wax verification state is added in the next gate. */
+.clv2-ready-seal{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  margin:12px 0 16px;
+}
+.clv2-ready-seal-disc{
+  width:68px;
+  height:68px;
+  border-radius:49% 52% 46% 53%;
+  background:radial-gradient(circle at 34% 30%,#f2cf76,var(--cl-gold) 38%,#9e711f 100%);
+  border:1px solid #8d651e;
+  box-shadow:0 7px 12px rgba(83,56,17,.2),inset 0 2px 3px rgba(255,255,255,.35);
+}
+.clv2-ready-seal small{
+  color:var(--cl-muted);
+  font-size:.64rem;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.carried-letter-v2 .clv2-seal-handoff #send{min-height:52px;border-radius:999px}
+
+/* Arrival + fail-closed errors. */
+.clv2-arrival-close{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  column-gap:14px;
+  align-items:center;
+  margin:20px 0;
+  padding:19px 20px;
+  border:1px solid rgba(33,30,26,.16);
+  background:#f8ecda;
+}
+.clv2-arrival-close strong{
+  font:650 1.35rem/1.05 var(--hc-display,Georgia,serif);
+}
+.clv2-arrival-close p,.clv2-arrival-close small{grid-column:2}
+.clv2-arrival-close p{margin:5px 0 2px;font:italic 1rem/1.4 var(--hc-display,Georgia,serif)}
+.clv2-arrival-close small{color:var(--cl-muted);line-height:1.4}
+.clv2-broken-seal{
+  grid-row:1/4;
+  width:56px;
+  height:56px;
+  border-radius:48%;
+  background:linear-gradient(135deg,var(--cl-gold) 0 45%,transparent 46% 54%,#bb8730 55% 100%);
+  border:1px solid #8d651e;
+  transform:rotate(-8deg);
+}
+.clv2-no-letter{
+  padding:34px!important;
+  border-style:dashed!important;
+  background:
+    linear-gradient(135deg,transparent 0 48%,rgba(169,79,55,.045) 49% 51%,transparent 52%),
+    var(--cl-paper)!important;
+}
+.clv2-no-letter h2{font-family:var(--hc-display,Georgia,serif);font-size:2rem;letter-spacing:-.04em}
+.clv2-no-letter p{color:var(--cl-muted);line-height:1.55}
+
+/* Demo and responsive / accessible behavior. */
+@media(max-width:640px){
+  .clv2-letter-stage{grid-template-columns:1fr;padding:19px 0;gap:18px}
+  .clv2-envelope{min-height:190px;margin-inline:4px;padding-inline:25px}
+  .clv2-stage-caption{grid-column:1}
+  .clv2-human-chain{padding-inline:2px}
+  .carried-letter-v2 .clv2-home h1{font-size:clamp(2.45rem,13vw,3.8rem)}
+}
+@media(max-width:380px){
+  .clv2-human-chain{grid-template-columns:1fr auto 1fr}
+  .clv2-human-chain .clv2-chain-person:nth-of-type(3),
+  .clv2-human-chain .clv2-chain-line:nth-of-type(2){display:none}
+  .clv2-envelope{min-height:174px}
+  .clv2-address{max-width:70%}
+}
+@media(min-width:1024px){
+  .carried-letter-v2 .app-shell{width:min(960px,100%)}
+  .carried-letter-v2 .clv2-home{padding:46px 52px}
+  .clv2-letter-stage{grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr);padding:30px 18px}
+  .clv2-envelope{min-height:235px}
+}
+@media(prefers-reduced-motion:reduce){
+  .carried-letter-v2 *,
+  .carried-letter-v2 *::before,
+  .carried-letter-v2 *::after{
+    scroll-behavior:auto!important;
+    animation:none!important;
+    transition:none!important;
+  }
+  .clv2-envelope{transform:none}
+}
