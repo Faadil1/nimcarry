@@ -115,3 +115,15 @@ Canonical meanings:
 - broadcast/in-flight ambiguity: do not duplicate the baton. Check the independently verified route before attempting another pass.
 
 The presentation layer may humanize these states but cannot manufacture an action that the canonical state machine does not support. Raw technical causes remain available behind the recovery surface for diagnostics.
+
+
+## Gate 7 — Compose and private invitation ritual
+
+- Creation must lead with the human outcome: one intended person and the reason the letter should reach them.
+- The private destination wallet remains required truth, but is visually framed as sealed delivery detail rather than the product's headline.
+- Sealing a mission creates an `ACTIVE` mission only; it does not transfer 1 NIM or create a verified hop.
+- A fresh zero-hop mission asks for one first carrier. The carrier must still explicitly accept before any handoff can begin.
+- Invitation copy asks why this human was chosen and keeps the known Nimiq address optional where the backend allows it.
+- The generated invitation link is a private artifact for one person. Presentation may make it look like a sealed letter but must not change the token, expiry, capability or acceptance semantics.
+- The invitation recipient sees the human reason before protocol detail, with accept/decline remaining explicit.
+- Demo invitation artifacts remain visibly PRACTICE and do not imply wallet/network writes.
