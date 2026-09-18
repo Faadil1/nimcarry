@@ -11,7 +11,8 @@ describe("NimCarry V2 warm-wax handoff ceremony", () => {
     expect(app).toContain('handoffEvent("authorization-requested"');
     expect(app).toContain('handoffEvent("authorized"');
     expect(app).toContain('handoffEvent("wallet-approval-opened"');
-    expect(app).toContain('handoffEvent(txHash ? "broadcast-proven" : "broadcast-unproven"');
+    expect(app).toContain('handoffEvent(txHash ? "provider-reference-returned" : "broadcast-unproven"');
+    expect(app).toContain('handoffEvent("broadcast-claim-recorded"');
     expect(app).toContain('handoffEvent("verification-pending"');
     expect(app).toContain('handoffEvent("verification-status"');
     expect(app).toContain('handoffEvent("final"');
@@ -24,12 +25,15 @@ describe("NimCarry V2 warm-wax handoff ceremony", () => {
     expect(app).toContain("Custody has not changed yet.");
   });
 
-  it("turns authorization, broadcast and finality into distinct human states", () => {
+  it("turns authorization, provider reference, independent verification and finality into distinct human states", () => {
     expect(v2).toContain("Authorized, not carried.");
     expect(v2).toContain("Approved, not yet on the record.");
+    expect(v2).toContain("Nimiq Pay returned a transaction reference. NimCarry is checking the independent record.");
+    expect(v2).toContain("A recorded reference is not custody. The letter is still yours.");
     expect(v2).toContain("The wax is still warm.");
     expect(v2).toContain("The postmark landed. The verified holder has changed.");
     expect(v2).toContain("Approval is not custody. Broadcast is not custody. Only FINAL changes the holder.");
+    expect(v2).not.toContain("The handover reached the record. NimCarry is now waiting for independent finality.");
   });
 
   it("makes unproven or delayed states explicitly keep custody with the last verified holder", () => {
