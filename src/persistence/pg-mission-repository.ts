@@ -419,7 +419,7 @@ export class PgMissionRepository implements MissionRepository {
     return result.rows.length === 0 ? undefined : invitationFromRow(result.rows[0]);
   }
 
-  async acceptInvitation(id: string, wallet: string, now: number, passDeadlineAt: number): Promise<InvitationRecord> {
+  async acceptInvitation(id: string, wallet: string, now: number, passDeadlineAt: number, candidateDisplayLabel: string | null): Promise<InvitationRecord> {
     return this.withTransaction(async (client) => {
       const invitation = await client.query<InvitationRow>(
         "SELECT * FROM invitations WHERE id = $1 FOR UPDATE",
@@ -464,9 +464,9 @@ export class PgMissionRepository implements MissionRepository {
         const updated = await client.query<InvitationRow>(
           `UPDATE invitations
              SET candidate_wallet_normalized=$2, status='ACCEPTED', accepted_at=$3,
-                 pass_deadline_at=$4
+                 pass_deadline_at=$4, candidate_display_label=$5
            WHERE id=$1 RETURNING *`,
-          [id, wallet, epoch(now), epoch(passDeadlineAt)]
+          [id, wallet, epoch(now), epoch(passDeadlineAt), candidateDisplayLabel]
         );
         await client.query("UPDATE missions SET updated_at=$2 WHERE id=$1", [
           row.mission_id,
