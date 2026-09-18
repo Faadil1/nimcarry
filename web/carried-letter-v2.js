@@ -433,6 +433,39 @@
     }
   }
 
+  function enhanceCarriedReceipt(card, arrived, isTargetViewer) {
+    if (!arrived) return;
+    const receipt = card.querySelector(".wi-receipt");
+    if (!receipt || receipt.dataset.clv2Receipt === "1") return;
+    receipt.dataset.clv2Receipt = "1";
+    receipt.classList.add("clv2-carried-receipt");
+    receipt.setAttribute("aria-label", isDemo ? "Practice carried letter receipt" : "Carried letter receipt");
+
+    text(
+      receipt.querySelector(".wi-receipt-eyebrow"),
+      isDemo ? "PRACTICE CARRIED LETTER · NOT ON RECORD" : "CARRIED LETTER RECEIPT"
+    );
+    text(receipt.querySelector(".wi-receipt-head h2"), "ARRIVED");
+
+    const statement = receipt.querySelector(".wi-receipt-statement");
+    text(
+      statement,
+      "Every handoff shown here was independently finalized before custody moved. This authorized view never reveals full wallet addresses or private destination data."
+    );
+
+    const copyButton = receipt.querySelector(".button-row button");
+    if (copyButton) text(copyButton, isDemo ? "Copy practice receipt" : "Copy carried-letter receipt");
+
+    const band = el("div", "clv2-receipt-privacy-band");
+    band.append(
+      el("span", "", isTargetViewer ? "OPENED BY THE INTENDED DESTINATION" : "PRIVACY-SAFE PROVENANCE"),
+      el("small", "", isDemo ? "Practice artifact · simulated handoffs only" : "FINAL handoffs only · scoped to this authorized view")
+    );
+    const summary = receipt.querySelector(".wi-receipt-summary");
+    if (summary) summary.before(band);
+    else receipt.prepend(band);
+  }
+
   function route() {
     if (!/^\/mission\/[^/]+\/route$/.test(location.pathname)) return;
     const unavailable = screen.querySelector(".card");
@@ -449,28 +482,55 @@
     }
 
     const card = screen.querySelector(".route-card");
-    if (!card || card.dataset.clv2Route === "1") return;
-    card.dataset.clv2Route = "1";
-    card.classList.add("clv2-route");
+    if (!card) return;
 
     const status = clean(card.querySelector(".status-pill")?.textContent);
-    if (/ARRIVED/i.test(status)) {
+    const arrived = /ARRIVED/i.test(status);
+    const viewerRole = clean(card.dataset.viewerRole).toUpperCase();
+    const isTargetViewer = arrived && viewerRole === "TARGET";
+
+    if (card.dataset.clv2Route !== "1") {
+      card.dataset.clv2Route = "1";
+      card.classList.add("clv2-route");
+    }
+
+    if (arrived) {
       card.classList.add("clv2-arrived");
+      card.classList.toggle("clv2-target-arrival", isTargetViewer);
+
       const h1 = card.querySelector("h1");
-      if (h1) text(h1, "It made it.");
-      if (!card.querySelector(".clv2-arrival-close")) {
-        const close = el("section", "clv2-arrival-close");
+      if (h1) text(h1, isTargetViewer ? "A letter has been carried to you." : "The letter arrived.");
+
+      let close = card.querySelector(".clv2-arrival-close");
+      if (!close) {
+        close = el("section", "clv2-arrival-close");
         close.append(
           el("span", "clv2-broken-seal"),
-          el("strong", "", "The letter arrived."),
-          el("p", "", "No one was paid. Everyone chose."),
-          el("small", "", "Every visible handoff on this route was independently verified before it counted.")
+          el("span", "clv2-arrival-kicker"),
+          el("strong", "clv2-arrival-title"),
+          el("p", "clv2-arrival-line"),
+          el("small", "clv2-arrival-proof")
         );
-        const buttons = card.querySelector(".button-row");
+        const buttons = card.querySelector(":scope > .button-row");
         if (buttons) buttons.before(close);
         else card.append(close);
       }
+
+      text(close.querySelector(".clv2-arrival-kicker"), isTargetViewer ? "FOR YOU · ARRIVED" : "DESTINATION REACHED");
+      text(close.querySelector(".clv2-arrival-title"), isTargetViewer ? "This was meant for you." : "It reached the intended person.");
+      text(
+        close.querySelector(".clv2-arrival-line"),
+        isTargetViewer ? "People chose to carry it until it reached you." : "No one was paid. Everyone chose."
+      );
+      text(
+        close.querySelector(".clv2-arrival-proof"),
+        isDemo
+          ? "Practice arrival — simulated and visibly off-chain."
+          : "The seal opens only because the final handoff was independently verified."
+      );
     }
+
+    enhanceCarriedReceipt(card, arrived, isTargetViewer);
   }
 
   function inviteDialog() {
