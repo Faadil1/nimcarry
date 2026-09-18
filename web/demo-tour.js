@@ -364,18 +364,15 @@
     row.prepend(button);
   }
 
-  function addTourBadge() {
-    if (document.querySelector("#demo-tour-badge")) return;
+  function markGuidedPractice() {
     const banner = document.querySelector("#demo-banner");
     if (!banner) return;
-    const badge = document.createElement("span");
-    badge.id = "demo-tour-badge";
-    badge.textContent = " · CARRIED LETTER WALKTHROUGH";
-    banner.appendChild(badge);
+    banner.classList.add("clv2-demo-banner-tour");
+    banner.setAttribute("aria-label", "Practice desk — Carried Letter guided walkthrough");
   }
 
   function enhance() {
-    addTourBadge();
+    markGuidedPractice();
     ensureGuideRail();
     ensureDemoBrief();
     prefillCreate();
