@@ -23,6 +23,7 @@ export interface UiInvitationSummary {
   sequence: number;
   status: UiInvitationStatus;
   candidate_label: string | null;
+  candidate_display_label?: string | null;
   candidate_wallet_fingerprint?: string | null;
   accepted_wallet_fingerprint?: string | null;
   why_you?: string | null;
