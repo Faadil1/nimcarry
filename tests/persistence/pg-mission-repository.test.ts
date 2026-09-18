@@ -64,6 +64,7 @@ function invitationRecord(
 }
 
 const MIGRATION_PATH = join(import.meta.dirname!, "../../migrations/001_reach_mission_foundation.sql");
+const REPOSITORY_SOURCE = readFileSync(join(import.meta.dirname!, "../../src/persistence/pg-mission-repository.ts"), "utf8");
 
 let pool: PgMemPool;
 let repo: PgMissionRepository;
@@ -269,6 +270,11 @@ describe("PgMissionRepository", () => {
       expect((await repo.getInvitationByTokenHash("fresh-token-hash"))!.inviteTokenHash).toBe("fresh-token-hash");
       expect((await repo.getMission(mission.id))!.currentSequence).toBe(0);
     });
+  });
+
+  it("pins mission_status casts for real PostgreSQL prepared statements", () => {
+    expect(REPOSITORY_SOURCE).toContain("status=$4::mission_status");
+    expect(REPOSITORY_SOURCE).toContain("WHEN $4::mission_status = 'ARRIVED'::mission_status THEN $5");
   });
 
   describe("completeFinalHop", () => {
