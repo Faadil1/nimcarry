@@ -10,35 +10,41 @@
   <link rel="stylesheet" href="/winning-intelligence.css" />
   <link rel="stylesheet" href="/final-human-craft.css" />
   <link rel="stylesheet" href="/final-human-craft-max.css" />
+  <link rel="stylesheet" href="/carried-letter-v2.css" />
 </head>
-<body>
+<body class="carried-letter-v2">
   <div class="app-shell">
     <header class="brandbar">
       <a class="brand" href="/" aria-label="NimCarry home">
         <img class="brand-logo" src="/nimcarry-mark.svg" alt="" width="44" height="44" />
-        <span><strong>NimCarry</strong><small>Real people · one destination</small></span>
+        <span><strong>NimCarry</strong><small>A private introduction · carried by people</small></span>
       </a>
       <div class="network-chip"><span class="pulse"></span><span>TESTNET REQUIRED</span></div>
     </header>
     <main class="screen" tabindex="-1">
       <section class="hero-card">
-        <div class="kicker">Signed route recovery</div>
-        <h1 class="target-title">Restore this mission without changing custody.</h1>
-        <p class="lede">A runtime restart can invalidate a read-only route capability. Your mission, bridge state and verified custody stay unchanged. Choose the human/basic Nimiq Pay identity that owns this mission, then sign one VIEW_ROUTE authorization.</p>
-        <div class="warning" style="margin-top:16px">Do not choose the HTLC payment rail. This recovery never sends NIM and never changes the verified holder.</div>
+        <div class="kicker">Read-only letter access</div>
+        <h1 class="target-title">The letter is still safe. Restore your view.</h1>
+        <p class="lede">A runtime restart can invalidate a short-lived route-view capability. The mission, invitation state and verified holder do not change. Choose the human/basic Nimiq Pay identity bound to this mission, then sign one VIEW_ROUTE authorization.</p>
+        <section class="clv2-route-state" data-kind="accepted" aria-label="Recovery does not move custody">
+          <span class="clv2-route-state-stamp">LETTER UNMOVED</span>
+          <strong class="clv2-route-state-title">This restores access, not custody.</strong>
+          <p class="clv2-route-state-body">No NIM is sent. No bridge is re-invited. No handoff is created.</p>
+          <small class="clv2-route-state-rule">Do not choose the HTLC payment rail. Use the human/basic mission identity.</small>
+        </section>
         <div id="status" class="notice" role="status" aria-live="polite">Loading Nimiq Pay accounts…</div>
         <form id="recovery-form" class="form-grid" hidden>
           <fieldset>
             <legend class="kicker">Choose mission identity</legend>
             <div id="accounts" class="wallet-options"></div>
           </fieldset>
-          <button id="restore" class="button primary" type="submit">Sign to restore mission access</button>
+          <button id="restore" class="button primary" type="submit">Sign to reopen this letter</button>
           <a id="cancel" class="button ghost" href="/">Back to NimCarry</a>
         </form>
-        <details style="margin-top:16px"><summary>What this does</summary><p>It asks Nimiq Pay to sign a short-lived VIEW_ROUTE challenge, then mints a fresh read-only bearer capability for this mission. No transaction method is called.</p></details>
+        <details style="margin-top:16px"><summary>Technical detail</summary><p>Nimiq Pay signs a short-lived VIEW_ROUTE challenge. NimCarry then mints a fresh read-only bearer capability for this mission. No transaction method is called and the verified holder cannot change here.</p></details>
       </section>
     </main>
-    <footer class="footer"><span>Read-only recovery · no payment write</span><span>Only FINAL changes custody</span></footer>
+    <footer class="footer"><span>Read-only letter recovery · no payment write</span><span>Only FINAL changes custody</span></footer>
   </div>
   <script type="module" src="/route-access-recovery.js"></script>
 </body>

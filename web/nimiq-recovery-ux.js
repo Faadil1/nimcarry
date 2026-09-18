@@ -52,7 +52,7 @@
     const lower = text.toLowerCase();
     const onPass = /\/mission\/[^/]+\/pass\/?$/.test(location.pathname);
 
-    if (/route_view_capability_(invalid|expired)|route view capability is unknown or expired|route view capability has expired/.test(lower)) {
+    if (/route_view_capability_(invalid|expired|required)|route view capability is unknown or expired|route view capability has expired|route view requires a bearer route view capability/.test(lower)) {
       return {
         kind: "access",
         eyebrow: "Mission access needs a fresh signature",
@@ -61,6 +61,54 @@
         primary: ["Restore mission access", routeRecoveryPath()],
         secondary: ["NimCarry home", "/"],
         rule: "Refreshing read access never changes custody",
+      };
+    }
+
+    if (/invitation_(expired|not_found|not_reissuable)|invite link is invalid or no longer recognized/.test(lower)) {
+      return {
+        kind: "expired",
+        eyebrow: "This invitation is closed",
+        title: "The letter never left its verified holder.",
+        body: "This private invite expired, was replaced, or is no longer recognized. No handoff is inferred from an old link. The current holder can prepare the supported next invitation from the mission.",
+        primary: missionId() ? ["Back to mission", missionPath()] : ["NimCarry home", "/"],
+        secondary: ["NimCarry home", "/"],
+        rule: "An expired invitation cannot move custody",
+      };
+    }
+
+    if (/pass_deadline_expired|pass_intent_expired|authorized pass intent has expired/.test(lower)) {
+      return {
+        kind: "expired",
+        eyebrow: "The handoff window closed",
+        title: "Don’t reuse an expired authorization.",
+        body: "The bridge may have consented, but this handoff window is over. Custody remains with the last verified holder until a fresh supported handoff reaches FINAL.",
+        primary: ["Back to mission", missionPath()],
+        secondary: ["Check verified route", routePath()],
+        rule: "Expired intent = no custody change",
+      };
+    }
+
+    if (/broadcast_in_flight|transaction broadcast/.test(lower) && !/not proven|unproven/.test(lower)) {
+      return {
+        kind: "pending",
+        eyebrow: "A handoff may already be in flight",
+        title: "Don’t create a second handoff.",
+        body: "NimCarry has evidence that a broadcast claim exists and is keeping the route locked while it checks the independent record. Leave the letter with the last verified holder until FINAL is observed.",
+        primary: ["Check verified route", routePath()],
+        secondary: ["Back to mission", missionPath()],
+        rule: "In-flight is not FINAL · do not duplicate the baton",
+      };
+    }
+
+    if (/not_mission_participant|viewer_auth_required|recovery_wrong_wallet/.test(lower)) {
+      return {
+        kind: "account",
+        eyebrow: "This identity cannot open the letter",
+        title: "Choose a mission participant identity.",
+        body: "NimCarry will not widen a private route because a link exists. Use the creator/current participant identity that is actually bound to this mission.",
+        primary: ["Restore with the right identity", routeRecoveryPath()],
+        secondary: ["NimCarry home", "/"],
+        rule: "Private route access stays participant-scoped",
       };
     }
 
@@ -180,7 +228,8 @@
 
   function render() {
     const isError = notice.classList.contains("error") && !notice.hidden;
-    const message = notice.textContent?.trim() || "";
+    const visibleMessage = notice.textContent?.trim() || "";
+    const message = notice.dataset.systemMessage?.trim() || visibleMessage;
     if (!isError || !message) {
       removePanel();
       renderHomeRecovery();
