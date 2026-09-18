@@ -2,7 +2,7 @@ import { init } from "/vendor/nimiq-mini-app-sdk.js";
 
 let providerPromise;
 
-const TESTNET_RPC_URL = "https://rpc.testnet.nimiqwatch.com";
+const TESTNET_HEAD_URL = "/network/testnet-head";
 const MAX_TESTNET_HEIGHT_DRIFT = 300;
 const PREFLIGHT_TIMEOUT_MS = 5000;
 
@@ -37,20 +37,21 @@ async function readCanonicalTestnetHeight() {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), PREFLIGHT_TIMEOUT_MS);
   try {
-    const response = await fetch(TESTNET_RPC_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", method: "getBlockNumber", params: [], id: 1 }),
+    // Keep the wallet webview on same-origin HTTP. Cloudflare performs the
+    // independent TESTNET RPC read server-side with bounded retry and no writes.
+    const response = await fetch(TESTNET_HEAD_URL, {
+      method: "GET",
+      headers: { Accept: "application/json" },
       signal: controller.signal,
       cache: "no-store",
+      credentials: "same-origin",
     });
     if (!response.ok) throw new Error(`HTTP_${response.status}`);
     const body = await response.json();
-    if (body?.error) throw new Error("RPC_ERROR");
-    const raw = body?.result && typeof body.result === "object" && "data" in body.result
-      ? body.result.data
-      : body?.result;
-    const height = validHeight(raw);
+    if (body?.error || body?.network !== "TESTNET" || body?.independently_observed !== true) {
+      throw new Error("INVALID_TESTNET_HEAD_RESPONSE");
+    }
+    const height = validHeight(body?.height);
     if (height === undefined) throw new Error("INVALID_TESTNET_HEIGHT");
     return height;
   } catch (error) {

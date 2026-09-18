@@ -35,7 +35,7 @@ import { getNimiqProvider } from "/nimiq-provider.js";
         provider_height: Number(providerHeight),
         independent_testnet_alignment: true,
         writes_performed: false,
-        safe_next_step: "ONE_CONTROLLED_NIMCARRY_A_TO_B",
+        safe_next_step: "PLAIN_TESTNET_CANARY_THEN_ONE_CONTROLLED_NIMCARRY_A_TO_B",
       };
       status.textContent = "PASS — Nimiq Pay is aligned with NimCarry TESTNET. No transaction was requested.";
       output.textContent = JSON.stringify(report, null, 2);

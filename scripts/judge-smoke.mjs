@@ -49,6 +49,19 @@ try {
   record("guided-demo-http-200", demo.response.ok, `${demo.response.status} in ${demo.ms}ms`);
   record("guided-demo-same-runtime", /final-human-craft\.css/.test(demo.text), "guided demo must use the same approved product runtime");
 
+  const testnetHead = await get("/network/testnet-head", { attempts: 3, delayMs: 1500 });
+  let testnetHeadPayload = null;
+  try { testnetHeadPayload = JSON.parse(testnetHead.text); } catch {}
+  record("testnet-head-http-200", testnetHead.response.ok, `${testnetHead.response.status} in ${testnetHead.ms}ms`);
+  record(
+    "testnet-head-read-only-contract",
+    testnetHeadPayload?.network === "TESTNET" &&
+      Number.isInteger(Number(testnetHeadPayload?.height)) &&
+      testnetHeadPayload?.independently_observed === true &&
+      testnetHeadPayload?.writes_performed === false,
+    "same-origin independent TESTNET head must be live before a wallet write can be requested"
+  );
+
   for (const assetPath of [
     "/nimcarry-mark.svg",
     "/final-human-craft.css",
