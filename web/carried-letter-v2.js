@@ -417,20 +417,52 @@
 
     text(hero.querySelector(".kicker"), "Seal the handover");
     text(hero.querySelector("h1"), "Pass the letter only when it can be proven.");
+
+    // Collapse the older multi-panel explanation into one physical handoff slip.
+    hero.querySelectorAll(
+      ".hc-pass-art,.hc-pass-ritual,.hc-proof-rule,.hc-max-ritual-note,.hc-proof-details,.wi-proof-ladder"
+    ).forEach((node) => node.remove());
+
+    const accepted = clean(hero.querySelector(".lede strong")?.textContent) || "accepted carrier";
     const warning = hero.querySelector(".warning");
-    text(
-      warning,
-      "The letter stays in your hands until NimCarry independently verifies the handover as FINAL. Approval and broadcast alone never move it."
-    );
+    if (warning) warning.hidden = true;
 
     const send = hero.querySelector("#send");
     if (send) text(send, "Seal & pass 1 NIM");
 
-    if (send && !hero.querySelector(".clv2-ready-seal")) {
-      const seal = el("div", "clv2-ready-seal");
+    if (send && !hero.querySelector(".clv2-handoff-manifest")) {
+      const manifest = el("section", "clv2-handoff-manifest");
+      manifest.setAttribute("aria-label", "Handoff slip");
+      const seal = el("span", "clv2-manifest-seal");
       seal.setAttribute("aria-hidden", "true");
-      seal.append(el("span", "clv2-ready-seal-disc"), el("small", "", "ready to hand over"));
-      send.closest(".button-row")?.before(seal);
+      const copy = el("div", "clv2-manifest-copy");
+      copy.append(
+        el("span", "clv2-manifest-kicker", "HANDOFF SLIP"),
+        el("strong", "", accepted),
+        el("p", "", "Exactly 1 NIM carries custody to this person only after independent FINAL."),
+        el("small", "", "Approval can open the handoff. Broadcast can make it observable. Neither changes the holder.")
+      );
+      const facts = el("div", "clv2-manifest-facts");
+      [
+        ["SEAL", "1 NIM"],
+        ["RECIPIENT", accepted],
+        ["HOLDER CHANGES", "ONLY AT FINAL"],
+      ].forEach(([label, value]) => {
+        const fact = el("span", "clv2-manifest-fact");
+        fact.append(el("small", "", label), el("b", "", value));
+        facts.append(fact);
+      });
+      manifest.append(seal, copy, facts);
+      send.closest(".button-row")?.before(manifest);
+    }
+
+    if (send && !hero.querySelector(".clv2-pass-disclosure")) {
+      const details = el("details", "clv2-pass-disclosure");
+      details.append(
+        el("summary", "", "Why 1 NIM?"),
+        el("p", "", "It is the custody seal, not a reward, stake or fee. The human introduction is the reason for the route; Nimiq only gives each finalized handoff a verifiable record.")
+      );
+      send.closest(".button-row")?.after(details);
     }
   }
 
