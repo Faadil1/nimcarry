@@ -247,6 +247,10 @@
 .clv2-record-disclosure p{max-width:610px;margin:9px 0 0;line-height:1.55}
 
 /* Guided practice letter: the demo now speaks the same world as production. */
+.clv2-demo-banner-tour::after{
+  content:" · CARRIED LETTER WALKTHROUGH";
+  color:var(--cl-indigo);
+}
 .clv2-demo-tour-rail{
   margin:-4px 0 14px;
   padding:10px 12px;
