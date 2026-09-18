@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 const html = readFileSync("web/index.html", "utf8");
 const js = readFileSync("web/carried-letter-v2.js", "utf8");
 const css = readFileSync("web/carried-letter-v2.css", "utf8");
+const smoke = readFileSync("scripts/judge-flow-smoke.mjs", "utf8");
 
 describe("NimCarry V2 carried-letter foundation", () => {
   it("loads the V2 convergence layer after the existing product presentation layers", () => {
@@ -57,10 +58,26 @@ describe("NimCarry V2 carried-letter foundation", () => {
     expect(js).toContain("No one was paid. Everyone chose.");
   });
 
-  it("supports mobile, desktop and reduced motion", () => {
+  it("supports mobile, deliberate desktop composition and reduced motion", () => {
     expect(css).toContain("@media(max-width:640px)");
     expect(css).toContain("@media(max-width:380px)");
     expect(css).toContain("@media(min-width:1024px)");
+    expect(css).toContain("@media(min-width:1440px)");
     expect(css).toContain("@media(prefers-reduced-motion:reduce)");
+    expect(css).toContain("width:min(1240px,calc(100% - 52px))");
+    expect(css).toContain('.screen[data-clv2-screen="mission"]');
+    expect(css).toContain('.screen[data-clv2-screen="route"]>.clv2-route');
+    expect(css).toContain(".clv2-seal-handoff .hc-max-pass-stage");
+    expect(js).toContain("screen.dataset.clv2Screen = mode");
+    expect(js).toContain('hero.querySelector(".hc-max-home-story")');
+  });
+
+  it("proves responsive geometry across the full judge journey", () => {
+    expect(smoke).toContain("desktop shell stayed mobile-width");
+    expect(smoke).toContain("horizontal overflow");
+    expect(smoke).toContain('"01-home"');
+    expect(smoke).toContain('"03-mission"');
+    expect(smoke).toContain('"05-handoff"');
+    expect(smoke).toContain('"08-arrived"');
   });
 });
