@@ -284,13 +284,7 @@
     const banner = document.querySelector("#demo-banner");
     if (!banner) return;
 
-    let badge = document.querySelector("#demo-tour-badge");
-    if (!badge) {
-      badge = document.createElement("span");
-      badge.id = "demo-tour-badge";
-      badge.textContent = " · GUIDED PRACTICE";
-      banner.appendChild(badge);
-    }
+    banner.dataset.guided = "1";
 
     let guide = document.querySelector("#demo-tour-guide");
     if (!guide) {
