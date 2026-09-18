@@ -13,6 +13,11 @@
     return match ? match[1] : null;
   };
   const messageText = (value) => typeof value === "string" ? value : String(value?.message || "");
+  const randomToken = (prefix) => {
+    if (typeof crypto.randomUUID === "function") return `${prefix}-${crypto.randomUUID()}`;
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    return `${prefix}-${Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("")}`;
+  };
 
   function readPending() {
     try {
@@ -64,18 +69,21 @@
   async function resumeAcceptedSignature(pending) {
     if (!pending?.token || !pending?.challenge_id || !pending?.wallet || !pending?.public_key || !pending?.signature) return false;
     if (pending.resume_in_flight) return false;
-    writePending({ resume_in_flight: true, resume_started_at: now() });
+    const acceptIdempotencyKey = pending.accept_idempotency_key || randomToken("accept-resume");
+    writePending({ resume_in_flight: true, resume_started_at: now(), accept_idempotency_key: acceptIdempotencyKey });
     try {
       const response = await originalFetch(`/i/${encodeURIComponent(pending.token)}/accept`, {
         method: "POST",
-        headers: { Accept: "application/json", "Content-Type": "application/json" },
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "Idempotency-Key": acceptIdempotencyKey,
+        },
         body: JSON.stringify({
-          auth: {
-            challenge_id: pending.challenge_id,
-            wallet: pending.wallet,
-            public_key: pending.public_key,
-            signature: pending.signature,
-          },
+          challenge_id: pending.challenge_id,
+          public_key: pending.public_key,
+          signature: pending.signature,
+          ...(pending.candidate_display_label ? { candidate_display_label: pending.candidate_display_label } : {}),
         }),
       });
       if (!response.ok) {
@@ -105,6 +113,16 @@
   // another NimCarry route in the host WebView.
   const initialToken = tokenFromPath();
   if (initialToken) writePending({ token: initialToken, invite_seen_at: now() });
+
+  // Keep the optional carried-letter signature label with the same short-lived
+  // acceptance recovery record. This is presentation metadata only; the Nimiq
+  // signature remains the consent proof.
+  document.addEventListener("click", (event) => {
+    const button = event.target instanceof Element ? event.target.closest("#accept") : null;
+    if (!button) return;
+    const label = document.querySelector("#candidate-display-label")?.value?.trim() || null;
+    writePending({ candidate_display_label: label });
+  }, true);
 
   // Capture only the ACCEPT_INVITATION challenge contract. No transaction request,
   // private key, seed phrase, or payment data is persisted.

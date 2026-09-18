@@ -173,6 +173,19 @@ describe("PgMissionRepository", () => {
       expect(inv.acceptedAt).toBeDefined();
     });
 
+    it("persists the accepting carrier display label atomically with acceptance", async () => {
+      const creator = normalizeNimiqAddress(wallet());
+      const candidate = normalizeNimiqAddress(wallet());
+      const mission = missionRecord({ creatorWalletNormalized: creator, currentHolderWalletNormalized: creator });
+      await repo.createMission(mission);
+      const inv = invitationRecord(mission.id, 1, creator);
+      await repo.createInvitation(inv);
+      const accepted = await repo.acceptInvitation(inv.id, candidate, 4000, 4000 + 60 * 60 * 1000, "Bridge B");
+      expect(accepted.status).toBe("ACCEPTED");
+      expect(accepted.candidateDisplayLabel).toBe("Bridge B");
+      expect((await repo.getInvitation(inv.id))!.candidateDisplayLabel).toBe("Bridge B");
+    });
+
     it("rejects accept with wrong wallet", async () => {
       const { mission, invitationId } = await acceptedMission();
       // The invitation is already ACCEPTED, so re-accepting is rejected

@@ -239,7 +239,7 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     const m = state.mission;
     const activity = m.status === "ARRIVED" || m.status === "CANCELLED" ? "TERMINAL" : (m.activity || "ACTIVE");
     const action = m.primary_action || derivePrimaryAction(m);
-    els.screen.innerHTML = `<section class="hero-card"><div class="meta-row"><div class="kicker">${esc(m.finalized_hop_count || 0)} verified bridge${Number(m.finalized_hop_count || 0) === 1 ? "" : "s"}</div><span class="status-pill ${m.status === "ARRIVED" ? "arrived" : activity === "STALLED" ? "stalled" : ""}">${esc(m.status === "ACTIVE" ? activity : m.status)}</span></div><h1 class="target-title">${esc(m.status === "ARRIVED" ? "It made it." : m.target_label)}</h1><p class="mission-note">${esc(m.mission_note)}</p><div class="holder-chip"><span class="avatar">→</span><span><small>Current holder</small><strong>${esc(m.current_holder?.display_label || m.current_holder?.wallet_fingerprint || "Private participant")}</strong></span></div>${activity === "STALLED" ? `<div class="warning" style="margin-top:14px">This route is waiting on its current bridge. Custody has not changed. A new route can be started, but this baton is never clawed back.</div>` : ""}<div class="button-row">${homeButtons(action, m)}</div></section><section class="stack"><div class="route-card"><div class="split"><h2>Verified path</h2><span>${esc(m.finalized_hop_count || 0)} FINAL</span></div>${routeMarkup(m.route || [])}</div></section>`;
+    els.screen.innerHTML = `<section class="hero-card" data-invitation-status="${esc(m.invitation?.status || "")}" data-accepted-display-label="${esc(m.invitation?.candidate_display_label || "")}"><div class="meta-row"><div class="kicker">${esc(m.finalized_hop_count || 0)} verified bridge${Number(m.finalized_hop_count || 0) === 1 ? "" : "s"}</div><span class="status-pill ${m.status === "ARRIVED" ? "arrived" : activity === "STALLED" ? "stalled" : ""}">${esc(m.status === "ACTIVE" ? activity : m.status)}</span></div><h1 class="target-title">${esc(m.status === "ARRIVED" ? "It made it." : m.target_label)}</h1><p class="mission-note">${esc(m.mission_note)}</p><div class="holder-chip"><span class="avatar">→</span><span><small>Current holder</small><strong>${esc(m.current_holder?.display_label || m.current_holder?.wallet_fingerprint || "Private participant")}</strong></span></div>${activity === "STALLED" ? `<div class="warning" style="margin-top:14px">This route is waiting on its current bridge. Custody has not changed. A new route can be started, but this baton is never clawed back.</div>` : ""}<div class="button-row">${homeButtons(action, m)}</div></section><section class="stack"><div class="route-card"><div class="split"><h2>Verified path</h2><span>${esc(m.finalized_hop_count || 0)} FINAL</span></div>${routeMarkup(m.route || [])}</div></section>`;
     wireHomeButtons(action, m); els.screen.focus();
   }
 
@@ -326,16 +326,27 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     catch (error) { notice(error.message, true); }
     if (!invitation) { els.screen.innerHTML = `<section class="card"><h2>Invitation unavailable</h2><p>This private invite is invalid, expired, or not yet served by the backend.</p></section>`; return; }
     const deeplink = `nimiqpay://miniapp?url=${encodeURIComponent(location.href)}`;
-    els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Screen 3 / 5 · Bridge Invitation</div><h1 class="target-title">You were chosen as the next bridge.</h1><p class="lede">Target: <strong>${esc(invitation.target_label || state.mission?.target_label || "Private destination")}</strong></p><div class="card" style="margin-top:16px"><div class="kicker">Why you</div><p>${esc(invitation.why_you || "The current holder thinks you can move this one person closer.")}</p></div><div class="warning" style="margin-top:14px">Accepting does not move funds. The current holder sends exactly 1 NIM only after you accept.</div><div class="button-row"><button data-busy-lock="1" id="accept" class="button primary">Accept as bridge</button><button data-busy-lock="1" id="decline" class="button ghost">Decline</button><a class="button green" href="${esc(deeplink)}">Open in Nimiq Pay</a></div></section>`;
+    els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Screen 3 / 5 · Bridge Invitation</div><h1 class="target-title">You were chosen as the next bridge.</h1><p class="lede">Target: <strong>${esc(invitation.target_label || state.mission?.target_label || "Private destination")}</strong></p><div class="card" style="margin-top:16px"><div class="kicker">Why you</div><p>${esc(invitation.why_you || "The current holder thinks you can move this one person closer.")}</p></div><label class="acceptance-display-field">How should this letter remember you? <span>(optional)</span><input id="candidate-display-label" maxlength="60" autocomplete="name" placeholder="Your name or initials" /><small>Shown only inside authorized mission context. The Nimiq authorization — not this name — is the consent proof.</small></label><div class="warning" style="margin-top:14px">Accepting does not move funds. The current holder sends exactly 1 NIM only after you accept.</div><div class="button-row"><button data-busy-lock="1" id="accept" class="button primary">Accept as bridge</button><button data-busy-lock="1" id="decline" class="button ghost">Decline</button><a class="button green" href="${esc(deeplink)}">Open in Nimiq Pay</a></div></section>`;
     document.querySelector("#accept").addEventListener("click", () => acceptInvitation(invitation, token)); document.querySelector("#decline").addEventListener("click", () => declineInvitation(invitation, token)); els.screen.focus();
   }
 
   async function acceptInvitation(invitation, token) {
+    const candidateDisplayLabel = document.querySelector("#candidate-display-label")?.value?.trim() || undefined;
     setBusy(true); notice("Binding your wallet to this invitation…");
     try {
-      if (state.demo) { const stored = demoLoad(); stored.invitation.status = "ACCEPTED"; stored.mission.invitation = stored.invitation; stored.mission.primary_action = "PASS_1_NIM"; demoSave(stored); notice("Demo bridge accepted. Send the original holder back to Mission Home."); return; }
+      if (state.demo) {
+        const stored = demoLoad();
+        stored.invitation.status = "ACCEPTED";
+        stored.invitation.candidate_display_label = candidateDisplayLabel || null;
+        stored.mission.invitation = stored.invitation;
+        stored.mission.primary_action = "PASS_1_NIM";
+        demoSave(stored);
+        notice("Demo bridge accepted. The signature mark is presentation only; no wallet or network write occurred.");
+        return;
+      }
       const auth = await signedAuth("ACCEPT_INVITATION", { missionId: invitation.mission_id, invitationId: invitation.invitation_id, sequence: invitation.sequence });
-      await api(`/i/${encodeURIComponent(token)}/accept`, { method: "POST", body: { auth } }); notice("Accepted. The current holder can now authorize the 1 NIM handoff.");
+      await api(`/i/${encodeURIComponent(token)}/accept`, { method: "POST", body: { auth, candidate_display_label: candidateDisplayLabel } });
+      notice("Accepted. Your signed Nimiq authorization is the consent proof; the current holder can now authorize the 1 NIM handoff.");
     } catch (error) { notice(error.message, true); } finally { setBusy(false); }
   }
 

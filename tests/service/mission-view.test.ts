@@ -15,7 +15,7 @@ const mission: MissionRecord = {
 };
 const invitation: InvitationRecord = {
   id: "invitation-1", missionId: "mission-1", sequence: 1, inviterWalletNormalized: A, candidateLabel: "B",
-  candidateWalletNormalized: B, candidateDisplayLabel: null, whyYou: "why", inviteTokenHash: "hash", status: "ACCEPTED",
+  candidateWalletNormalized: B, candidateDisplayLabel: "Bridge B", whyYou: "why", inviteTokenHash: "hash", status: "ACCEPTED",
   createdAt: 1, expiresAt: 10_000, acceptedAt: 2, passDeadlineAt: 10_000_000_000_000, declinedAt: null,
   withdrawnAt: null, completedAt: null, closedAt: null,
 };
@@ -34,5 +34,12 @@ describe("mission primary action for accepted pass intents", () => {
   it("blocks stale broadcasted intent and unauthorized viewers", () => {
     expect(view({ hasActiveIntent: true, activeIntentStale: true, activeIntentHasBroadcast: true }).primary_action).toBe("WAIT");
     expect(view({ hasActiveIntent: true, activeIntentStale: true, activeIntentHasBroadcast: false, viewer: B }).primary_action).toBe("WAIT");
+  });
+
+  it("shows the accepted display label only to viewers with full invitation context", () => {
+    expect(view({ hasActiveIntent: false, viewer: A }).invitation?.candidate_display_label).toBe("Bridge B");
+    expect(view({ hasActiveIntent: false, viewer: B }).invitation?.candidate_display_label).toBe("Bridge B");
+    const stranger = PublicKey.derive(PrivateKey.generate()).toAddress().toUserFriendlyAddress();
+    expect(view({ hasActiveIntent: false, viewer: stranger }).invitation?.candidate_display_label).toBeNull();
   });
 });

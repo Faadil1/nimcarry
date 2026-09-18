@@ -68,3 +68,15 @@ These events are not state. Reloading the page derives truth again from the cano
 - The creator, earlier carriers, participants and scoped viewers see the generic `The letter arrived` outcome.
 - The carried-letter receipt may restyle only data already present in the authorized Route Receipt. It must not add full addresses, hidden target data, or unverified hops.
 - Demo receipts remain explicitly marked practice/off-chain.
+
+
+## Gate 4 — Consent provenance
+
+- A carrier may optionally choose a 1–60 character display label when accepting.
+- The label is persisted atomically with the already-signed `ACCEPT_INVITATION` mutation.
+- The label is presentation metadata only. The Nimiq signature remains the consent proof.
+- The mark is visible only where the invitation already has full authorized context; redacted mission viewers receive `null`.
+- Immediately after acceptance the back of the letter may show the mark while explicitly stating that custody has not moved.
+- Acceptance recovery may retain the optional label only inside the same five-minute session-scoped proof used to finish the already-approved acceptance.
+- Guided demo may prefill a practice mark, but must state that no wallet/network write occurred.
+- Historical carrier-line propagation is a separate Gate 5 concern; Gate 4 does not widen route visibility or export scope.

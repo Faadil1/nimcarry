@@ -193,6 +193,9 @@
     if (accept) text(accept, "Accept the letter");
     if (decline) text(decline, "Not this time");
 
+    const signatureField = hero.querySelector(".acceptance-display-field");
+    if (signatureField) signatureField.classList.add("clv2-sign-the-back");
+
     const actionRow = accept?.closest(".button-row");
     if (actionRow && !hero.querySelector(".clv2-consent-truth")) {
       const note = el("details", "clv2-consent-truth");
@@ -227,6 +230,19 @@
     const chip = hero.querySelector(".holder-chip");
     if (chip) chip.after(route);
     else hero.append(route);
+
+    const acceptedLabel = clean(hero.dataset.acceptedDisplayLabel);
+    const invitationStatus = clean(hero.dataset.invitationStatus).toUpperCase();
+    if (invitationStatus === "ACCEPTED" && acceptedLabel && !hero.querySelector(".clv2-signed-back")) {
+      const signed = el("section", "clv2-signed-back");
+      signed.setAttribute("aria-label", `${acceptedLabel} accepted this invitation`);
+      signed.append(
+        el("span", "clv2-signed-kicker", "SIGNED AFTER NIMIQ AUTHORIZATION"),
+        el("strong", "clv2-ink-signature", acceptedLabel),
+        el("small", "", "This ink is the human mark on the letter. The signed Nimiq authorization — not the ink — is the consent proof. Custody has not moved.")
+      );
+      route.after(signed);
+    }
   }
 
   function pass() {

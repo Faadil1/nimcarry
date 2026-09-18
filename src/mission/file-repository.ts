@@ -205,7 +205,7 @@ export class FileMissionRepository implements MissionRepository {
     return record ? clone(record) : undefined;
   }
 
-  async acceptInvitation(id: string, wallet: string, now: number, passDeadlineAt: number): Promise<InvitationRecord> {
+  async acceptInvitation(id: string, wallet: string, now: number, passDeadlineAt: number, candidateDisplayLabel: string | null = null): Promise<InvitationRecord> {
     return this.exclusive(() => {
       const invitation = this.invitation(id);
       const mission = this.mission(invitation.missionId);
@@ -223,6 +223,7 @@ export class FileMissionRepository implements MissionRepository {
         throw new MissionValidationError("WRONG_INVITEE_WALLET", "This invitation is pre-bound to a different wallet");
       }
       invitation.candidateWalletNormalized = wallet;
+      invitation.candidateDisplayLabel = candidateDisplayLabel;
       invitation.status = "ACCEPTED";
       invitation.acceptedAt = now;
       invitation.passDeadlineAt = passDeadlineAt;

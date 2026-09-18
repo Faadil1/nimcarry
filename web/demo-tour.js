@@ -97,6 +97,15 @@
     if (inviteDialog) delete inviteDialog.dataset.demoTourFilled;
   }
 
+  function prefillAcceptanceMark() {
+    const field = screen.querySelector("#candidate-display-label");
+    if (!field || field.dataset.demoTourFilled === "1") return;
+    field.dataset.demoTourFilled = "1";
+    const meta = readMeta();
+    const candidate = meta.pendingCandidate || {};
+    if (!field.value) field.value = candidate.label || "Bridge B";
+  }
+
   function enhanceInviteCard() {
     const link = screen.querySelector(".invite-link");
     if (!link || screen.querySelector("#demo-tour-open-invite")) return;
@@ -247,6 +256,7 @@
     prefillCreate();
     autoOpenNextInvite();
     prefillInvite();
+    prefillAcceptanceMark();
     enhanceInviteCard();
     keepTourBrowserOnly();
     enhanceRoute();

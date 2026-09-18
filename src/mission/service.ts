@@ -289,13 +289,16 @@ export class ReachMissionService {
       throw new MissionValidationError("ROUTE_WALLET_REUSE", "A finalized route participant cannot re-enter the same mission");
     }
     const now = input.now ?? Date.now();
+    const candidateDisplayLabel = input.candidateDisplayLabel
+      ? boundedText(input.candidateDisplayLabel, 1, 60, "candidateDisplayLabel")
+      : null;
     const accepted = await this.repository.acceptInvitation(
       invitation.id,
       wallet,
       now,
-      now + ACCEPTED_PASS_DEADLINE_MS
+      now + ACCEPTED_PASS_DEADLINE_MS,
+      candidateDisplayLabel
     );
-    void input.candidateDisplayLabel;
     return toPublicInvitation(accepted);
   }
 
