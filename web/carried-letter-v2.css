@@ -19,6 +19,88 @@
 }
 
 .carried-letter-v2 .app-shell{width:min(800px,100%)}
+.carried-letter-v2 :is(.hero-card,.form-card,.route-card,.card){
+  border-color:rgba(33,30,26,.16);
+  background:
+    repeating-linear-gradient(0deg,transparent 0 24px,rgba(85,66,42,.012) 24px 25px),
+    rgba(255,250,240,.96);
+}
+
+/* Shared carried-letter treatment for recovery and diagnostic surfaces. */
+.clv2-utility-surface{
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 100% 0,rgba(213,166,62,.08),transparent 30rem),
+    linear-gradient(180deg,#fffaf0,#f8ecda)!important;
+}
+.clv2-utility-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:20px;
+  align-items:center;
+}
+.clv2-utility-copy{min-width:0}
+.clv2-utility-copy>h1{
+  max-width:11ch;
+  font-family:var(--hc-display,Georgia,serif);
+  letter-spacing:-.055em;
+}
+.clv2-utility-letter{
+  position:relative;
+  min-height:190px;
+  padding:76px 28px 24px;
+  overflow:hidden;
+  border:1px solid rgba(33,30,26,.2);
+  border-radius:3px;
+  background:
+    repeating-linear-gradient(0deg,transparent 0 20px,rgba(85,66,42,.018) 20px 21px),
+    var(--cl-paper);
+  box-shadow:var(--cl-shadow);
+  transform:rotate(-.8deg);
+}
+.clv2-utility-letter::before{
+  content:"";
+  position:absolute;
+  inset:0 0 auto;
+  height:48%;
+  clip-path:polygon(0 0,100% 0,50% 100%);
+  background:linear-gradient(180deg,#f8eddc,#ead9bf);
+  border-top:1px solid rgba(33,30,26,.08);
+}
+.clv2-utility-letter>span,
+.clv2-utility-letter>strong{position:relative;z-index:1;display:block}
+.clv2-utility-letter .clv2-utility-kicker{
+  color:var(--cl-vermilion);
+  font:850 .55rem/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+.clv2-utility-letter strong{
+  max-width:15ch;
+  margin-top:7px;
+  color:var(--cl-green);
+  font:650 clamp(1.3rem,3.5vw,1.8rem)/1.05 var(--hc-display,Georgia,serif);
+  letter-spacing:-.03em;
+}
+.clv2-utility-letter .clv2-utility-note{
+  margin-top:7px;
+  color:var(--cl-muted);
+  font-size:.7rem;
+  line-height:1.45;
+}
+.clv2-utility-letter .clv2-utility-seal{
+  position:absolute;
+  right:24px;
+  bottom:22px;
+  z-index:2;
+  width:50px;
+  height:50px;
+  border:1px solid #8d651e;
+  border-radius:50% 47% 52% 48%;
+  background:radial-gradient(circle at 34% 30%,#f0ca69,var(--cl-gold) 42%,var(--cl-gold-dark));
+  box-shadow:0 5px 9px rgba(83,56,17,.2);
+}
+.clv2-utility-actions{margin-top:18px}
 .carried-letter-v2 .brand small{letter-spacing:.075em}
 .carried-letter-v2 .network-chip{
   opacity:.72;
@@ -1361,6 +1443,12 @@
 }
 @media(min-width:1024px){
   /* Desktop is a deliberate composition, not a widened mobile card. */
+  .clv2-utility-grid{
+    grid-template-columns:minmax(0,.9fr) minmax(390px,1.1fr);
+    gap:42px;
+  }
+  .clv2-utility-surface{padding:34px 38px!important}
+  .clv2-utility-letter{min-height:250px;padding:98px 34px 30px}
   .carried-letter-v2 .app-shell{
     width:min(1240px,calc(100% - 52px));
     padding-left:24px;
