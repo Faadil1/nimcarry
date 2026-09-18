@@ -228,6 +228,28 @@ describe("PgMissionRepository", () => {
       expect(invAfter.status).toBe("EXPIRED");
     });
 
+    it("clears a prior carrier display mark when an invitation is reissued", async () => {
+      const creator = normalizeNimiqAddress(wallet());
+      const candidate = normalizeNimiqAddress(wallet());
+      const mission = missionRecord({ creatorWalletNormalized: creator, currentHolderWalletNormalized: creator });
+      await repo.createMission(mission);
+      const inv = invitationRecord(mission.id, 1, creator);
+      await repo.createInvitation(inv);
+      await repo.acceptInvitation(inv.id, candidate, 4000, 4000 + 60 * 60 * 1000, "Old mark");
+      await repo.expireDueInvitations(4000 + 60 * 60 * 1000 + 1);
+      const reissued = await repo.reissueInvitation({
+        invitationId: inv.id,
+        inviteTokenHash: "fresh-mark-token",
+        candidateLabel: "Bridge",
+        candidateWalletNormalized: candidate,
+        whyYou: null,
+        createdAt: 10_000,
+        expiresAt: 10_000 + 12 * 60 * 60 * 1000,
+      });
+      expect(reissued.status).toBe("INVITED");
+      expect(reissued.candidateDisplayLabel).toBeNull();
+    });
+
     it("reissues the same expired invitation row without a sequence duplicate key", async () => {
       const { mission, invitationId, candidate } = await acceptedMission();
       await repo.expireDueInvitations(4000 + 60 * 60 * 1000 + 1);
@@ -264,6 +286,43 @@ describe("PgMissionRepository", () => {
       expect(result.mission.arrivedAt).toBe(5000);
       expect(result.mission.finalizedHopCount).toBe(1);
       expect(result.invitation.status).toBe("COMPLETED");
+    });
+
+    it("stores an opted-in accepted carrier mark in finalized participant provenance", async () => {
+      const creator = normalizeNimiqAddress(wallet());
+      const candidate = normalizeNimiqAddress(wallet());
+      const mission = missionRecord({
+        creatorWalletNormalized: creator,
+        currentHolderWalletNormalized: creator,
+        targetWalletHmac: "hmac-target",
+      });
+      await repo.createMission(mission);
+      const inv = invitationRecord(mission.id, 1, creator);
+      await repo.createInvitation(inv);
+      await repo.acceptInvitation(inv.id, candidate, 4000, 4000 + 60 * 60 * 1000, "Bridge B");
+      await repo.completeFinalHop({
+        missionId: mission.id,
+        invitationId: inv.id,
+        sequence: 1,
+        recipientWallet: candidate,
+        recipientHmac: "hmac-target",
+        now: 5000,
+      });
+
+      const participant = await pool.query<{
+        display_label: string | null;
+        display_name_opt_in: boolean;
+        first_final_sequence: number | null;
+      }>(
+        "SELECT display_label, display_name_opt_in, first_final_sequence FROM participants WHERE mission_id = $1 AND wallet_normalized = $2",
+        [mission.id, candidate]
+      );
+      expect(participant.rows).toHaveLength(1);
+      expect(participant.rows[0]).toMatchObject({
+        display_label: "Bridge B",
+        display_name_opt_in: true,
+        first_final_sequence: 1,
+      });
     });
 
     it("does not mark ARRIVED when recipient HMAC differs from target", async () => {
