@@ -8,8 +8,10 @@
   <title>NimCarry — TESTNET preflight</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/final-human-craft.css" />
+  <link rel="stylesheet" href="/carried-letter-v2.css" />
 </head>
-<body>
+<body class="carried-letter-v2">
   <div class="app-shell">
     <header class="brandbar">
       <a class="brand" href="/" aria-label="NimCarry home">
@@ -20,10 +22,20 @@
     </header>
 
     <main class="screen">
-      <section class="hero-card">
-        <div class="kicker">Payment safety check</div>
-        <h1>Prove Nimiq Pay is on TESTNET before spending 1 NIM.</h1>
-        <p class="lede">This check reads consensus and block height, then compares Nimiq Pay with an independent TESTNET head. It does not sign, approve, send, or change a NimCarry route.</p>
+      <section class="hero-card clv2-utility-surface">
+        <div class="clv2-utility-grid">
+          <div class="clv2-utility-copy">
+            <div class="kicker">Payment safety check</div>
+            <h1>Prove Nimiq Pay is on TESTNET before spending 1 NIM.</h1>
+            <p class="lede">This check reads consensus and block height, then compares Nimiq Pay with an independent TESTNET head. It does not sign, approve, send, or change a NimCarry route.</p>
+          </div>
+          <div class="clv2-utility-letter" aria-hidden="true">
+            <span class="clv2-utility-kicker">SAFETY GATE</span>
+            <strong>Check the network before the seal moves.</strong>
+            <span class="clv2-utility-note">Read-only · no signature · no NIM</span>
+            <span class="clv2-utility-seal"></span>
+          </div>
+        </div>
         <div class="warning" style="margin-top:16px">If this fails, stop here. Do not retry a baton payment.</div>
         <div class="button-row">
           <button id="run-preflight" class="button primary" type="button">Run read-only TESTNET preflight</button>

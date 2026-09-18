@@ -141,6 +141,14 @@ async function run(viewport) {
   });
 
   try {
+    activeStep = "live-home";
+    await page.goto(`${baseUrl}/`, { waitUntil: "networkidle", timeout: 20000 });
+    await page.locator(".clv2-home").waitFor({ state: "visible" });
+    const liveBodyClass = await page.locator("body").getAttribute("class");
+    if (!/carried-letter-v2/.test(liveBodyClass || "")) throw new Error("Live site did not enter carried-letter visual system");
+    if (/carried-letter-v2-demo/.test(liveBodyClass || "")) throw new Error("Live site leaked demo visual identity");
+    captures.push(await captureState(page, viewport, "00-live-home", "home"));
+
     activeStep = "home";
     await page.goto(`${baseUrl}/?demo=1&tour=1&reset=1`, { waitUntil: "networkidle", timeout: 20000 });
     await page.locator("#demo-banner").waitFor({ state: "visible" });

@@ -59,6 +59,8 @@ describe("NimCarry V2 carried-letter interruption and recovery states", () => {
     expect(recoveryPage).toContain("The letter is still safe. Restore your view.");
     expect(recoveryPage).toContain("This restores access, not custody.");
     expect(recoveryPage).toContain("No NIM is sent. No bridge is re-invited. No handoff is created.");
+    expect(recoveryPage).toContain("clv2-utility-letter");
+    expect(css).toContain(".clv2-utility-grid");
     expect(recoveryUx).toContain("Private route access stays participant-scoped");
   });
 

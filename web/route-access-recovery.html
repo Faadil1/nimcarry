@@ -22,10 +22,20 @@
       <div class="network-chip"><span class="pulse"></span><span>TESTNET REQUIRED</span></div>
     </header>
     <main class="screen" tabindex="-1">
-      <section class="hero-card">
-        <div class="kicker">Read-only letter access</div>
-        <h1 class="target-title">The letter is still safe. Restore your view.</h1>
-        <p class="lede">A runtime restart can invalidate a short-lived route-view capability. The mission, invitation state and verified holder do not change. Choose the human/basic Nimiq Pay identity bound to this mission, then sign one VIEW_ROUTE authorization.</p>
+      <section class="hero-card clv2-utility-surface">
+        <div class="clv2-utility-grid">
+          <div class="clv2-utility-copy">
+            <div class="kicker">Read-only letter access</div>
+            <h1 class="target-title">The letter is still safe. Restore your view.</h1>
+            <p class="lede">A runtime restart can invalidate a short-lived route-view capability. The mission, invitation state and verified holder do not change. Choose the human/basic Nimiq Pay identity bound to this mission, then sign one VIEW_ROUTE authorization.</p>
+          </div>
+          <div class="clv2-utility-letter" aria-hidden="true">
+            <span class="clv2-utility-kicker">SEALED LETTER</span>
+            <strong>Restore the view. Never move the letter.</strong>
+            <span class="clv2-utility-note">VIEW_ROUTE only · no payment write</span>
+            <span class="clv2-utility-seal"></span>
+          </div>
+        </div>
         <section class="clv2-route-state" data-kind="accepted" aria-label="Recovery does not move custody">
           <span class="clv2-route-state-stamp">LETTER UNMOVED</span>
           <strong class="clv2-route-state-title">This restores access, not custody.</strong>
