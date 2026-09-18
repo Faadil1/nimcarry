@@ -127,3 +127,14 @@ The presentation layer may humanize these states but cannot manufacture an actio
 - The generated invitation link is a private artifact for one person. Presentation may make it look like a sealed letter but must not change the token, expiry, capability or acceptance semantics.
 - The invitation recipient sees the human reason before protocol detail, with accept/decline remaining explicit.
 - Demo invitation artifacts remain visibly PRACTICE and do not imply wallet/network writes.
+
+
+## Gate 8 — Practice-mode continuity
+
+- A guided-demo URL must remain visibly practice-only after SPA navigation, deep-link transitions, browser refresh, and route revisits.
+- `demo=1` is preserved by the core SPA navigation helper when demo mode is active.
+- `tour=1` is preserved whenever the guided tour is active.
+- Direct guided-tour history transitions must use the same preserved flags.
+- A refresh after the first simulated FINAL must reload into practice mode, retain the practice banner, and continue the deterministic tour.
+- Practice continuity is presentation safety: losing the query flags must never make simulated state visually resemble a real TESTNET route.
+- HTML asset wiring must contain real line breaks rather than escaped `\\n` text so the V2 layer loads cleanly in browser source and static hosts.
