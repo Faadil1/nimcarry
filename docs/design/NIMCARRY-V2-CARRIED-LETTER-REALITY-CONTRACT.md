@@ -34,7 +34,7 @@ The Carried Letter is a rendering and interaction model over the existing NimCar
 
 1. Foundation: human-first landing, letter material system, demo/testnet visual separation, fail-closed error language. **No backend or transaction authority changes.**
 2. Handoff ceremony: represent authorization, unproven broadcast, PENDING/INCLUDED, and FINAL distinctly inside the same warm-wax scene. **UI event phases must never carry wallet addresses, transaction hashes, or authority.**
-3. Arrival: destination-specific climax only when server truth can support it; otherwise generic invite until FINAL.
+3. Arrival: after authoritative `ARRIVED`, the route may use the server-derived `viewer_role`. Only `ARRIVED + TARGET` receives destination-specific language; all pre-FINAL invitations remain generic and other authorized viewers receive the generic ARRIVED framing.
 4. Consent provenance: persist display label/signature presentation only after cryptographic ACCEPT succeeds. The visual signature is never the proof.
 5. Carrier line + artifact: render verified route only from capability-scoped data; export must not widen visibility.
 
@@ -58,3 +58,13 @@ The browser may emit presentation-only `nimcarry:handoff-phase` events so the V2
 - `error` — no new custody claim.
 
 These events are not state. Reloading the page derives truth again from the canonical mission and route APIs.
+
+
+## Gate 3 — Arrival truth
+
+- `viewer_role` is derived server-side from the authorized viewer and protected target HMAC.
+- The browser receives that role only as presentation metadata on the already-authorized route view.
+- `A letter has been carried to you` is permitted only when mission status is `ARRIVED` **and** viewer role is `TARGET`.
+- The creator, earlier carriers, participants and scoped viewers see the generic `The letter arrived` outcome.
+- The carried-letter receipt may restyle only data already present in the authorized Route Receipt. It must not add full addresses, hidden target data, or unverified hops.
+- Demo receipts remain explicitly marked practice/off-chain.
