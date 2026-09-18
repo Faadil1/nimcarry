@@ -36,7 +36,7 @@
     const baton = node("div", "wi-baton-note");
     baton.append(
       node("strong", "", "1 NIM is the baton — not the reward."),
-      node("span", "", "No stake, wager, prize pool or forwarding reward. The transaction marks who carries the mission next.")
+      node("span", "", "After the first handoff, each intermediate bridge passes onward the 1 NIM it received. It is a custody baton, not a forwarding reward.")
     );
     (buttons || hero).before(baton);
 
@@ -117,7 +117,7 @@
     const baton = node("div", "wi-baton-proof");
     baton.append(
       node("strong", "", "The 1 NIM is the custody baton."),
-      node("span", "", "It is not a reward, stake, wager, prize or pooled fund. Passing it creates no financial upside for the bridge.")
+      node("span", "", "It is not a reward, stake, wager, prize or pooled fund. An intermediate bridge passes onward the 1 NIM baton it received.")
     );
 
     const ladder = node("div", "wi-proof-ladder");
