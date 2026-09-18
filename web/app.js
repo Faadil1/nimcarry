@@ -84,6 +84,9 @@ import { getNimiqProvider } from "/nimiq-provider.js";
   };
   const setBusy = (value) => { state.busy = value; document.querySelectorAll("button").forEach((button) => { if (button.dataset.busyLock === "1") button.disabled = value; }); };
   const passDiagnostic = (phase, details = {}) => console.info("[NimCarry pass diagnostic]", phase, details);
+  const handoffEvent = (phase, details = {}) => {
+    dispatchEvent(new CustomEvent("nimcarry:handoff-phase", { detail: { phase, ...details } }));
+  };
   const passFailureClass = (phase, error) => {
     const message = String(error?.message || "").toLowerCase();
     if (phase === "account_sync" || /sync.{0,24}account|account.{0,24}sync/.test(message)) return "account_sync";
@@ -357,9 +360,28 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     let passPhase = "start";
     try {
       if (state.demo) {
-        notice("Demo: PENDING → INCLUDED → FINAL…"); await new Promise((r) => setTimeout(r, 350)); const stored = demoLoad(); stored.invitation.status = "COMPLETED"; stored.mission.invitation = stored.invitation; stored.mission.sequence = Number(stored.mission.sequence || 0) + 1; stored.mission.finalized_hop_count = Number(stored.mission.finalized_hop_count || 0) + 1; stored.mission.route = [...(stored.mission.route || []), { sequence: stored.mission.sequence, from: { display_label: "Previous holder", wallet_fingerprint: "NQ…OLD" }, to: { display_label: "Bridge", wallet_fingerprint: "NQ…NEW" }, finalized_at: new Date().toISOString(), tx_hash_short: "demo…final" }]; stored.mission.current_holder = { display_label: "Bridge", wallet_fingerprint: "NQ…NEW", is_viewer: false }; stored.mission.primary_action = "CREATE_INVITATION"; demoSave(stored); state.mission = stored.mission; notice("Demo FINAL. Custody advanced exactly once."); navigate(`/mission/${encodeURIComponent(missionId)}/route`); return;
+        handoffEvent("verification-pending", { demo: true, status: "PENDING" });
+        notice("Demo: warm wax — simulated verification in progress…");
+        await new Promise((r) => setTimeout(r, 2500));
+        const stored = demoLoad();
+        stored.invitation.status = "COMPLETED";
+        stored.mission.invitation = stored.invitation;
+        stored.mission.sequence = Number(stored.mission.sequence || 0) + 1;
+        stored.mission.finalized_hop_count = Number(stored.mission.finalized_hop_count || 0) + 1;
+        stored.mission.route = [...(stored.mission.route || []), { sequence: stored.mission.sequence, from: { display_label: "Previous holder", wallet_fingerprint: "NQ…OLD" }, to: { display_label: "Bridge", wallet_fingerprint: "NQ…NEW" }, finalized_at: new Date().toISOString(), tx_hash_short: "demo…final" }];
+        stored.mission.current_holder = { display_label: "Bridge", wallet_fingerprint: "NQ…NEW", is_viewer: false };
+        stored.mission.primary_action = "CREATE_INVITATION";
+        demoSave(stored);
+        state.mission = stored.mission;
+        handoffEvent("final", { demo: true, status: "FINAL" });
+        notice("Demo FINAL. Custody advanced exactly once.");
+        await new Promise((r) => setTimeout(r, 500));
+        navigate(`/mission/${encodeURIComponent(missionId)}/route`);
+        return;
       }
-      const sequence = Number(invitation.sequence || state.mission?.sequence + 1 || 1); notice("Authorizing canonical pass intent…");
+      const sequence = Number(invitation.sequence || state.mission?.sequence + 1 || 1);
+      handoffEvent("authorization-requested", { status: "AUTHORIZATION_REQUESTED" });
+      notice("Authorizing canonical pass intent…");
        passPhase = "authorize"; passDiagnostic("authorize_started", { sequence });
        const auth = await signedAuth("AUTHORIZE_PASS", { missionId, invitationId: invitation.invitation_id, sequence });
        passPhase = "pass_intent";
@@ -367,27 +389,51 @@ import { getNimiqProvider } from "/nimiq-provider.js";
       if (!intent?.recipient || Number(intent.value_luna) !== ONE_NIM || !intent.recipient_data) throw new Error("PASS_INTENT_CONTRACT_MISMATCH: recipient/value/opaque data required.");
        if (!String(intent.recipient_data).startsWith("co:v1:")) throw new Error("OPAQUE_COMMITMENT_REQUIRED: refusing clear-text/legacy recipient data.");
        passDiagnostic("pass_intent_received", { value_luna: Number(intent.value_luna), fee_luna: Number(intent.fee_luna), recipient_present: true, opaque_commitment_present: true });
+      handoffEvent("authorized", { status: "AUTHORIZED" });
       const selectedWallet = await chooseWallet();
       if (!intent.expected_sender || walletKey(selectedWallet) !== walletKey(intent.expected_sender)) {
         throw new Error("WRONG_WALLET_SELECTION: the canonical holder wallet is not selected in this Nimiq Pay session.");
       }
-      const nimiq = await provider(); notice("Open Nimiq Pay and approve exactly 1 NIM…");
+      const nimiq = await provider();
+      handoffEvent("wallet-approval-opened", { status: "AWAITING_WALLET" });
+      notice("Open Nimiq Pay and approve exactly 1 NIM…");
        passPhase = "transaction_submission"; passDiagnostic("wallet_approval_opened", { value_luna: ONE_NIM, fee_luna: 0, opaque_commitment_present: true });
        const txHash = await nimiq.sendBasicTransactionWithData({ recipient: intent.recipient, value: ONE_NIM, fee: 0, data: intent.recipient_data });
        passDiagnostic("wallet_call_returned", { transaction_hash_present: Boolean(txHash) });
+       handoffEvent(txHash ? "broadcast-proven" : "broadcast-unproven", { status: txHash ? "BROADCAST" : "UNPROVEN" });
       const intentId = intent.intent_id || intent.id; if (!intentId || !txHash) throw new Error("PASS_BROADCAST_CONTRACT_MISMATCH: missing intent id or transaction hash.");
       await api(`/missions/${encodeURIComponent(missionId)}/pass-intent/${encodeURIComponent(intentId)}/broadcast`, { method: "POST", body: { tx_hash: txHash } });
-      notice("Transaction claimed. Waiting for independent FINAL verification…"); await pollFinality(missionId); navigate(`/mission/${encodeURIComponent(missionId)}/route`);
-    } catch (error) { passDiagnostic("pass_failed", { phase: passPhase, classification: passFailureClass(passPhase, error) }); notice(error.message, true); } finally { setBusy(false); }
+      handoffEvent("verification-pending", { status: "PENDING" });
+      notice("Transaction claimed. Waiting for independent FINAL verification…");
+      await pollFinality(missionId);
+      handoffEvent("final", { status: "FINAL" });
+      await new Promise((r) => setTimeout(r, 500));
+      navigate(`/mission/${encodeURIComponent(missionId)}/route`);
+    } catch (error) {
+      const classification = passFailureClass(passPhase, error);
+      passDiagnostic("pass_failed", { phase: passPhase, classification });
+      handoffEvent("error", { classification });
+      notice(error.message, true);
+    } finally { setBusy(false); }
   }
 
   async function pollFinality(missionId) {
     const deadline = Date.now() + 90000;
     while (Date.now() < deadline) {
-      try { const result = await api(`/missions/${encodeURIComponent(missionId)}/reconcile`, { method: "POST", body: {} }); const status = result?.hop?.status || result?.status || result?.mission?.status; if (status === "FINAL" || status === "CONFIRMED" || result?.mission?.status === "ARRIVED") return result; }
-      catch (error) { if (/VERIFICATION_DELAYED/.test(error.message)) notice("Verification delayed — RPC fallback is retrying. Custody has not changed yet."); else throw error; }
+      try {
+        const result = await api(`/missions/${encodeURIComponent(missionId)}/reconcile`, { method: "POST", body: {} });
+        const status = result?.hop?.status || result?.status || result?.mission?.status;
+        handoffEvent("verification-status", { status: String(status || "PENDING") });
+        if (status === "FINAL" || status === "CONFIRMED" || result?.mission?.status === "ARRIVED") return result;
+      } catch (error) {
+        if (/VERIFICATION_DELAYED/.test(error.message)) {
+          handoffEvent("verification-delayed", { status: "PENDING" });
+          notice("Verification delayed — RPC fallback is retrying. Custody has not changed yet.");
+        } else throw error;
+      }
       await new Promise((resolve) => setTimeout(resolve, 1800));
     }
+    handoffEvent("verification-delayed", { status: "PENDING" });
     throw new Error("VERIFICATION_STILL_PENDING: transaction may still finalize. Re-open this mission to continue reconciliation; do not reroute.");
   }
 
