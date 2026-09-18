@@ -246,6 +246,104 @@
 .clv2-record-disclosure summary{cursor:pointer;font-weight:750;color:var(--cl-green)}
 .clv2-record-disclosure p{max-width:610px;margin:9px 0 0;line-height:1.55}
 
+/* Guided practice letter: the demo now speaks the same world as production. */
+.clv2-demo-banner-tour::after{
+  content:" · CARRIED LETTER WALKTHROUGH";
+  color:var(--cl-indigo);
+}
+.clv2-demo-tour-rail{
+  margin:-4px 0 14px;
+  padding:10px 12px;
+  border:1px solid rgba(78,75,134,.22);
+  background:rgba(221,217,242,.34);
+  box-shadow:0 8px 20px rgba(55,51,102,.05);
+}
+.clv2-demo-tour-rail ol{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:6px;
+  margin:0;
+  padding:0;
+  list-style:none;
+}
+.clv2-demo-tour-rail li{
+  min-width:0;
+  display:grid;
+  gap:3px;
+  padding:7px 8px;
+  border-top:2px solid rgba(78,75,134,.16);
+  color:#6b6889;
+}
+.clv2-demo-tour-rail li span{
+  font:850 .46rem/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.1em;
+}
+.clv2-demo-tour-rail li strong{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:inherit;
+  font:850 .55rem/1.05 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.07em;
+  white-space:nowrap;
+}
+.clv2-demo-tour-rail li.is-done{
+  border-color:rgba(78,75,134,.42);
+  color:#55517c;
+}
+.clv2-demo-tour-rail li.is-active{
+  border-color:var(--cl-indigo);
+  background:rgba(78,75,134,.08);
+  color:var(--cl-indigo);
+}
+
+.clv2-demo-brief{
+  display:grid;
+  gap:5px;
+  margin:18px 0 6px;
+  padding:14px 16px;
+  border:1px dashed rgba(78,75,134,.32);
+  background:rgba(221,217,242,.24);
+}
+.clv2-demo-brief>span,
+.clv2-demo-finish>span{
+  color:var(--cl-indigo);
+  font:900 .52rem/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.13em;
+}
+.clv2-demo-brief>strong,
+.clv2-demo-finish>strong{
+  color:var(--cl-green);
+  font:650 1.05rem/1.1 var(--hc-display,Georgia,serif);
+  letter-spacing:-.02em;
+}
+.clv2-demo-brief>small,
+.clv2-demo-finish>small{
+  color:var(--cl-muted);
+  line-height:1.42;
+}
+
+.clv2-demo-finish{
+  display:grid;
+  gap:6px;
+  margin:20px 0;
+  padding:16px 18px;
+  border:1px solid rgba(78,75,134,.24);
+  background:
+    linear-gradient(90deg,rgba(78,75,134,.07),transparent 72%),
+    #fff9ed;
+}
+.clv2-demo-finish::after{
+  content:"PRACTICE";
+  justify-self:start;
+  margin-top:3px;
+  padding:4px 6px 3px;
+  border:1px solid rgba(78,75,134,.44);
+  border-radius:3px;
+  color:var(--cl-indigo);
+  font:900 .46rem/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.11em;
+}
+
 /* Compose + address the letter: human intent first, delivery details second. */
 .carried-letter-v2 .clv2-write-letter{
   background:
@@ -1193,6 +1291,9 @@
 
 /* Demo and responsive / accessible behavior. */
 @media(max-width:640px){
+  .clv2-demo-tour-rail{overflow-x:auto;padding:8px}
+  .clv2-demo-tour-rail ol{min-width:540px}
+  .clv2-demo-tour-rail li{padding:6px 7px}
   .clv2-arrival-close{grid-template-columns:58px minmax(0,1fr);padding:18px 16px;column-gap:12px}
   .clv2-broken-seal{width:50px;height:54px}
   .clv2-broken-seal::before,.clv2-broken-seal::after{width:25px;height:48px}
@@ -1238,6 +1339,7 @@
     animation:none!important;
     transition:none!important;
   }
+  .clv2-demo-tour-rail li{transform:none}
   .clv2-envelope{transform:none}
   .clv2-compose-sheet,
   .clv2-compose-mini-seal,

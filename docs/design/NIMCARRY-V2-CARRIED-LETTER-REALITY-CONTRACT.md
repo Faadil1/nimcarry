@@ -159,3 +159,15 @@ The presentation layer may humanize these states but cannot manufacture an actio
 - A small disclosure may explain why 1 NIM exists, but it must frame it as custody rather than reward, stake, fee or incentive.
 - After the user acts, the Warm Wax → Postmark scene remains the single visual state machine for authorization, provider reference, independent verification, INCLUDED and FINAL.
 - Practice mode uses the same object model with indigo material treatment and no real wallet/network authority.
+
+
+## Gate 11 — Guided demo alignment
+
+- The deterministic guided demo must tell the same Carried Letter story as the real product; it is not allowed to fall back to generic screen numbers or blockchain-first copy.
+- The practice walkthrough is explicitly staged as: WRITE → FIRST CARRIER → POSTMARK → DESTINATION → RECEIPT.
+- Demo participants should read as humans rather than protocol placeholders. The default first carrier is a named fictional practice participant and the mission note explains a human reason for the introduction.
+- The first invitation is framed as being chosen to carry a letter. The destination invitation is a different climax: the intended person is told that a letter has been carried to them and may receive or decline it.
+- Simulated handoffs must visibly pass through the same Warm Wax → Postmark presentation states as the real product, while remaining indigo/PRACTICE and performing no wallet or network write.
+- The final practice route must display the letter-back provenance plus a practice completion artifact stating the number of simulated postmarks and zero wallet writes.
+- `demo=1&tour=1` must survive acceptance, SPA navigation, direct tour transitions and refresh.
+- The guided demo may simulate state locally, but it must never present its simulated FINAL as real TESTNET evidence.

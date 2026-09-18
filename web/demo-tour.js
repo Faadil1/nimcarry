@@ -39,6 +39,74 @@
     url.searchParams.set("tour", "1");
     return `${url.pathname}${url.search}${url.hash}`;
   };
+  const setText = (node, value) => {
+    if (node && node.textContent !== value) node.textContent = value;
+  };
+  const TOUR_STEPS = [
+    ["WRITE", "Write the private letter"],
+    ["FIRST CARRIER", "Choose one trusted person"],
+    ["POSTMARK", "Verify the first handoff"],
+    ["DESTINATION", "Carry it to the intended person"],
+    ["RECEIPT", "Open the privacy-safe proof"],
+  ];
+
+  function currentTourStep() {
+    const path = location.pathname.replace(/\/+$/, "") || "/";
+    const demo = readDemo();
+    const hops = Number(demo?.mission?.finalized_hop_count || 0);
+    if (demo?.mission?.status === "ARRIVED") return 5;
+    if (/\/pass$/.test(path)) return hops > 0 ? 4 : 3;
+    if (/^\/i\//.test(path)) return hops > 0 ? 4 : 2;
+    if (/\/route$/.test(path)) return hops > 0 ? 3 : 1;
+    if (path === "/create") return 1;
+    if (/^\/mission\//.test(path)) return hops > 0 ? 4 : 2;
+    return 1;
+  }
+
+  function ensureGuideRail() {
+    let rail = document.querySelector("#demo-tour-rail");
+    if (!rail) {
+      rail = document.createElement("nav");
+      rail.id = "demo-tour-rail";
+      rail.className = "clv2-demo-tour-rail";
+      rail.setAttribute("aria-label", "Guided practice letter progress");
+      const list = document.createElement("ol");
+      TOUR_STEPS.forEach(([short, label], index) => {
+        const item = document.createElement("li");
+        item.dataset.step = String(index + 1);
+        item.title = label;
+        const number = document.createElement("span");
+        number.textContent = String(index + 1).padStart(2, "0");
+        const name = document.createElement("strong");
+        name.textContent = short;
+        item.append(number, name);
+        list.append(item);
+      });
+      rail.append(list);
+      const banner = document.querySelector("#demo-banner");
+      if (banner) banner.after(rail);
+    }
+    const active = currentTourStep();
+    rail?.querySelectorAll("li").forEach((item) => {
+      const step = Number(item.dataset.step || 0);
+      item.classList.toggle("is-active", step === active);
+      item.classList.toggle("is-done", step < active);
+      if (step === active) item.setAttribute("aria-current", "step");
+      else item.removeAttribute("aria-current");
+    });
+  }
+
+  function ensureDemoBrief() {
+    if (location.pathname !== "/") return;
+    const hero = screen.querySelector(".clv2-home");
+    if (!hero || hero.querySelector(".clv2-demo-brief")) return;
+    const brief = document.createElement("section");
+    brief.className = "clv2-demo-brief";
+    brief.innerHTML = "<span>PRACTICE LETTER</span><strong>Two people. Two simulated postmarks. One arrival.</strong><small>No wallet approval, NIM transfer or network write happens in this walkthrough.</small>";
+    const actions = hero.querySelector(".button-row");
+    if (actions) actions.before(brief);
+    else hero.append(brief);
+  }
 
   function prefillCreate() {
     const form = screen.querySelector("#create-form");
@@ -51,7 +119,7 @@
     const consent = form.elements.target_consent_confirmed;
     if (targetLabel && !targetLabel.value) targetLabel.value = "Nimiq Community Lead";
     if (targetWallet && !targetWallet.value) targetWallet.value = "NQDEMO_TARGET_0001";
-    if (missionNote && !missionNote.value) missionNote.value = "I want this idea to reach someone who can connect it to the right Nimiq builders.";
+    if (missionNote && !missionNote.value) missionNote.value = "I’m looking for a warm introduction to share NimCarry with the Nimiq community.";
     if (creator && !creator.value) creator.value = "Faadil";
     if (consent) consent.checked = true;
   }
@@ -80,8 +148,8 @@
     const wallet = inviteDialog.querySelector("#candidate-wallet");
 
     if (hops === 0) {
-      if (label) label.value = "Bridge B";
-      if (why) why.value = "You know someone closer to the destination.";
+      if (label) label.value = "Maya";
+      if (why) why.value = "You know the Nimiq community and can carry this introduction one step closer.";
       if (wallet) wallet.value = "NQDEMO_BRIDGE_0001";
     } else {
       if (label) label.value = meta.targetLabel || demo?.mission?.target_label || "Destination";
@@ -109,7 +177,40 @@
     field.dataset.demoTourFilled = "1";
     const meta = readMeta();
     const candidate = meta.pendingCandidate || {};
-    if (!field.value) field.value = candidate.label || "Bridge B";
+    if (!field.value) field.value = candidate.label || "Maya";
+  }
+
+  function frameInvitation() {
+    if (!/^\/i\/[A-Za-z0-9_-]+$/.test(location.pathname)) return;
+    const hero = screen.querySelector(".hero-card");
+    if (!hero) return;
+    const demo = readDemo();
+    const meta = readMeta();
+    const hops = Number(demo?.mission?.finalized_hop_count || 0);
+    const isDestination = hops > 0;
+    const h1 = hero.querySelector("h1");
+    const lede = hero.querySelector(".lede");
+    const whyCard = [...hero.querySelectorAll(".card")].find((node) => /why/i.test(node.querySelector(".kicker")?.textContent || ""));
+    const markLabel = hero.querySelector(".acceptance-display-field");
+    const accept = hero.querySelector("#accept");
+    const decline = hero.querySelector("#decline");
+
+    if (isDestination) {
+      setText(h1, "A letter has been carried to you.");
+      if (lede) lede.innerHTML = `Intended for: <strong>${String(meta.targetLabel || demo?.mission?.target_label || "Private destination").replace(/[&<>"']/g, "")}</strong>`;
+      setText(whyCard?.querySelector(".kicker"), "Why it was carried here");
+      if (markLabel) {
+        const first = [...markLabel.childNodes].find((node) => node.nodeType === Node.TEXT_NODE);
+        if (first) first.textContent = "How should the arrival receipt remember you? ";
+      }
+      setText(accept, "Receive the letter");
+      setText(decline, "Not for me");
+    } else {
+      setText(h1, "You were chosen to carry this letter.");
+      setText(whyCard?.querySelector(".kicker"), "Why you were chosen");
+      setText(accept, "Carry this letter");
+      setText(decline, "Not this time");
+    }
   }
 
   function enhanceInviteCard() {
@@ -129,8 +230,11 @@
     open.id = "demo-tour-open-invite";
     open.type = "button";
     open.className = "button primary";
-    open.textContent = "Open demo invite";
-    open.addEventListener("click", () => { location.href = url.toString(); });
+    open.textContent = "Open sealed practice invite";
+    open.addEventListener("click", () => {
+      history.pushState({}, "", tourPath(url.pathname));
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
     row.prepend(open);
   }
 
@@ -183,8 +287,9 @@
     );
 
     button.disabled = true;
-    showNotice("DEMO — wallet approved. Verifying independent finality…");
-    await new Promise((resolve) => setTimeout(resolve, 450));
+    window.dispatchEvent(new CustomEvent("nimcarry:handoff-phase", { detail: { phase: "verification-pending", status: "PENDING", demo: true } }));
+    showNotice("PRACTICE — warm wax. Simulated verification is running; custody has not moved.");
+    await new Promise((resolve) => setTimeout(resolve, 900));
 
     invitation.status = "COMPLETED";
     mission.invitation = invitation;
@@ -220,25 +325,40 @@
     }
 
     writeDemo({ mission, invitation });
-    showNotice(targetReached ? "DEMO FINAL — destination reached. ARRIVED." : "DEMO FINAL — custody moved to Bridge B.");
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    window.dispatchEvent(new CustomEvent("nimcarry:handoff-phase", { detail: { phase: "final", status: "FINAL", demo: true } }));
+    showNotice(targetReached ? "PRACTICE POSTMARK — the letter arrived." : "PRACTICE POSTMARK — the letter is now carried by Maya.");
+    await new Promise((resolve) => setTimeout(resolve, 500));
     history.pushState({}, "", tourPath(`/mission/${encodeURIComponent(mission.mission_id)}/route`));
     window.dispatchEvent(new PopStateEvent("popstate"));
   }
 
   function enhanceRoute() {
     const routeCard = screen.querySelector(".route-card");
-    if (!routeCard || routeCard.dataset.demoTour === "1") return;
-    routeCard.dataset.demoTour = "1";
+    if (!routeCard) return;
     const demo = readDemo();
-    if (!demo?.mission || demo.mission.status === "ARRIVED") return;
+    if (!demo?.mission) return;
+
+    if (demo.mission.status === "ARRIVED") {
+      if (!routeCard.querySelector(".clv2-demo-finish")) {
+        const finish = document.createElement("section");
+        finish.className = "clv2-demo-finish";
+        finish.innerHTML = "<span>PRACTICE COMPLETE</span><strong>2 simulated postmarks · 0 wallet writes</strong><small>The real product requires Nimiq Pay authorization and independent FINAL verification before custody can move.</small>";
+        const receipt = routeCard.querySelector(".wi-receipt");
+        if (receipt) receipt.before(finish);
+        else routeCard.append(finish);
+      }
+      return;
+    }
+
+    if (routeCard.dataset.demoTour === "1") return;
+    routeCard.dataset.demoTour = "1";
     const row = routeCard.querySelector(":scope > .button-row");
     if (!row || row.querySelector("#demo-tour-continue")) return;
     const button = document.createElement("button");
     button.id = "demo-tour-continue";
     button.type = "button";
     button.className = "button primary";
-    button.textContent = "Continue demo to destination";
+    button.textContent = "Carry the letter to its destination";
     button.addEventListener("click", () => {
       writeMeta({ ...readMeta(), autoOpenNextInvite: true });
       history.pushState({}, "", tourPath(`/mission/${encodeURIComponent(demo.mission.mission_id)}`));
@@ -247,22 +367,22 @@
     row.prepend(button);
   }
 
-  function addTourBadge() {
-    if (document.querySelector("#demo-tour-badge")) return;
+  function markGuidedPractice() {
     const banner = document.querySelector("#demo-banner");
     if (!banner) return;
-    const badge = document.createElement("span");
-    badge.id = "demo-tour-badge";
-    badge.textContent = " · GUIDED 1→5 TOUR";
-    banner.appendChild(badge);
+    banner.classList.add("clv2-demo-banner-tour");
+    banner.setAttribute("aria-label", "Practice desk — Carried Letter guided walkthrough");
   }
 
   function enhance() {
-    addTourBadge();
+    markGuidedPractice();
+    ensureGuideRail();
+    ensureDemoBrief();
     prefillCreate();
     autoOpenNextInvite();
     prefillInvite();
     prefillAcceptanceMark();
+    frameInvitation();
     enhanceInviteCard();
     keepTourBrowserOnly();
     enhanceRoute();

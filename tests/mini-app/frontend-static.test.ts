@@ -175,7 +175,8 @@ describe("static Mini App skeleton", () => {
   it("makes successful demo acceptance visibly return to Mission Home", () => {
     expect(demoUx).toContain('query.get("demo") !== "1"');
     expect(demoUx).toContain('stored?.invitation?.status !== "ACCEPTED"');
-    expect(demoUx).toContain('history.pushState({}, "", `/mission/${encodeURIComponent(missionId)}?demo=1`)');
+    expect(demoUx).toContain('const tour = query.get("tour") === "1" ? "&tour=1" : ""');
+    expect(demoUx).toContain('history.pushState({}, "", `/mission/${encodeURIComponent(missionId)}?demo=1${tour}`)');
     expect(demoUx).toContain('new PopStateEvent("popstate")');
   });
   it("ships the final human-craft browser, install and social identity", () => {
