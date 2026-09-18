@@ -503,17 +503,26 @@
 
       let close = card.querySelector(".clv2-arrival-close");
       if (!close) {
-        close = el("section", "clv2-arrival-close");
+        // Reuse the already-tested ARRIVED landmark instead of hiding or
+        // duplicating it. The judge flow and assistive technologies keep the
+        // same stable .hc-arrived-moment surface while V2 changes its language.
+        close = card.querySelector(".hc-arrived-moment");
+        if (close) {
+          close.replaceChildren();
+          close.classList.add("clv2-arrival-close");
+        } else {
+          close = el("section", "clv2-arrival-close");
+          const buttons = card.querySelector(":scope > .button-row");
+          if (buttons) buttons.before(close);
+          else card.append(close);
+        }
         close.append(
           el("span", "clv2-broken-seal"),
           el("span", "clv2-arrival-kicker"),
           el("strong", "clv2-arrival-title"),
-          el("p", "clv2-arrival-line"),
+          el("div", "clv2-arrival-line"),
           el("small", "clv2-arrival-proof")
         );
-        const buttons = card.querySelector(":scope > .button-row");
-        if (buttons) buttons.before(close);
-        else card.append(close);
       }
 
       text(close.querySelector(".clv2-arrival-kicker"), isTargetViewer ? "FOR YOU · ARRIVED" : "DESTINATION REACHED");
