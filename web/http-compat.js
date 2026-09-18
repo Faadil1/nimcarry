@@ -74,8 +74,8 @@ import { getNimiqProvider } from "/nimiq-provider.js";
         const hash = entry.tx_hash || "";
         return {
           sequence: entry.sequence,
-          from: { display_label: null, wallet_fingerprint: entry.current_holder?.wallet_fingerprint || "private" },
-          to: { display_label: null, wallet_fingerprint: entry.recipient?.wallet_fingerprint || "private" },
+          from: { display_label: entry.current_holder?.display_label || null, wallet_fingerprint: entry.current_holder?.wallet_fingerprint || "private" },
+          to: { display_label: entry.recipient?.display_label || null, wallet_fingerprint: entry.recipient?.wallet_fingerprint || "private" },
           finalized_at: entry.confirmed_at,
           tx_hash_short: hash.length > 14 ? `${hash.slice(0, 7)}…${hash.slice(-5)}` : (hash || "verified tx"),
         };
