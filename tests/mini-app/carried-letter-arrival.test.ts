@@ -25,6 +25,12 @@ describe("NimCarry V2 carried-letter arrival", () => {
     expect(invitationBlock).not.toContain("This was meant for you.");
   });
 
+  it("reuses the stable ARRIVED landmark instead of hiding or duplicating it", () => {
+    expect(v2).toContain('close = card.querySelector(".hc-arrived-moment")');
+    expect(v2).toContain('close.classList.add("clv2-arrival-close")');
+    expect(css).not.toContain(".clv2-arrived .hc-arrived-moment{display:none");
+  });
+
   it("keeps a truthful generic ARRIVED view for creators, carriers and other authorized viewers", () => {
     expect(v2).toContain("The letter arrived.");
     expect(v2).toContain("It reached the intended person.");
