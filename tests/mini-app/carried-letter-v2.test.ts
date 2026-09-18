@@ -55,7 +55,7 @@ describe("NimCarry V2 carried-letter foundation", () => {
     expect(js).toContain("Their address stays sealed from every carrier.");
     expect(js).toContain("Only independently verified handoffs are inked onto this letter.");
     expect(js).toContain("Exactly 1 NIM carries custody to this person only after independent FINAL.");
-    expect(js).toContain("No one was paid. Everyone chose.");
+    expect(js).toContain("No bridge was rewarded. The 1 NIM moved only as the custody baton.");
   });
 
   it("supports mobile, deliberate desktop composition and reduced motion", () => {

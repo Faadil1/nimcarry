@@ -34,7 +34,7 @@ describe("NimCarry V2 carried-letter arrival", () => {
   it("keeps a truthful generic ARRIVED view for creators, carriers and other authorized viewers", () => {
     expect(v2).toContain("The letter arrived.");
     expect(v2).toContain("It reached the intended person.");
-    expect(v2).toContain("No one was paid. Everyone chose.");
+    expect(v2).toContain("No bridge was rewarded. The 1 NIM moved only as the custody baton.");
     expect(v2).toContain("The seal opens only because the final handoff was independently verified.");
   });
 

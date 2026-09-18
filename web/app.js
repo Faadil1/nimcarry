@@ -28,6 +28,12 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     busy: false,
   };
 
+  const MISSION_WATCH_INTERVAL_MS = 3000;
+  let missionWatchTimer = null;
+  let missionWatchMissionId = null;
+  let missionWatchFingerprint = "";
+  let missionWatchInFlight = false;
+
   async function runProviderDiagnostic() {
     els.network.textContent = "PROVIDER CHECK";
     els.screen.innerHTML = '<section class="card"><div class="kicker">Read-only provider diagnostic</div><h1>Checking Nimiq Pay…</h1><p id="provider-check-status" role="status" aria-live="polite">Waiting for window.nimiq.</p><div id="provider-check-accounts"></div></section>';
@@ -209,9 +215,80 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     state.mission = mission; state.invitation = mission?.invitation || null; return mission;
   }
 
+  function missionWatchKey(mission) {
+    return JSON.stringify([
+      mission?.status || "",
+      mission?.activity || "",
+      mission?.primary_action || "",
+      mission?.finalized_hop_count || 0,
+      mission?.current_holder?.wallet_fingerprint || "",
+      mission?.invitation?.status || "",
+      mission?.invitation?.candidate_display_label || "",
+      mission?.invitation?.pass_deadline_at || "",
+    ]);
+  }
+
+  function stopMissionWatch() {
+    if (missionWatchTimer !== null) clearInterval(missionWatchTimer);
+    missionWatchTimer = null;
+    missionWatchMissionId = null;
+    missionWatchFingerprint = "";
+    missionWatchInFlight = false;
+  }
+
+  function canWatchMission(mission) {
+    if (state.demo || !mission?.mission_id) return false;
+    const exactMissionPath = `/mission/${encodeURIComponent(mission.mission_id)}`;
+    if (location.pathname.replace(/\/+$/, "") !== exactMissionPath) return false;
+    if (mission.status !== "ACTIVE" || mission.current_holder?.is_viewer !== true) return false;
+    return mission.invitation?.status === "INVITED";
+  }
+
+  async function refreshWatchedMission() {
+    if (!missionWatchMissionId || missionWatchInFlight || state.busy || document.visibilityState === "hidden") return;
+    missionWatchInFlight = true;
+    try {
+      const latest = await loadMission(missionWatchMissionId);
+      const nextFingerprint = missionWatchKey(latest);
+      if (nextFingerprint === missionWatchFingerprint) return;
+
+      const previousFingerprint = missionWatchFingerprint;
+      missionWatchFingerprint = nextFingerprint;
+      const invitationStatus = String(latest?.invitation?.status || "").toUpperCase();
+      if (invitationStatus === "ACCEPTED") {
+        notice("Bridge accepted the invitation. The handoff is ready.");
+      } else if (invitationStatus === "DECLINED") {
+        notice("Bridge declined the invitation. The letter stayed with you.");
+      } else if (previousFingerprint) {
+        notice("Mission status updated.");
+      }
+      await renderHome();
+    } catch (error) {
+      // Live reflection is convenience-only. A failed read must never mutate
+      // the mission or replace an otherwise usable screen with an error.
+      console.info("[NimCarry mission watch] read refresh unavailable");
+    } finally {
+      missionWatchInFlight = false;
+    }
+  }
+
+  function startMissionWatch(mission) {
+    stopMissionWatch();
+    if (!canWatchMission(mission)) return;
+    missionWatchMissionId = mission.mission_id;
+    missionWatchFingerprint = missionWatchKey(mission);
+    missionWatchTimer = setInterval(refreshWatchedMission, MISSION_WATCH_INTERVAL_MS);
+  }
+
+  addEventListener("focus", () => { void refreshWatchedMission(); });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") void refreshWatchedMission();
+  });
+
   function route() {
     notice("");
     const path = location.pathname.replace(/\/+$/, "") || "/";
+    if (!/^\/mission\/[^/]+$/.test(path)) stopMissionWatch();
     if (path === "/create") return renderCreate();
     if (/^\/i\/[A-Za-z0-9_-]+$/.test(path)) return renderInvitation();
     if (/^\/mission\/[^/]+\/pass$/.test(path)) return renderPass();
@@ -246,7 +323,9 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     const activity = m.status === "ARRIVED" || m.status === "CANCELLED" ? "TERMINAL" : (m.activity || "ACTIVE");
     const action = m.primary_action || derivePrimaryAction(m);
     els.screen.innerHTML = `<section class="hero-card" data-mission-status="${esc(m.status || "")}" data-mission-activity="${esc(activity || "")}" data-primary-action="${esc(action || "")}" data-finalized-hop-count="${esc(m.finalized_hop_count || 0)}" data-invitation-status="${esc(m.invitation?.status || "")}" data-invitation-expires-at="${esc(m.invitation?.expires_at || "")}" data-pass-deadline-at="${esc(m.invitation?.pass_deadline_at || "")}" data-accepted-display-label="${esc(m.invitation?.candidate_display_label || "")}"><div class="meta-row"><div class="kicker">${esc(m.finalized_hop_count || 0)} verified bridge${Number(m.finalized_hop_count || 0) === 1 ? "" : "s"}</div><span class="status-pill ${m.status === "ARRIVED" ? "arrived" : activity === "STALLED" ? "stalled" : ""}">${esc(m.status === "ACTIVE" ? activity : m.status)}</span></div><h1 class="target-title">${esc(m.status === "ARRIVED" ? "It made it." : m.target_label)}</h1><p class="mission-note">${esc(m.mission_note)}</p><div class="holder-chip"><span class="avatar">→</span><span><small>Current holder</small><strong>${esc(m.current_holder?.display_label || m.current_holder?.wallet_fingerprint || "Private participant")}</strong></span></div>${activity === "STALLED" ? `<div class="warning" style="margin-top:14px">This route is waiting on its current bridge. Custody has not changed. A new route can be started, but this baton is never clawed back.</div>` : ""}<div class="button-row">${homeButtons(action, m)}</div></section><section class="stack"><div class="route-card"><div class="split"><h2>Verified path</h2><span>${esc(m.finalized_hop_count || 0)} FINAL</span></div>${routeMarkup(m.route || [])}</div></section>`;
-    wireHomeButtons(action, m); els.screen.focus();
+    wireHomeButtons(action, m);
+    startMissionWatch(m);
+    els.screen.focus();
   }
 
   function derivePrimaryAction(m) {
@@ -335,6 +414,11 @@ import { getNimiqProvider } from "/nimiq-provider.js";
           ? `/missions/${encodeURIComponent(mission.mission_id)}/invitations/${encodeURIComponent(invitationId)}/reissue`
           : `/missions/${encodeURIComponent(mission.mission_id)}/invitations`;
         created = await api(path, { method: "POST", body: { candidate_label: candidateLabel || null, candidate_wallet: candidateWallet || null, why_you: whyYou || null, auth } });
+      }
+      if (!state.demo) {
+        state.invitation = created;
+        state.mission = { ...state.mission, invitation: created, primary_action: "WAIT" };
+        startMissionWatch(state.mission);
       }
       renderInviteCreated(created);
     } catch (error) { notice(error.message, true); }
@@ -480,7 +564,8 @@ import { getNimiqProvider } from "/nimiq-provider.js";
   async function renderRoute() {
     const missionId = missionIdFromPath(); try { await loadMission(missionId); } catch (error) { notice(error.message, true); }
     const m = state.mission; if (!m) { els.screen.innerHTML = `<section class="card"><h2>Route unavailable</h2><p>Authorized route data could not be loaded.</p></section>`; return; }
-    els.screen.innerHTML = `<button class="back-link" id="back">← Mission Home</button><section class="route-card" data-viewer-role="${esc(m.viewer_role || "UNLISTED_VIEWER")}" data-route-status="${esc(m.status)}"><div class="meta-row"><div class="kicker">Screen 5 / 5 · Route / Arrival</div><span class="status-pill ${m.status === "ARRIVED" ? "arrived" : ""}">${esc(m.status)}</span></div><h1 class="target-title">${esc(m.status === "ARRIVED" ? "It made it." : `Toward ${m.target_label}`)}</h1><p class="lede">Only finalized handoffs appear here. Full participant wallets and the private destination wallet are never rendered.</p>${routeMarkup(m.route || [])}<div class="button-row"><button id="refresh" class="button ghost">Refresh verified route</button>${m.status === "ARRIVED" ? `<button id="new" class="button green">Start your own mission</button>` : ""}</div></section>`;
+    const routeAction = m.primary_action || derivePrimaryAction(m);
+    els.screen.innerHTML = `<button class="back-link" id="back">← Mission Home</button><section class="route-card" data-viewer-role="${esc(m.viewer_role || "UNLISTED_VIEWER")}" data-route-status="${esc(m.status)}" data-primary-action="${esc(routeAction || "")}" data-invitation-status="${esc(m.invitation?.status || "")}"><div class="meta-row"><div class="kicker">Screen 5 / 5 · Route / Arrival</div><span class="status-pill ${m.status === "ARRIVED" ? "arrived" : ""}">${esc(m.status)}</span></div><h1 class="target-title">${esc(m.status === "ARRIVED" ? "It made it." : `Toward ${m.target_label}`)}</h1><p class="lede">Only finalized handoffs appear here. Full participant wallets and the private destination wallet are never rendered.</p>${routeMarkup(m.route || [])}<div class="button-row"><button id="refresh" class="button ghost">Refresh verified route</button>${m.status === "ARRIVED" ? `<button id="new" class="button green">Start your own mission</button>` : ""}</div></section>`;
     document.querySelector("#back").addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}`)); document.querySelector("#refresh").addEventListener("click", () => renderRoute()); document.querySelector("#new")?.addEventListener("click", () => navigate("/create")); els.screen.focus();
   }
 

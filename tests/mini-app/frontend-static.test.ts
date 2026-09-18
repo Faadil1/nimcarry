@@ -179,6 +179,30 @@ describe("static Mini App skeleton", () => {
     expect(recovery).not.toContain("AUTHORIZE_PASS");
     expect(recovery).not.toContain("pass-intent");
   });
+  it("reflects bridge acceptance on the sender mission with read-only polling", () => {
+    expect(js).toContain("MISSION_WATCH_INTERVAL_MS = 3000");
+    expect(js).toContain("async function refreshWatchedMission");
+    expect(js).toContain('mission.invitation?.status === "INVITED"');
+    expect(js).toContain("Bridge accepted the invitation. The handoff is ready.");
+    expect(js).toContain('addEventListener("focus", () => { void refreshWatchedMission(); })');
+    expect(js).toContain('document.addEventListener("visibilitychange"');
+    const start = js.indexOf("async function refreshWatchedMission");
+    const end = js.indexOf("\n  function startMissionWatch", start);
+    const watcher = start >= 0 && end >= 0 ? js.slice(start, end) : "";
+    expect(watcher).toContain("await loadMission(missionWatchMissionId)");
+    expect(watcher).not.toContain("sendBasicTransactionWithData");
+    expect(watcher).not.toContain("AUTHORIZE_PASS");
+    expect(watcher).not.toContain('method: "POST"');
+  });
+
+  it("derives the five-step progress indicator from lifecycle state", () => {
+    expect(winning).toContain("function routeProgressIndex");
+    expect(winning).toContain('if (status === "ARRIVED") return 4');
+    expect(winning).toContain('if (primaryAction === "PASS_1_NIM" || invitationStatus === "ACCEPTED") return 3');
+    expect(winning).toContain('if (invitationStatus === "INVITED") return 2');
+    expect(winning).not.toContain('else if (/^\\/mission\\//.test(path)) current = 1');
+  });
+
   it("preserves route-view capability when Home opens the pass screen", () => {
     expect(js).toContain('document.querySelector("#pass-button")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(m.mission_id)}/pass`))');
     expect(js).toContain('sessionStorage.getItem(`carryone.view.${missionId}`) || undefined');
