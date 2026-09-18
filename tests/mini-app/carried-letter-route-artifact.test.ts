@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 const v2 = readFileSync("web/carried-letter-v2.js", "utf8");
 const css = readFileSync("web/carried-letter-v2.css", "utf8");
 const smoke = readFileSync("scripts/judge-flow-smoke.mjs", "utf8");
+const humanMax = readFileSync("web/final-human-craft-max.js", "utf8");
 
 describe("NimCarry V2 route as carried-letter artifact", () => {
   it("collapses older route decoration into one letter-back world", () => {
@@ -37,6 +38,12 @@ describe("NimCarry V2 route as carried-letter artifact", () => {
     expect(smoke).toContain('page.locator(".clv2-route-ledger-head")');
     expect(smoke).toContain('page.locator(".clv2-hop-stamp")');
     expect(smoke).toContain("Expected at least 2 verified letter-back postmarks");
+  });
+
+  it("keeps the legacy craft observer from recreating removed V2 route mottos", () => {
+    expect(humanMax).toContain('card.classList.contains("clv2-route")');
+    expect(humanMax).toContain('screen.querySelectorAll(".hc-max-route-motto").forEach((node) => node.remove())');
+    expect(smoke).toContain("Expected zero legacy route mottos on V2 route");
   });
 
   it("keeps the route artifact presentation-only", () => {

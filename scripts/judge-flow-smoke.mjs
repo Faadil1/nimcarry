@@ -220,6 +220,8 @@ async function run(viewport) {
     await page.locator(".clv2-route-ledger-head").waitFor({ state: "visible" });
     const postmarks = await page.locator(".clv2-hop-stamp").count();
     if (postmarks < 2) throw new Error(`Expected at least 2 verified letter-back postmarks, got ${postmarks}`);
+    const legacyRouteMottos = await page.locator(".hc-max-route-motto").count();
+    if (legacyRouteMottos !== 0) throw new Error(`Expected zero legacy route mottos on V2 route, got ${legacyRouteMottos}`);
     await page.screenshot({ path: join(outputRoot, `${viewport.name}-arrived.png`), fullPage: true });
 
     if (pageErrors.length) {

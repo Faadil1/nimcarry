@@ -240,6 +240,14 @@
     if (!card) return;
     const status = clean(card.querySelector(".status-pill")?.textContent);
 
+    // Carried Letter V2 owns the route artifact. Once V2 has converged the
+    // legacy route chrome, never recreate the old motto outside the card.
+    // Removing any stray copies also makes repeated observer passes idempotent.
+    if (card.classList.contains("clv2-route") || card.dataset.clv2Route === "1") {
+      screen.querySelectorAll(".hc-max-route-motto").forEach((node) => node.remove());
+      return;
+    }
+
     let motto = card.querySelector(".hc-max-route-motto");
     const mottoText = /ARRIVED/i.test(status) ? "Human to human. The introduction made it." : "Different people. One destination. One verified path.";
     if (!motto) {
