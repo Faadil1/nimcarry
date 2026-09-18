@@ -406,6 +406,135 @@
 }
 .carried-letter-v2-demo .clv2-compose-mini-seal{background:var(--cl-indigo);border-color:#39366a}
 
+/* Guided practice desk — the demo is a first-class V2 surface, never a fake TESTNET screenshot. */
+.demo-tour-guide{
+  display:grid;
+  gap:8px;
+  margin:0 auto 12px;
+  width:min(1120px,calc(100% - 28px));
+  padding:10px 14px;
+  border:1px solid rgba(78,75,134,.22);
+  background:
+    linear-gradient(90deg,rgba(221,217,242,.62),rgba(255,250,240,.92));
+  box-shadow:0 8px 20px rgba(47,44,91,.08);
+}
+.demo-tour-guide-head{
+  display:grid;
+  grid-template-columns:auto auto minmax(0,1fr);
+  gap:8px 12px;
+  align-items:baseline;
+}
+.demo-tour-guide-head>span{
+  color:var(--cl-indigo);
+  font:900 .52rem/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.13em;
+}
+.demo-tour-guide-head>strong{
+  color:#353263;
+  font:850 .68rem/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.06em;
+}
+.demo-tour-guide-head>small{
+  justify-self:end;
+  color:#625f7f;
+  font-size:.62rem;
+  line-height:1.35;
+  text-align:right;
+}
+.demo-tour-progress{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:5px;
+}
+.demo-tour-progress>span{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:5px;
+  padding:5px 7px;
+  border:1px solid rgba(78,75,134,.13);
+  background:rgba(255,255,255,.48);
+  color:#77738f;
+  font:750 .52rem/1 var(--hc-ui,system-ui,sans-serif);
+  white-space:nowrap;
+  overflow:hidden;
+}
+.demo-tour-progress>span b{
+  width:17px;
+  height:17px;
+  flex:0 0 17px;
+  display:grid;
+  place-items:center;
+  border:1px solid currentColor;
+  border-radius:50%;
+  font-size:.48rem;
+}
+.demo-tour-progress>span.done{
+  color:#5d597f;
+  background:rgba(221,217,242,.4);
+}
+.demo-tour-progress>span.done b::after{content:"✓";font-size:.5rem}
+.demo-tour-progress>span.done b{font-size:0}
+.demo-tour-progress>span.current{
+  color:#fff;
+  background:var(--cl-indigo);
+  border-color:var(--cl-indigo);
+}
+.demo-tour-no-nim{
+  margin:10px 0;
+  padding:8px 10px;
+  border-left:3px solid var(--cl-indigo);
+  background:rgba(221,217,242,.34);
+  color:#514e75;
+  font-size:.66rem;
+  line-height:1.45;
+}
+.demo-tour-complete{
+  margin:18px 0;
+  padding:18px 20px;
+  border:1px solid rgba(78,75,134,.26);
+  background:
+    radial-gradient(circle at 92% 18%,rgba(141,137,190,.18),transparent 16rem),
+    linear-gradient(180deg,#f1eefb,#fff9ed);
+  box-shadow:0 14px 32px rgba(47,44,91,.1);
+}
+.demo-tour-complete>span{
+  display:block;
+  margin-bottom:6px;
+  color:var(--cl-indigo);
+  font:900 .55rem/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.14em;
+}
+.demo-tour-complete>strong{
+  display:block;
+  color:#353263;
+  font:650 clamp(1.25rem,3.5vw,1.7rem)/1.05 var(--hc-display,Georgia,serif);
+  letter-spacing:-.03em;
+}
+.demo-tour-complete>p{
+  max-width:66ch;
+  margin:7px 0 0;
+  color:#625f7f;
+  font-size:.74rem;
+  line-height:1.5;
+}
+.carried-letter-v2-demo .clv2-wax-scene{
+  border-color:rgba(78,75,134,.23);
+  background:
+    linear-gradient(180deg,rgba(221,217,242,.32),rgba(255,248,233,.82)),
+    var(--cl-paper);
+}
+
+@media(max-width:640px){
+  .demo-tour-guide{width:calc(100% - 18px);padding:9px 10px}
+  .demo-tour-guide-head{grid-template-columns:1fr auto}
+  .demo-tour-guide-head>small{grid-column:1/-1;justify-self:start;text-align:left}
+  .demo-tour-progress{grid-template-columns:repeat(5,1fr)}
+  .demo-tour-progress>span{justify-content:center;padding:5px 2px;font-size:0}
+  .demo-tour-progress>span b{font-size:.46rem}
+  .demo-tour-progress>span.done b{font-size:0}
+}
+
 /* Write, invitation and mission — preserve data contracts, change the human framing. */
 .carried-letter-v2 .clv2-write-letter>.kicker,
 .carried-letter-v2 .clv2-invitation>.kicker,
