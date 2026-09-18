@@ -8,6 +8,97 @@ const REQUIRED_RUNTIME_CONFIG = [
   "CARRY_ONE_CANONICAL_ORIGIN",
 ];
 
+const DEFAULT_TESTNET_RPC_URL = "https://rpc.testnet.nimiqwatch.com";
+const TESTNET_HEAD_TIMEOUT_MS = 2500;
+const TESTNET_HEAD_ATTEMPTS = 2;
+
+function validHeight(value) {
+  const height = Number(value);
+  return Number.isInteger(height) && height >= 0 ? height : undefined;
+}
+
+function configuredTestnetRpcUrls(env) {
+  const raw = String(env.NIMIQ_RPC_URLS || env.NIMIQ_RPC_URL || DEFAULT_TESTNET_RPC_URL);
+  const urls = raw
+    .split(/[\s,]+/)
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .filter((value, index, all) => all.indexOf(value) === index);
+  return urls.length ? urls : [DEFAULT_TESTNET_RPC_URL];
+}
+
+async function rpcBlockHeight(rpcUrl) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TESTNET_HEAD_TIMEOUT_MS);
+  try {
+    const response = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", method: "getBlockNumber", params: [], id: 1 }),
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error(`HTTP_${response.status}`);
+    const body = await response.json();
+    if (body?.error) throw new Error("RPC_ERROR");
+    const raw = body?.result && typeof body.result === "object" && "data" in body.result
+      ? body.result.data
+      : body?.result;
+    const height = validHeight(raw);
+    if (height === undefined) throw new Error("INVALID_TESTNET_HEIGHT");
+    return height;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function readIndependentTestnetHead(env) {
+  const urls = configuredTestnetRpcUrls(env);
+  let lastError = null;
+  for (let attempt = 0; attempt < TESTNET_HEAD_ATTEMPTS; attempt += 1) {
+    for (const rpcUrl of urls) {
+      try {
+        return { height: await rpcBlockHeight(rpcUrl), sourceCount: urls.length, attempt: attempt + 1 };
+      } catch (error) {
+        lastError = error;
+      }
+    }
+  }
+  throw lastError || new Error("TESTNET_HEAD_UNAVAILABLE");
+}
+
+async function testnetHeadResponse(request, env) {
+  if (request.method.toUpperCase() !== "GET") {
+    return Response.json(
+      { error: "METHOD_NOT_ALLOWED", message: "TESTNET head preflight is read-only." },
+      { status: 405, headers: { "cache-control": "no-store", allow: "GET" } }
+    );
+  }
+  try {
+    const result = await readIndependentTestnetHead(env);
+    return Response.json(
+      {
+        network: "TESTNET",
+        height: result.height,
+        independently_observed: true,
+        writes_performed: false,
+        rpc_candidates: result.sourceCount,
+        attempt: result.attempt,
+      },
+      { headers: { "cache-control": "no-store" } }
+    );
+  } catch {
+    return Response.json(
+      {
+        error: "TESTNET_HEAD_UNAVAILABLE",
+        message: "NimCarry could not independently read the TESTNET head. No transaction was requested.",
+        writes_performed: false,
+      },
+      { status: 503, headers: { "cache-control": "no-store" } }
+    );
+  }
+}
+
 export class NimCarryContainer extends Container {
   defaultPort = 8787;
   sleepAfter = "2h";
@@ -107,6 +198,10 @@ async function deepRuntimeHealth(backend, request, env, backendResponse) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    if (url.pathname === "/network/testnet-head") {
+      return testnetHeadResponse(request, env);
+    }
 
     if (!shouldReachBackend(request, url)) {
       return env.ASSETS.fetch(request);
