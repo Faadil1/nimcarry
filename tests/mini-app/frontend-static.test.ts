@@ -188,7 +188,7 @@ describe("static Mini App skeleton", () => {
     expect(html).toContain('src="/nimcarry-mark.svg"');
     expect(html).toContain('rel="manifest" href="/manifest.webmanifest"');
     expect(manifest).toContain('"short_name": "NimCarry"');
-    expect(manifest).toContain("People move opportunity forward");
+    expect(manifest).toContain("A private introduction, carried by people");
     expect(html).toContain('property="og:title"');
     expect(html).toContain('/social-card.svg');
   });
