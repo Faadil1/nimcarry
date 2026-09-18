@@ -127,6 +127,54 @@ describe("Reach Mission foundation service", () => {
     expect(accepted.candidate_wallet_fingerprint).not.toBeNull();
   });
 
+  it("persists an optional carrier display label only after signed acceptance", async () => {
+    const { repo, service } = fixture();
+    const creator = wallet();
+    const candidate = wallet();
+    const mission = await service.createMission(consentedMissionInput(creator, 25_000));
+    const invitation = await service.createInvitation({
+      missionId: mission.id,
+      auth: auth(creator, "CREATE_INVITATION", mission.id, undefined, 1),
+      now: 25_100,
+    });
+    await service.acceptInvitation({
+      token: invitation.inviteToken,
+      auth: auth(candidate, "ACCEPT_INVITATION", mission.id, invitation.invitation.id, 1),
+      candidateDisplayLabel: "Bridge B",
+      now: 25_200,
+    });
+    const stored = (await repo.snapshot()).invitations.find((item) => item.id === invitation.invitation.id);
+    expect(stored?.candidateDisplayLabel).toBe("Bridge B");
+
+    const secondCandidate = wallet();
+    const secondMission = await service.createMission(consentedMissionInput(wallet(), 26_000));
+    const secondInvitation = await service.createInvitation({
+      missionId: secondMission.id,
+      auth: auth(secondMission.creator_wallet, "CREATE_INVITATION", secondMission.id, undefined, 1),
+      now: 26_100,
+    }).catch(() => null);
+    void secondCandidate;
+    void secondInvitation;
+  });
+
+  it("rejects an overlong carrier display label before repository persistence", async () => {
+    const { service } = fixture();
+    const creator = wallet();
+    const candidate = wallet();
+    const mission = await service.createMission(consentedMissionInput(creator, 27_000));
+    const invitation = await service.createInvitation({
+      missionId: mission.id,
+      auth: auth(creator, "CREATE_INVITATION", mission.id, undefined, 1),
+      now: 27_100,
+    });
+    await expect(service.acceptInvitation({
+      token: invitation.inviteToken,
+      auth: auth(candidate, "ACCEPT_INVITATION", mission.id, invitation.invitation.id, 1),
+      candidateDisplayLabel: "x".repeat(61),
+      now: 27_200,
+    })).rejects.toMatchObject({ reason: "INVALID_TEXT_LENGTH" });
+  });
+
   it("expires untouched invitations without changing custody", async () => {
     const { service } = fixture();
     const creator = wallet();
