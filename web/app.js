@@ -458,7 +458,11 @@ import { getNimiqProvider } from "/nimiq-provider.js";
 
   function routeMarkup(route) {
     if (!Array.isArray(route) || route.length === 0) return `<div class="empty-route">No FINAL handoff yet. The path starts only after independent verification.</div>`;
-    return `<div class="route">${route.slice().sort((a, b) => Number(a.sequence) - Number(b.sequence)).map((entry) => `<div class="route-step"><div class="rail"><span class="dot"></span></div><div><strong>${esc(entry.to?.display_label || entry.to?.wallet_fingerprint || "Verified bridge")}</strong><small>Hop ${esc(entry.sequence)} · ${esc(entry.tx_hash_short || "verified tx")} · ${esc(entry.finalized_at ? new Date(entry.finalized_at).toLocaleString() : "FINAL")}</small></div></div>`).join("")}</div>`;
+    return `<div class="route">${route.slice().sort((a, b) => Number(a.sequence) - Number(b.sequence)).map((entry) => {
+      const carrierMark = entry.to?.display_label || null;
+      const who = carrierMark || entry.to?.wallet_fingerprint || "Verified bridge";
+      return `<div class="route-step" data-carrier-mark="${esc(carrierMark || "")}"><div class="rail"><span class="dot"></span></div><div><strong class="${carrierMark ? "carrier-mark" : ""}">${esc(who)}</strong><small>Hop ${esc(entry.sequence)} · ${esc(entry.tx_hash_short || "verified tx")} · ${esc(entry.finalized_at ? new Date(entry.finalized_at).toLocaleString() : "FINAL")}</small></div></div>`;
+    }).join("")}</div>`;
   }
 
   route();
