@@ -156,6 +156,7 @@ async function run(viewport) {
     await page.locator("#pass-button").click();
     steps.push(await expectPath(page, /^\/mission\/[^/]+\/pass$/, "pass-bridge-b"));
     await page.locator(".clv2-handoff-manifest").waitFor({ state: "visible" });
+    await page.locator(".hc-pass-ritual").waitFor({ state: "detached", timeout: 3000 }).catch(() => {});
     if (await page.locator(".hc-pass-ritual").count()) throw new Error("Legacy pass ritual leaked into V2 handoff surface");
     await page.locator("#send").click();
     activeStep = "route-after-first-final";
