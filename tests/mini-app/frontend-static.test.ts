@@ -47,7 +47,9 @@ describe("static Mini App skeleton", () => {
     expect(js).toContain('passDiagnostic("wallet_approval_opened"');
     expect(js).toContain('passDiagnostic("wallet_call_returned"');
     expect(js).toContain('passDiagnostic("pass_failed"');
-    expect(js).toContain('classification: passFailureClass(passPhase, error)');
+    expect(js).toContain('const classification = passFailureClass(passPhase, error)');
+    expect(js).toContain('passDiagnostic("pass_failed", { phase: passPhase, classification })');
+    expect(js).toContain('handoffEvent("error", { classification })');
     expect(js).not.toContain('console.info("[NimCarry pass diagnostic]", error');
   });
   it("ships an isolated read-only provider diagnostic behind provider-check=1", () => {
