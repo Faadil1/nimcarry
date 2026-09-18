@@ -106,13 +106,21 @@ try {
       final_state: state,
     }, null, 2),
   );
-} finally {
-  await context.close();
-  await browser.close();
+} catch (error) {
+  await context.close().catch(() => {});
+  await browser.close().catch(() => {});
+  throw error;
 }
 
 const webmPath = join(outputRoot, "shots-09-10-live-practice.webm");
 if (!video) throw new Error("Playwright video handle unavailable");
-await video.saveAs(webmPath);
+
+// Playwright finalizes video when the page closes. Start saveAs before
+// closing so it can wait for the video stream without losing its target.
+const saveVideo = video.saveAs(webmPath);
+await page.close();
+await saveVideo;
+await context.close();
+await browser.close();
 
 console.log(`Saved live explainer UI recording to ${webmPath}`);
