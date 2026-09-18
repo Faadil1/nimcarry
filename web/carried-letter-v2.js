@@ -411,21 +411,24 @@
   function pass() {
     if (!/^\/mission\/[^/]+\/pass$/.test(location.pathname)) return;
     const hero = screen.querySelector(".hero-card");
-    if (!hero || hero.dataset.clv2Pass === "1") return;
+    if (!hero) return;
+
+    // Legacy craft observers may run after the first V2 pass. Remove their
+    // duplicate explanatory chrome on every reconciliation, not only once.
+    hero.querySelectorAll(
+      ".hc-pass-art,.hc-pass-ritual,.hc-proof-rule,.hc-max-ritual-note,.hc-proof-details,.wi-proof-ladder"
+    ).forEach((node) => node.remove());
+    const warning = hero.querySelector(".warning");
+    if (warning) warning.hidden = true;
+
+    if (hero.dataset.clv2Pass === "1") return;
     hero.dataset.clv2Pass = "1";
     hero.classList.add("clv2-seal-handoff");
 
     text(hero.querySelector(".kicker"), "Seal the handover");
     text(hero.querySelector("h1"), "Pass the letter only when it can be proven.");
 
-    // Collapse the older multi-panel explanation into one physical handoff slip.
-    hero.querySelectorAll(
-      ".hc-pass-art,.hc-pass-ritual,.hc-proof-rule,.hc-max-ritual-note,.hc-proof-details,.wi-proof-ladder"
-    ).forEach((node) => node.remove());
-
     const accepted = clean(hero.querySelector(".lede strong")?.textContent) || "accepted carrier";
-    const warning = hero.querySelector(".warning");
-    if (warning) warning.hidden = true;
 
     const send = hero.querySelector("#send");
     if (send) text(send, "Seal & pass 1 NIM");
