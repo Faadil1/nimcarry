@@ -623,8 +623,11 @@ export class PgMissionRepository implements MissionRepository {
       const updatedMission = await client.query<MissionRow>(
         `UPDATE missions
            SET current_sequence=$2, finalized_hop_count=finalized_hop_count+1,
-               current_holder_wallet_normalized=$3, status=$4,
-               arrived_at=CASE WHEN $4='ARRIVED' THEN $5 ELSE arrived_at END,
+               current_holder_wallet_normalized=$3, status=$4::mission_status,
+               arrived_at=CASE
+                 WHEN $4::mission_status = 'ARRIVED'::mission_status THEN $5
+                 ELSE arrived_at
+               END,
                updated_at=$5
          WHERE id=$1 RETURNING *`,
         [
