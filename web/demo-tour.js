@@ -33,6 +33,11 @@
     notice.classList.remove("error");
   };
   const sameText = (a, b) => String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+  const practiceHandoffEvent = (phase, status) => {
+    window.dispatchEvent(new CustomEvent("nimcarry:handoff-phase", {
+      detail: { phase, status, demo: true, tour: true },
+    }));
+  };
   const tourPath = (path) => {
     const url = new URL(path, location.origin);
     url.searchParams.set("demo", "1");
@@ -129,7 +134,7 @@
     open.id = "demo-tour-open-invite";
     open.type = "button";
     open.className = "button primary";
-    open.textContent = "Open demo invite";
+    open.textContent = "Open practice invite";
     open.addEventListener("click", () => { location.href = url.toString(); });
     row.prepend(open);
   }
@@ -183,8 +188,9 @@
     );
 
     button.disabled = true;
-    showNotice("DEMO — wallet approved. Verifying independent finality…");
-    await new Promise((resolve) => setTimeout(resolve, 450));
+    practiceHandoffEvent("verification-pending", "PENDING");
+    showNotice("PRACTICE — warm wax. Simulating the wait before a verified handoff…");
+    await new Promise((resolve) => setTimeout(resolve, 2200));
 
     invitation.status = "COMPLETED";
     mission.invitation = invitation;
@@ -220,8 +226,9 @@
     }
 
     writeDemo({ mission, invitation });
-    showNotice(targetReached ? "DEMO FINAL — destination reached. ARRIVED." : "DEMO FINAL — custody moved to Bridge B.");
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    practiceHandoffEvent("final", "FINAL");
+    showNotice(targetReached ? "PRACTICE POSTMARK — destination reached. ARRIVED." : "PRACTICE POSTMARK — the simulated holder changed.");
+    await new Promise((resolve) => setTimeout(resolve, 850));
     history.pushState({}, "", tourPath(`/mission/${encodeURIComponent(mission.mission_id)}/route`));
     window.dispatchEvent(new PopStateEvent("popstate"));
   }
@@ -238,7 +245,7 @@
     button.id = "demo-tour-continue";
     button.type = "button";
     button.className = "button primary";
-    button.textContent = "Continue demo to destination";
+    button.textContent = "Carry practice letter to destination";
     button.addEventListener("click", () => {
       writeMeta({ ...readMeta(), autoOpenNextInvite: true });
       history.pushState({}, "", tourPath(`/mission/${encodeURIComponent(demo.mission.mission_id)}`));
@@ -247,18 +254,111 @@
     row.prepend(button);
   }
 
-  function addTourBadge() {
-    if (document.querySelector("#demo-tour-badge")) return;
+  function practiceStep() {
+    const demo = readDemo();
+    const path = location.pathname;
+    if (path === "/" || path === "/create") return 1;
+    if (/^\/i\//.test(path)) return 3;
+    if (/\/pass\/?$/.test(path)) return 4;
+    if (/\/route\/?$/.test(path)) return demo?.mission?.status === "ARRIVED" ? 5 : 4;
+    if (/^\/mission\//.test(path)) {
+      const status = String(demo?.invitation?.status || "");
+      if (status === "ACCEPTED") return 4;
+      if (Number(demo?.mission?.finalized_hop_count || 0) > 0) return 2;
+      return 2;
+    }
+    return 1;
+  }
+
+  function practiceStepCopy(step) {
+    return {
+      1: ["WRITE", "Write the human reason. No wallet or chain write."],
+      2: ["CHOOSE", "Pick one carrier. They still have to consent."],
+      3: ["CONSENT", "Practice acceptance is local only; no Nimiq signature is created."],
+      4: ["HANDOFF", "Warm wax and postmark are simulated. No NIM moves."],
+      5: ["ARRIVAL", "Practice complete. The receipt and postmarks are simulated artifacts."],
+    }[step];
+  }
+
+  function renderTourGuide() {
     const banner = document.querySelector("#demo-banner");
     if (!banner) return;
-    const badge = document.createElement("span");
-    badge.id = "demo-tour-badge";
-    badge.textContent = " · GUIDED 1→5 TOUR";
-    banner.appendChild(badge);
+
+    let badge = document.querySelector("#demo-tour-badge");
+    if (!badge) {
+      badge = document.createElement("span");
+      badge.id = "demo-tour-badge";
+      badge.textContent = " · GUIDED PRACTICE";
+      banner.appendChild(badge);
+    }
+
+    let guide = document.querySelector("#demo-tour-guide");
+    if (!guide) {
+      guide = document.createElement("section");
+      guide.id = "demo-tour-guide";
+      guide.className = "demo-tour-guide";
+      guide.setAttribute("aria-label", "Guided practice progress");
+      banner.insertAdjacentElement("afterend", guide);
+    }
+
+    const step = practiceStep();
+    const [label, detail] = practiceStepCopy(step);
+    guide.dataset.step = String(step);
+    guide.innerHTML = `
+      <div class="demo-tour-guide-head">
+        <span>PRACTICE DESK</span>
+        <strong>${step}/5 · ${label}</strong>
+        <small>${detail}</small>
+      </div>
+      <div class="demo-tour-progress" aria-hidden="true">
+        ${["Write","Choose","Consent","Handoff","Arrival"].map((name, index) =>
+          `<span class="${index + 1 < step ? "done" : index + 1 === step ? "current" : ""}"><b>${index + 1}</b>${name}</span>`
+        ).join("")}
+      </div>`;
+  }
+
+  function enhancePracticeActions() {
+    const send = screen.querySelector("#send");
+    if (send && send.dataset.demoTourCopy !== "1") {
+      send.dataset.demoTourCopy = "1";
+      send.textContent = "Run practice handoff";
+      const disclosure = screen.querySelector(".clv2-pass-disclosure");
+      if (disclosure && !screen.querySelector(".demo-tour-no-nim")) {
+        const note = document.createElement("p");
+        note.className = "demo-tour-no-nim";
+        note.textContent = "Practice only — this button never calls Nimiq Pay and never moves 1 NIM.";
+        disclosure.before(note);
+      }
+    }
+
+    const accept = screen.querySelector("#accept");
+    if (accept && accept.dataset.demoTourCopy !== "1") {
+      accept.dataset.demoTourCopy = "1";
+      accept.textContent = "Practice: accept the letter";
+    }
+  }
+
+  function renderPracticeCompletion() {
+    const demo = readDemo();
+    if (demo?.mission?.status !== "ARRIVED" || !/\/route\/?$/.test(location.pathname)) return;
+    const card = screen.querySelector(".route-card");
+    if (!card || card.querySelector(".demo-tour-complete")) return;
+    const complete = document.createElement("section");
+    complete.className = "demo-tour-complete";
+    complete.setAttribute("role", "status");
+    complete.innerHTML = `
+      <span>PRACTICE COMPLETE</span>
+      <strong>You just rehearsed the full Carried Letter loop.</strong>
+      <p>Write → choose → consent → simulated handoff → ARRIVED. No wallet approval, NIM transfer or chain finality occurred in this guided practice.</p>`;
+    const receipt = card.querySelector(".clv2-carried-receipt");
+    if (receipt) receipt.before(complete);
+    else card.appendChild(complete);
   }
 
   function enhance() {
-    addTourBadge();
+    renderTourGuide();
+    enhancePracticeActions();
+    renderPracticeCompletion();
     prefillCreate();
     autoOpenNextInvite();
     prefillInvite();
