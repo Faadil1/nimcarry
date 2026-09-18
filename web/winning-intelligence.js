@@ -208,9 +208,10 @@
     } else {
       steps.forEach((step) => {
         const item = node("div", "wi-receipt-hop");
+        const carrierMark = step.dataset.carrierMark || "";
         const who = (step.querySelector("strong")?.textContent || "Verified bridge").trim();
         const detail = (step.querySelector("small")?.textContent || "FINAL").trim();
-        item.append(node("strong", "", who), node("small", "", detail));
+        item.append(node("strong", carrierMark ? "wi-carrier-mark" : "", who), node("small", "", detail));
         routeList.appendChild(item);
       });
     }
