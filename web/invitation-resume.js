@@ -13,6 +13,11 @@
     return match ? match[1] : null;
   };
   const messageText = (value) => typeof value === "string" ? value : String(value?.message || "");
+  const randomToken = (prefix) => {
+    if (typeof crypto.randomUUID === "function") return `${prefix}-${crypto.randomUUID()}`;
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    return `${prefix}-${Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("")}`;
+  };
 
   function readPending() {
     try {
@@ -64,11 +69,16 @@
   async function resumeAcceptedSignature(pending) {
     if (!pending?.token || !pending?.challenge_id || !pending?.wallet || !pending?.public_key || !pending?.signature) return false;
     if (pending.resume_in_flight) return false;
-    writePending({ resume_in_flight: true, resume_started_at: now() });
+    const acceptIdempotencyKey = pending.accept_idempotency_key || randomToken("accept-resume");
+    writePending({ resume_in_flight: true, resume_started_at: now(), accept_idempotency_key: acceptIdempotencyKey });
     try {
       const response = await originalFetch(`/i/${encodeURIComponent(pending.token)}/accept`, {
         method: "POST",
-        headers: { Accept: "application/json", "Content-Type": "application/json" },
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "Idempotency-Key": acceptIdempotencyKey,
+        },
         body: JSON.stringify({
           challenge_id: pending.challenge_id,
           public_key: pending.public_key,
