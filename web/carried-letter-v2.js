@@ -319,17 +319,26 @@
         mode: "warm",
         kicker: "APPROVED · UNPROVEN",
         title: "Approved, not yet on the record.",
-        body: "NimCarry does not have a provable transaction hash for this handover.",
+        body: "NimCarry did not receive a transaction reference it can independently verify.",
         truth: "The letter is still yours.",
       };
     }
-    if (phase === "broadcast-proven") {
+    if (phase === "provider-reference-returned") {
       return {
         mode: "warm",
-        kicker: "ON THE RECORD · NOT FINAL",
+        kicker: "REFERENCE RETURNED · NOT FINAL",
         title: "The wax is still warm.",
-        body: "The handover reached the record. NimCarry is now waiting for independent finality.",
-        truth: "The letter is still yours until the postmark lands.",
+        body: "Nimiq Pay returned a transaction reference. NimCarry is checking the independent record.",
+        truth: "The letter is still yours until independent verification reaches FINAL.",
+      };
+    }
+    if (phase === "broadcast-claim-recorded") {
+      return {
+        mode: "warm",
+        kicker: "REFERENCE RECORDED · VERIFYING",
+        title: "The wax is still warm.",
+        body: "NimCarry recorded the transaction reference and is checking it independently against the authorized handover.",
+        truth: "A recorded reference is not custody. The letter is still yours.",
       };
     }
     if (phase === "verification-pending") {
@@ -366,7 +375,7 @@
         mode: "warm",
         kicker: "VERIFYING",
         title: "The wax is still warm.",
-        body: "The network can see the handover, but NimCarry has not verified FINAL yet.",
+        body: "NimCarry has a transaction reference, but the independent record has not confirmed it yet.",
         truth: "The letter is still yours.",
       };
     }
