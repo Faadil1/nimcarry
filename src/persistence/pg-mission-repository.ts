@@ -419,7 +419,7 @@ export class PgMissionRepository implements MissionRepository {
     return result.rows.length === 0 ? undefined : invitationFromRow(result.rows[0]);
   }
 
-  async acceptInvitation(id: string, wallet: string, now: number, passDeadlineAt: number, candidateDisplayLabel: string | null): Promise<InvitationRecord> {
+  async acceptInvitation(id: string, wallet: string, now: number, passDeadlineAt: number, candidateDisplayLabel: string | null = null): Promise<InvitationRecord> {
     return this.withTransaction(async (client) => {
       const invitation = await client.query<InvitationRow>(
         "SELECT * FROM invitations WHERE id = $1 FOR UPDATE",
