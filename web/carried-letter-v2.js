@@ -211,6 +211,96 @@
     }
   }
 
+  function humanDeadline(value) {
+    const raw = clean(value);
+    if (!raw) return null;
+    const at = new Date(raw);
+    if (Number.isNaN(at.getTime())) return null;
+    const remaining = at.getTime() - Date.now();
+    if (remaining <= 0) return "expired";
+    const minutes = Math.ceil(remaining / 60000);
+    if (minutes < 60) return `about ${minutes} minute${minutes === 1 ? "" : "s"} left`;
+    const hours = Math.ceil(minutes / 60);
+    return `about ${hours} hour${hours === 1 ? "" : "s"} left`;
+  }
+
+  function missionStateCopy(hero) {
+    const missionStatus = clean(hero.dataset.missionStatus).toUpperCase();
+    const activity = clean(hero.dataset.missionActivity).toUpperCase();
+    const invitationStatus = clean(hero.dataset.invitationStatus).toUpperCase();
+    const inviteWindow = humanDeadline(hero.dataset.invitationExpiresAt);
+    const passWindow = humanDeadline(hero.dataset.passDeadlineAt);
+
+    if (missionStatus === "CANCELLED") {
+      return {
+        kind: "closed",
+        stamp: "CLOSED · NOTHING MOVED",
+        title: "This letter was closed before a verified handoff.",
+        body: "No later holder was assigned and no verified route history was rewritten.",
+        rule: "Closed is not carried.",
+      };
+    }
+    if (activity === "STALLED") {
+      return {
+        kind: "stalled",
+        stamp: "WAITING HERE",
+        title: "The letter is still with its last verified holder.",
+        body: "The route may be quiet, but NimCarry does not guess progress. Choose the next supported action from this mission.",
+        rule: "Silence never moves custody.",
+      };
+    }
+    if (invitationStatus === "EXPIRED") {
+      return {
+        kind: "expired",
+        stamp: "INVITATION EXPIRED",
+        title: "The invitation timed out. The letter stayed here.",
+        body: "No verified handoff occurred. The current holder can prepare the next invitation without rewriting the route.",
+        rule: "Expiry closes an invitation, not custody.",
+      };
+    }
+    if (invitationStatus === "DECLINED") {
+      return {
+        kind: "declined",
+        stamp: "DECLINED · NOTHING MOVED",
+        title: "They chose not to carry it.",
+        body: "That answer is final for this invitation. The letter stayed with the current verified holder, who can choose someone else.",
+        rule: "Decline is consent respected.",
+      };
+    }
+    if (invitationStatus === "WITHDRAWN") {
+      return {
+        kind: "withdrawn",
+        stamp: "INVITATION WITHDRAWN",
+        title: "This invitation was closed before a handoff.",
+        body: "No verified holder changed. The route can continue from the same current holder.",
+        rule: "Withdrawal never rewrites the verified path.",
+      };
+    }
+    if (invitationStatus === "INVITED") {
+      return {
+        kind: "waiting",
+        stamp: "AWAITING A HUMAN",
+        title: "The letter is waiting for an answer.",
+        body: inviteWindow && inviteWindow !== "expired"
+          ? `The invitation is still open — ${inviteWindow}. No NIM moves unless this person explicitly accepts.`
+          : "The invitation is still open. No NIM moves unless this person explicitly accepts.",
+        rule: "Invitation is not custody.",
+      };
+    }
+    if (invitationStatus === "ACCEPTED") {
+      return {
+        kind: "accepted",
+        stamp: "ACCEPTED · NOT CARRIED",
+        title: "They chose to carry it. The handoff has not happened yet.",
+        body: passWindow && passWindow !== "expired"
+          ? `The consent is on record and the handoff window has ${passWindow}. The 1 NIM seal still belongs to the current holder until FINAL.`
+          : "The consent is on record. The 1 NIM seal still belongs to the current holder until FINAL.",
+        rule: "Consent enables the handoff; FINAL completes it.",
+      };
+    }
+    return null;
+  }
+
   function mission() {
     if (!/^\/mission\/[^/]+$/.test(location.pathname)) return;
     const hero = screen.querySelector(".hero-card");
@@ -243,6 +333,25 @@
       );
       route.after(signed);
     }
+
+    const stateCopy = missionStateCopy(hero);
+    if (stateCopy && !hero.querySelector(".clv2-route-state")) {
+      const panel = el("section", "clv2-route-state");
+      panel.dataset.kind = stateCopy.kind;
+      panel.setAttribute("role", "status");
+      panel.append(
+        el("span", "clv2-route-state-stamp", stateCopy.stamp),
+        el("strong", "clv2-route-state-title", stateCopy.title),
+        el("p", "clv2-route-state-body", stateCopy.body),
+        el("small", "clv2-route-state-rule", stateCopy.rule)
+      );
+      const buttons = hero.querySelector(".button-row");
+      if (buttons) buttons.before(panel);
+      else hero.append(panel);
+    }
+
+    const legacyWarning = [...hero.querySelectorAll(".warning")].find((node) => /route is waiting on its current bridge/i.test(node.textContent || ""));
+    if (legacyWarning) legacyWarning.hidden = true;
   }
 
   function pass() {
@@ -558,6 +667,27 @@
     enhanceCarriedReceipt(card, arrived, isTargetViewer);
   }
 
+  function invitationUnavailable() {
+    if (!/^\/i\/[A-Za-z0-9_-]+$/.test(location.pathname)) return;
+    const card = screen.querySelector(".card");
+    const title = clean(card?.querySelector("h2")?.textContent);
+    if (!card || !/invitation unavailable/i.test(title) || card.dataset.clv2Unavailable === "1") return;
+    card.dataset.clv2Unavailable = "1";
+    card.classList.add("clv2-unavailable-letter");
+    text(card.querySelector("h2"), "This letter can’t be opened.");
+    text(
+      card.querySelector("p"),
+      "The private invitation may have expired, been withdrawn, or no longer be recognized. Nothing moved because an invitation is never custody."
+    );
+    const actions = el("div", "button-row");
+    const homeLink = document.createElement("a");
+    homeLink.className = "button ghost";
+    homeLink.href = "/";
+    homeLink.textContent = "Back to NimCarry";
+    actions.append(homeLink);
+    card.append(actions);
+  }
+
   function inviteDialog() {
     const dialog = document.querySelector("#invite-dialog");
     if (!dialog || dialog.dataset.clv2Dialog === "1") return;
@@ -570,10 +700,10 @@
   function humanizeRecoverableErrors() {
     const notice = document.querySelector("#notice");
     if (!notice || notice.hidden) return;
-    const current = clean(notice.textContent);
-    if (!/INVALID_UUID|ROUTE_VIEW_CAPABILITY_(?:INVALID|REQUIRED)|MISSION_NOT_FOUND/.test(current)) return;
+    const current = clean(notice.dataset.systemMessage || notice.textContent);
+    if (!/INVALID_UUID|ROUTE_VIEW_CAPABILITY_(?:INVALID|REQUIRED|EXPIRED)|MISSION_NOT_FOUND/.test(current)) return;
     notice.dataset.systemMessage = current;
-    text(notice, "This link can’t open a verified letter. Nothing has moved. Reopen it from the person or mission that shared access.");
+    text(notice, "This link can’t open a verified letter. Nothing has moved. Restore authorized access or reopen it from the mission that shared access.");
   }
 
   function apply() {
@@ -582,6 +712,7 @@
     home();
     createMission();
     invitation();
+    invitationUnavailable();
     mission();
     pass();
     route();
