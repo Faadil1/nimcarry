@@ -17,6 +17,7 @@ const css = readFileSync("web/styles.css", "utf8");
 describe("static Mini App skeleton", () => {
   it("ships a mobile-first app shell without external UI/script dependencies", () => {
     expect(html).toContain('name="viewport"');
+    expect(html).toContain('<body class="carried-letter-v2">');
     expect(html).toContain('src="/http-compat.js"');
     expect(html.indexOf('src="/http-compat.js"')).toBeLessThan(html.indexOf('src="/app.js"'));
     expect(html).toContain('src="/demo-ux.js"');
