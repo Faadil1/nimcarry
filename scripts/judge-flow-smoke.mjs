@@ -97,10 +97,41 @@ async function readMissionId(page) {
   return page.evaluate(() => JSON.parse(localStorage.getItem("carryone.demo") || "null")?.mission?.mission_id || null);
 }
 
+async function captureState(page, viewport, label, expectedMode) {
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const geometry = await page.evaluate((mode) => {
+    const root = document.documentElement;
+    const shell = document.querySelector(".app-shell");
+    const screen = document.querySelector("#screen");
+    return {
+      mode: screen?.dataset.clv2Screen || null,
+      inner_width: window.innerWidth,
+      document_width: root.scrollWidth,
+      shell_width: shell?.getBoundingClientRect().width || 0,
+      screen_width: screen?.getBoundingClientRect().width || 0,
+      expected_mode: mode,
+    };
+  }, expectedMode);
+
+  if (geometry.document_width > geometry.inner_width + 1) {
+    throw new Error(`${label}: horizontal overflow ${geometry.document_width}px > ${geometry.inner_width}px`);
+  }
+  if (expectedMode && geometry.mode !== expectedMode) {
+    throw new Error(`${label}: expected screen mode ${expectedMode}, got ${geometry.mode || "none"}`);
+  }
+  if (viewport.width >= 1024 && geometry.shell_width < 1080) {
+    throw new Error(`${label}: desktop shell stayed mobile-width at ${Math.round(geometry.shell_width)}px`);
+  }
+
+  const file = `${viewport.name}-${label}.png`;
+  await page.screenshot({ path: join(outputRoot, file), fullPage: true });
+  return { label, file, ...geometry };
+}
 async function run(viewport) {
   const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, reducedMotion: "reduce" });
   const page = await context.newPage();
   const steps = [];
+  const captures = [];
   const pageErrors = [];
   let activeStep = "boot";
   page.on("pageerror", (error) => {
@@ -115,6 +146,7 @@ async function run(viewport) {
     await page.locator("#demo-banner").waitFor({ state: "visible" });
     await page.locator('#demo-tour-guide[data-step="1"]').waitFor({ state: "visible" });
     steps.push({ label: "home", path: new URL(page.url()).pathname });
+    captures.push(await captureState(page, viewport, "01-home", "home"));
 
     activeStep = "create";
     await page.locator("#create-button").click();
@@ -126,10 +158,12 @@ async function run(viewport) {
     await page.locator('textarea[name="mission_note"]').fill("I need a warm introduction to one specific person I cannot reach directly.");
     await page.locator('input[name="creator_display_label"]').fill("Creator");
     await page.locator('input[name="target_consent_confirmed"]').check();
+    captures.push(await captureState(page, viewport, "02-write", "create"));
     activeStep = "mission-home";
     await page.locator("#create-form button[type='submit']").click();
     steps.push(await expectPath(page, /^\/mission\/[^/]+$/, "mission-home"));
     await page.locator("#invite-button").waitFor({ state: "visible" });
+    captures.push(await captureState(page, viewport, "03-mission", "mission"));
 
     activeStep = "invite-created";
     await page.locator("#invite-button").click();
@@ -146,6 +180,7 @@ async function run(viewport) {
     await page.waitForURL(/\/i\//, { timeout: 8000 });
     await page.locator("#accept").waitFor({ state: "visible" });
     steps.push({ label: "invitation-bridge-b", path: new URL(page.url()).pathname });
+    captures.push(await captureState(page, viewport, "04-consent", "invitation"));
     await page.locator("#accept").click();
     steps.push(await expectPath(page, /^\/mission\/[^/]+$/, "mission-after-bridge-accept"));
 
@@ -160,10 +195,12 @@ async function run(viewport) {
     await page.locator('#demo-tour-guide[data-step="4"]').waitFor({ state: "visible" });
     await page.locator(".hc-pass-ritual").waitFor({ state: "detached", timeout: 3000 }).catch(() => {});
     if (await page.locator(".hc-pass-ritual").count()) throw new Error("Legacy pass ritual leaked into V2 handoff surface");
+    captures.push(await captureState(page, viewport, "05-handoff", "pass"));
     await page.locator("#send").click();
     await page.locator('.clv2-wax-scene[data-phase="verification-pending"]').waitFor({ state: "visible", timeout: 3000 });
     const warmCopy = await page.locator(".clv2-wax-kicker").textContent();
     if (!/PRACTICE VERIFICATION/i.test(warmCopy || "")) throw new Error(`Expected practice warm-wax state, got ${warmCopy || "empty"}`);
+    captures.push(await captureState(page, viewport, "06-warm-wax", "pass"));
     await page.locator('.clv2-wax-scene[data-phase="final"]').waitFor({ state: "visible", timeout: 5000 });
     const postmark = await page.locator(".clv2-postmark").textContent();
     if (!/PRACTICE/i.test(postmark || "")) throw new Error(`Expected practice postmark, got ${postmark || "empty"}`);
@@ -172,6 +209,7 @@ async function run(viewport) {
     await page.locator(".clv2-route-ledger-head").waitFor({ state: "visible" });
     await page.locator(".clv2-hop-stamp").first().waitFor({ state: "visible" });
     await page.locator("#demo-tour-continue").waitFor({ state: "visible" });
+    captures.push(await captureState(page, viewport, "07-route", "route"));
 
     activeStep = "refresh-route-after-first-final";
     const beforeRefresh = new URL(page.url());
@@ -222,7 +260,7 @@ async function run(viewport) {
     if (postmarks < 2) throw new Error(`Expected at least 2 verified letter-back postmarks, got ${postmarks}`);
     const legacyRouteMottos = await page.locator(".hc-max-route-motto").count();
     if (legacyRouteMottos !== 0) throw new Error(`Expected zero legacy route mottos on V2 route, got ${legacyRouteMottos}`);
-    await page.screenshot({ path: join(outputRoot, `${viewport.name}-arrived.png`), fullPage: true });
+    captures.push(await captureState(page, viewport, "08-arrived", "route"));
 
     if (pageErrors.length) {
       const compact = pageErrors.map((entry) => `${entry.step}: ${entry.message}`).join(" | ");
@@ -230,7 +268,7 @@ async function run(viewport) {
       error.pageErrors = pageErrors;
       throw error;
     }
-    return { verdict: "PASS", steps, final_status: arrived?.trim() || "ARRIVED", page_errors: [] };
+    return { verdict: "PASS", steps, captures, final_status: arrived?.trim() || "ARRIVED", page_errors: [] };
   } catch (error) {
     error.flowStep = activeStep;
     error.pageErrors = error.pageErrors || pageErrors;
