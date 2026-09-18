@@ -1360,10 +1360,150 @@
   .clv2-address{max-width:70%}
 }
 @media(min-width:1024px){
-  .carried-letter-v2 .app-shell{width:min(960px,100%)}
-  .carried-letter-v2 .clv2-home{padding:46px 52px}
-  .clv2-letter-stage{grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr);padding:30px 18px}
-  .clv2-envelope{min-height:235px}
+  /* Desktop is a deliberate composition, not a widened mobile card. */
+  .carried-letter-v2 .app-shell{
+    width:min(1240px,calc(100% - 52px));
+    padding-left:24px;
+    padding-right:24px;
+  }
+  .carried-letter-v2 .brandbar{margin-bottom:16px}
+  .carried-letter-v2 .demo-banner{top:20px}
+  .carried-letter-v2 .demo-tour-guide{width:100%;margin-bottom:16px;padding:12px 16px}
+  .carried-letter-v2 .hero-card,
+  .carried-letter-v2 .form-card,
+  .carried-letter-v2 .route-card{padding:32px 34px}
+
+  /* HOME — copy on the left, the carried object on the right. */
+  .carried-letter-v2 .clv2-home{padding:40px 44px}
+  .carried-letter-v2 .clv2-home .hc-max-home-stage{
+    grid-template-columns:minmax(0,.82fr) minmax(460px,1.18fr);
+    gap:42px;
+    align-items:center;
+  }
+  .carried-letter-v2 .clv2-home .hc-max-home-copy{max-width:500px}
+  .carried-letter-v2 .clv2-home .hc-max-home-copy h1{
+    max-width:9.2ch;
+    font-size:clamp(4.1rem,5.2vw,5.45rem);
+  }
+  .carried-letter-v2 .clv2-home .hc-max-home-story{
+    min-height:420px;
+    display:grid;
+    align-items:center;
+  }
+  .carried-letter-v2 .clv2-home .clv2-letter-stage{
+    grid-template-columns:1fr;
+    gap:22px;
+    margin:0;
+    padding:8px 0 4px;
+    border:0;
+  }
+  .carried-letter-v2 .clv2-home .clv2-envelope{min-height:270px;padding:48px 38px 34px}
+  .carried-letter-v2 .clv2-home .clv2-human-chain{padding-inline:8px}
+  .carried-letter-v2 .clv2-home .clv2-stage-caption{text-align:left;max-width:58ch}
+
+  /* CREATE — retain the dossier/preview split but give both panels room to breathe. */
+  .carried-letter-v2 .hc-create-layout{
+    grid-template-columns:minmax(0,1.08fr) minmax(380px,.92fr);
+    gap:34px;
+    align-items:start;
+  }
+  .carried-letter-v2 .clv2-write-letter{padding:32px 34px}
+  .carried-letter-v2 .clv2-compose-sheet{padding:22px 84px 22px 24px}
+
+  /* MISSION — the letter and its verified path are sibling objects on desktop. */
+  .carried-letter-v2 .screen[data-clv2-screen="mission"]{
+    display:grid;
+    grid-template-columns:minmax(0,1.08fr) minmax(380px,.92fr);
+    gap:28px 32px;
+    align-items:start;
+  }
+  .carried-letter-v2 .screen[data-clv2-screen="mission"]>.clv2-mission{grid-column:1;margin:0}
+  .carried-letter-v2 .screen[data-clv2-screen="mission"]>.stack{
+    grid-column:2;
+    margin:0;
+    position:sticky;
+    top:24px;
+  }
+  .carried-letter-v2 .screen[data-clv2-screen="mission"]>.stack>.route-card{padding:28px 30px}
+  .carried-letter-v2 .clv2-mission>.target-title{
+    max-width:12ch;
+    font-size:clamp(3rem,4.2vw,4.15rem);
+    line-height:.94;
+  }
+  .carried-letter-v2 .clv2-mission .mission-note{max-width:60ch;font-size:1rem}
+  .carried-letter-v2 .clv2-mission .clv2-first-carrier,
+  .carried-letter-v2 .clv2-mission .clv2-route-state,
+  .carried-letter-v2 .clv2-mission .clv2-letter-back,
+  .carried-letter-v2 .clv2-mission .clv2-signed-back{margin-block:18px}
+
+  /* CONSENT — two deliberate reading columns, not a giant headline over empty space. */
+  .carried-letter-v2 .clv2-invitation .hc-max-invite-grid{
+    grid-template-columns:minmax(0,1.08fr) minmax(360px,.92fr);
+    gap:38px;
+  }
+  .carried-letter-v2 .clv2-invitation .hc-max-invite-primary>h1{
+    max-width:9ch;
+    font-size:clamp(4rem,5vw,5.2rem);
+  }
+
+  /* HANDOFF — narrative left; seal, action and verification object right. */
+  .carried-letter-v2 .clv2-seal-handoff .hc-max-pass-stage{
+    grid-template-columns:minmax(0,.84fr) minmax(440px,1.16fr);
+    gap:42px;
+    align-items:start;
+  }
+  .carried-letter-v2 .clv2-seal-handoff .hc-max-pass-story h1{
+    max-width:8.5ch;
+    font-size:clamp(4rem,5vw,5.15rem);
+  }
+  .carried-letter-v2 .clv2-seal-handoff .hc-max-pass-actions{gap:14px}
+  .carried-letter-v2 .clv2-handoff-manifest{
+    grid-template-columns:96px minmax(0,1fr);
+    gap:18px 22px;
+    padding:24px;
+    margin-top:0;
+  }
+  .carried-letter-v2 .clv2-manifest-seal{width:80px;height:80px}
+  .carried-letter-v2 .clv2-wax-scene{
+    grid-template-columns:148px minmax(0,1fr);
+    gap:22px;
+    padding:22px 24px;
+  }
+
+  /* ROUTE / ARRIVED — provenance left, arrival proof and receipt right. */
+  .carried-letter-v2 .screen[data-clv2-screen="route"]>.back-link{margin-bottom:14px}
+  .carried-letter-v2 .screen[data-clv2-screen="route"]>.clv2-route{
+    display:grid;
+    grid-template-columns:minmax(0,1.06fr) minmax(390px,.94fr);
+    gap:10px 36px;
+    align-items:start;
+    padding:32px 34px;
+  }
+  .carried-letter-v2 .clv2-route>.meta-row{grid-column:1/-1}
+  .carried-letter-v2 .clv2-route>.target-title,
+  .carried-letter-v2 .clv2-route>.lede,
+  .carried-letter-v2 .clv2-route>.clv2-route-ledger-head,
+  .carried-letter-v2 .clv2-route>.route,
+  .carried-letter-v2 .clv2-route>.wi-finality-note{grid-column:1}
+  .carried-letter-v2 .clv2-route>.clv2-arrival-close,
+  .carried-letter-v2 .clv2-route>.wi-receipt,
+  .carried-letter-v2 .clv2-route>.button-row,
+  .carried-letter-v2 .clv2-route>.demo-tour-complete{grid-column:2}
+  .carried-letter-v2 .clv2-route>.target-title{
+    max-width:11ch;
+    font-size:clamp(3.3rem,4.5vw,4.5rem);
+  }
+  .carried-letter-v2 .clv2-route-ledger-head{margin-top:18px}
+  .carried-letter-v2 .clv2-route>.clv2-arrival-close{margin-top:8px}
+  .carried-letter-v2 .clv2-route>.wi-receipt{margin-top:0}
+  .carried-letter-v2 .clv2-route>.button-row{align-self:start;margin-top:4px}
+  .carried-letter-v2 .clv2-route>.demo-tour-complete{margin-top:4px}
+}
+@media(min-width:1440px){
+  .carried-letter-v2 .app-shell{width:min(1320px,calc(100% - 70px))}
+  .carried-letter-v2 .clv2-home .hc-max-home-stage{grid-template-columns:minmax(0,.8fr) minmax(520px,1.2fr);gap:52px}
+  .carried-letter-v2 .screen[data-clv2-screen="mission"]{grid-template-columns:minmax(0,1.1fr) minmax(420px,.9fr);gap:36px}
+  .carried-letter-v2 .screen[data-clv2-screen="route"]>.clv2-route{grid-template-columns:minmax(0,1.08fr) minmax(430px,.92fr);gap:12px 44px}
 }
 @media(prefers-reduced-motion:reduce){
   .carried-letter-v2 *,

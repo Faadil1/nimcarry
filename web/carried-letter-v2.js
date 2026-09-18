@@ -20,6 +20,17 @@
   };
   const clean = (value) => String(value || "").trim();
 
+  function syncScreenMode() {
+    const path = location.pathname.replace(/\/+$/, "") || "/";
+    let mode = "home";
+    if (path === "/create") mode = "create";
+    else if (/^\/i\/[A-Za-z0-9_-]+$/.test(path)) mode = "invitation";
+    else if (/^\/mission\/[^/]+\/pass$/.test(path)) mode = "pass";
+    else if (/^\/mission\/[^/]+\/route$/.test(path)) mode = "route";
+    else if (/^\/mission\/[^/]+$/.test(path)) mode = "mission";
+    screen.dataset.clv2Screen = mode;
+  }
+
   function setLabelText(label, value) {
     if (!label) return;
     const first = [...label.childNodes].find((node) => node.nodeType === Node.TEXT_NODE && clean(node.textContent));
@@ -109,7 +120,9 @@
     if (create) text(create, "Write a letter");
 
     const stage = letterStage();
-    if (buttons) buttons.before(stage);
+    const desktopStorySlot = hero.querySelector(".hc-max-home-story");
+    if (desktopStorySlot) desktopStorySlot.append(stage);
+    else if (buttons) buttons.before(stage);
     else hero.append(stage);
 
     if (buttons && !hero.querySelector(".clv2-practice-link")) {
@@ -874,6 +887,7 @@
   }
 
   function apply() {
+    syncScreenMode();
     globalChrome();
     inviteDialog();
     inviteCreatedCard();
