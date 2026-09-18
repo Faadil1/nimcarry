@@ -59,13 +59,29 @@ jobs:
             sleep 12
           done
 
+      - name: Install ffmpeg
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y ffmpeg
+
       - name: Convert recording to MP4
         shell: bash
         run: |
           set -euo pipefail
-          ffmpeg -y             -i "$EXPLAINER_OUTPUT/shots-09-10-live-practice.webm"             -c:v libx264             -preset medium             -crf 18             -pix_fmt yuv420p             -movflags +faststart             -an             "$EXPLAINER_OUTPUT/shots-09-10-live-practice.mp4"
+          ffmpeg -y \
+            -i "$EXPLAINER_OUTPUT/shots-09-10-live-practice.webm" \
+            -c:v libx264 \
+            -preset medium \
+            -crf 18 \
+            -pix_fmt yuv420p \
+            -movflags +faststart \
+            -an \
+            "$EXPLAINER_OUTPUT/shots-09-10-live-practice.mp4"
 
       - name: Upload explainer recording
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nimcarry-explainer-ui-live-recording
