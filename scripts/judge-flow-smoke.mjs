@@ -113,6 +113,7 @@ async function run(viewport) {
     activeStep = "home";
     await page.goto(`${baseUrl}/?demo=1&tour=1&reset=1`, { waitUntil: "networkidle", timeout: 20000 });
     await page.locator("#demo-banner").waitFor({ state: "visible" });
+    await page.locator('#demo-tour-guide[data-step="1"]').waitFor({ state: "visible" });
     steps.push({ label: "home", path: new URL(page.url()).pathname });
 
     activeStep = "create";
@@ -156,9 +157,16 @@ async function run(viewport) {
     await page.locator("#pass-button").click();
     steps.push(await expectPath(page, /^\/mission\/[^/]+\/pass$/, "pass-bridge-b"));
     await page.locator(".clv2-handoff-manifest").waitFor({ state: "visible" });
+    await page.locator('#demo-tour-guide[data-step="4"]').waitFor({ state: "visible" });
     await page.locator(".hc-pass-ritual").waitFor({ state: "detached", timeout: 3000 }).catch(() => {});
     if (await page.locator(".hc-pass-ritual").count()) throw new Error("Legacy pass ritual leaked into V2 handoff surface");
     await page.locator("#send").click();
+    await page.locator('.clv2-wax-scene[data-phase="verification-pending"]').waitFor({ state: "visible", timeout: 3000 });
+    const warmCopy = await page.locator(".clv2-wax-kicker").textContent();
+    if (!/PRACTICE VERIFICATION/i.test(warmCopy || "")) throw new Error(`Expected practice warm-wax state, got ${warmCopy || "empty"}`);
+    await page.locator('.clv2-wax-scene[data-phase="final"]').waitFor({ state: "visible", timeout: 5000 });
+    const postmark = await page.locator(".clv2-postmark").textContent();
+    if (!/PRACTICE/i.test(postmark || "")) throw new Error(`Expected practice postmark, got ${postmark || "empty"}`);
     activeStep = "route-after-first-final";
     steps.push(await expectPath(page, /^\/mission\/[^/]+\/route$/, "route-after-first-final"));
     await page.locator(".clv2-route-ledger-head").waitFor({ state: "visible" });
@@ -199,12 +207,16 @@ async function run(viewport) {
     steps.push(await expectPath(page, /^\/mission\/[^/]+\/pass$/, "pass-destination"));
     await page.locator(".clv2-handoff-manifest").waitFor({ state: "visible" });
     await page.locator("#send").click();
+    await page.locator('.clv2-wax-scene[data-phase="verification-pending"]').waitFor({ state: "visible", timeout: 3000 });
+    await page.locator('.clv2-wax-scene[data-phase="final"]').waitFor({ state: "visible", timeout: 5000 });
     activeStep = "arrived-route";
     steps.push(await expectPath(page, /^\/mission\/[^/]+\/route$/, "arrived-route"));
 
     const arrived = await page.locator(".status-pill").textContent();
     if (!/ARRIVED/i.test(arrived || "")) throw new Error(`Expected ARRIVED, got ${arrived || "empty status"}`);
     await page.locator(".hc-arrived-moment").waitFor({ state: "visible" });
+    await page.locator('#demo-tour-guide[data-step="5"]').waitFor({ state: "visible" });
+    await page.locator(".demo-tour-complete").waitFor({ state: "visible" });
     await page.locator(".clv2-route-ledger-head").waitFor({ state: "visible" });
     const postmarks = await page.locator(".clv2-hop-stamp").count();
     if (postmarks < 2) throw new Error(`Expected at least 2 verified letter-back postmarks, got ${postmarks}`);
