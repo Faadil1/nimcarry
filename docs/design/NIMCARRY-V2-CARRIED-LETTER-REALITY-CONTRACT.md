@@ -92,3 +92,26 @@ These events are not state. Reloading the page derives truth again from the cano
 - Browser normalization may preserve a display label only if the server already emitted it; it must never infer a name from a candidate label, wallet, address, target label, or local state.
 - The back of the letter and the Carried Letter Receipt may render the same server-authorized label as ink. They do not gain new visibility or authority from that presentation.
 - Full wallet addresses and protected destination data remain excluded from the historical receipt.
+
+
+## Gate 6 — Interruption and recovery grammar
+
+Every interruption surface must answer three questions in this order:
+
+1. Where is the letter?
+2. Did custody change?
+3. What supported action comes next?
+
+Canonical meanings:
+
+- `INVITED`: waiting for explicit human consent; no NIM has moved.
+- `ACCEPTED`: consent exists, but the current verified holder still owns the 1 NIM seal until FINAL.
+- `DECLINED`: consent was refused; the letter stays with the current verified holder.
+- `EXPIRED`: the invitation or accepted-pass window closed; expiry never changes custody.
+- `WITHDRAWN`: the invitation was closed before a verified handoff; custody is unchanged.
+- `STALLED`: the route is quiet; silence is never inferred as progress.
+- `CANCELLED`: the pristine mission was closed before a verified handoff; verified history is not rewritten.
+- route-view capability failure: access is stale or missing, not the mission itself. Recovery is signed VIEW_ROUTE only and cannot send NIM.
+- broadcast/in-flight ambiguity: do not duplicate the baton. Check the independently verified route before attempting another pass.
+
+The presentation layer may humanize these states but cannot manufacture an action that the canonical state machine does not support. Raw technical causes remain available behind the recovery surface for diagnostics.
