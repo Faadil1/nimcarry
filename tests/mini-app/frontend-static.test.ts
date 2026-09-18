@@ -167,6 +167,18 @@ describe("static Mini App skeleton", () => {
     expect(html).toContain("DEMO MODE — no wallet or network writes");
     expect(js).toContain('query.get("demo") === "1"');
   });
+  it("recovers an already-recorded handoff without offering a second payment", () => {
+    expect(js).toContain("Recheck existing handoff");
+    expect(js).toContain("async function recheckExistingHandoff");
+    expect(js).toContain("/reconcile");
+    expect(js).toContain("No second payment was requested.");
+    const start = js.indexOf("async function recheckExistingHandoff");
+    const end = js.indexOf("\n  function wireHomeButtons", start);
+    const recovery = start >= 0 && end >= 0 ? js.slice(start, end) : "";
+    expect(recovery).not.toContain("sendBasicTransactionWithData");
+    expect(recovery).not.toContain("AUTHORIZE_PASS");
+    expect(recovery).not.toContain("pass-intent");
+  });
   it("preserves route-view capability when Home opens the pass screen", () => {
     expect(js).toContain('document.querySelector("#pass-button")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(m.mission_id)}/pass`))');
     expect(js).toContain('sessionStorage.getItem(`carryone.view.${missionId}`) || undefined');
