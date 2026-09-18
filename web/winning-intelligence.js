@@ -49,18 +49,43 @@
     }
   }
 
+  function routeProgressIndex(card, path) {
+    if (path === "/create") return 0;
+    if (/^\/i\//.test(path)) return 2;
+    if (/\/pass$/.test(path)) return 3;
+
+    const status = String(
+      card.dataset.missionStatus ||
+      card.dataset.routeStatus ||
+      card.querySelector(".status-pill")?.textContent ||
+      ""
+    ).trim().toUpperCase();
+
+    if (status === "ARRIVED") return 4;
+    if (/\/route$/.test(path)) return 3;
+
+    if (/^\/mission\//.test(path)) {
+      const invitationStatus = String(card.dataset.invitationStatus || "").trim().toUpperCase();
+      const primaryAction = String(card.dataset.primaryAction || "").trim().toUpperCase();
+
+      // Mission Home is state-driven. After an invitation is sent, the next
+      // unresolved human act is acceptance (3). Once accepted, the next act is
+      // the verified pass (4). ARRIVED above always resolves to step 5.
+      if (primaryAction === "PASS_1_NIM" || invitationStatus === "ACCEPTED") return 3;
+      if (invitationStatus === "INVITED") return 2;
+      return 1;
+    }
+
+    return -1;
+  }
+
   function addFiveVerbPath() {
     if (screen.querySelector(".wi-flow")) return;
     const card = screen.querySelector(".hero-card, .form-card, .route-card");
     if (!card) return;
     const path = location.pathname;
-    let current = -1;
-    if (path === "/create") current = 0;
-    else if (/^\/i\//.test(path)) current = 2;
-    else if (/\/pass$/.test(path)) current = 3;
-    else if (/\/route$/.test(path)) current = 4;
-    else if (/^\/mission\//.test(path)) current = 1;
-    else return;
+    const current = routeProgressIndex(card, path);
+    if (current < 0) return;
 
     const labels = ["Create", "Invite", "Accept", "Pass", "Arrive"];
     const flow = node("div", "wi-flow");
