@@ -4,13 +4,13 @@
 
 <h1 align="center">NimCarry</h1>
 
-<p align="center"><strong>One NIM. One bridge at a time.</strong></p>
-<p align="center">Get this to someone you cannot reach directly — one human bridge at a time.</p>
+<p align="center"><strong>A private introduction, carried by people.</strong></p>
+<p align="center">Get introduced to someone you cannot reach directly — one consenting human carrier at a time.</p>
 
 <p align="center">
   <a href="https://nimcarry.faadil-casecraft.workers.dev"><strong>Live App</strong></a>
   ·
-  <a href="https://nimcarry.faadil-casecraft.workers.dev/?demo=1"><strong>Guided Demo</strong></a>
+  <a href="https://nimcarry.faadil-casecraft.workers.dev/?demo=1&tour=1&reset=1"><strong>Guided Demo</strong></a>
   ·
   <a href="https://youtu.be/SAyv8hyZG6Q"><strong>Demo Video</strong></a>
   ·
@@ -20,7 +20,7 @@
 <p align="center"><sub>Cycle II Public Preview · Testnet · Mainnet disabled</sub></p>
 
 > **Current status**  
-> The live product and guided demo are available now. Real A→B→C TESTNET proof is still pending because two approved attempts were independently verified as not broadcast. The suspected Nimiq Pay 2.19.1 TESTNET submission issue remains unconfirmed. No real `FINAL` or `ARRIVED` is claimed.
+> The live product and deterministic guided demo are available. Native Nimiq Pay TESTNET transfer has been proven independently, and NimCarry now includes an explicit read-only TESTNET preflight plus HTLC-aware sender verification. A fresh end-to-end NimCarry A→B→C TESTNET run after those corrections is still pending, so no real NimCarry `FINAL` or `ARRIVED` is claimed yet.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/nimiq/miniappscompetition-submissions/a0c2466264376f117667c1a2992fe7e250552f34/cycle2/Faadil1/screenshot-1.jpg" alt="NimCarry destination-bound human routing mission — final V3.2 UI" width="100%" />
@@ -46,14 +46,14 @@ A message can prove that someone *said* they forwarded something. It does not cr
 
 ### Why NimCarry is different
 
-NimCarry turns that informal chain into a **destination-bound human route**.
+NimCarry turns that informal chain into a **private introduction carried hand-to-hand**. The product's V2 interaction model is **The Carried Letter**: the mission is the letter, the 1 NIM baton is its custody seal, warm wax represents pre-FINAL verification, and a postmark appears only when independent FINAL proof changes the holder.
 
 - Exactly **1 NIM** acts as the custody baton — not a reward, wager, stake, or prize.
 - A bridge explicitly accepts before custody can move.
 - Wallet approval, a pending transaction, or a browser claim never advances the route.
 - Only independently verified `FINAL` changes custody.
 - The destination stays protected while the route remains understandable.
-- When the destination becomes the finalized recipient, NimCarry produces a privacy-safe **Route Receipt**.
+- When the destination becomes the finalized recipient, NimCarry produces a privacy-safe **Carried Letter Receipt**.
 
 **Create → Invite → Accept → Pass 1 NIM → FINAL → Next bridge → ARRIVED**
 
@@ -65,11 +65,12 @@ Without Nimiq, a bridge can only say “I forwarded it.” With NimCarry, the ha
 
 | Step | What happens |
 |---|---|
-| Mission Home | See the destination-bound mission and verified route |
-| Create Mission | Define the known destination and purpose |
-| Bridge Invitation | A chosen bridge explicitly accepts before payment |
-| Pass 1 NIM | The current holder approves the exact baton transfer |
-| Route / Arrival | Only finalized hops appear; ARRIVED produces the receipt |
+| Mission Home | See who holds the letter and the verified human route |
+| Write the letter | Define one known destination and the human reason it should reach them |
+| Private invitation | One chosen carrier explicitly accepts or declines |
+| Seal & pass 1 NIM | The current holder authorizes the exact custody-seal transfer |
+| Warm wax → postmark | Approval/reference/pending stay pre-FINAL; only FINAL changes the holder |
+| Arrival | The intended destination opens the letter and receives the privacy-safe receipt |
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/nimiq/miniappscompetition-submissions/a0c2466264376f117667c1a2992fe7e250552f34/cycle2/Faadil1/screenshot-2.jpg" alt="NimCarry Pass 1 NIM custody baton screen — final V3.2 UI" width="100%" />
@@ -117,29 +118,35 @@ What is proven today:
 - Fail-closed behavior for expired invites, stale intents, lost capabilities, and ambiguous broadcasts.
 - Production Cloudflare + Container + Neon/PostgreSQL runtime.
 - Live Nimiq Pay provider readiness proven on a real device.
-- Deterministic guided demo ending in a privacy-safe Route Receipt.
+- A native Nimiq Pay TESTNET transfer independently confirmed on-chain.
+- Read-only TESTNET preflight proving wallet/provider and NimCarry network alignment without writes.
+- HTLC-aware transaction verification so the human identity does not have to equal the raw on-chain `tx.from`.
+- Deterministic guided demo ending in a privacy-safe Carried Letter Receipt.
+- The Carried Letter V2 gates are protected by CI plus mobile/desktop guided-flow smoke.
 - `v1.0.0 — Cycle II Preview` published.
-- 176/176 automated tests passing at the V1 release and production judge smoke 5/5 passing.
 
 | Area | Status |
 |---|---|
-| Live production app | Ready |
-| Guided demo | Ready |
+| Live production app | Available |
+| Deterministic guided demo | Ready |
 | Cloudflare / Postgres runtime | Ready |
 | Nimiq Pay provider readiness | Verified |
-| Real A→B TESTNET broadcast | Blocked before broadcast |
-| Real FINAL / ARRIVED | Not claimed |
+| Native Nimiq Pay TESTNET transfer | Verified on-chain |
+| NimCarry TESTNET network preflight | PASS / read-only |
+| HTLC-aware sender verification | Implemented |
+| Fresh NimCarry A→B→C TESTNET FINAL run | Pending |
+| Real NimCarry FINAL / ARRIVED | Not claimed |
 | Mainnet | Disabled |
 
-The strongest production statement is also the most important evidence boundary: **approval ≠ broadcast ≠ FINAL**.
+The strongest production statement is also the most important evidence boundary: **approval ≠ provider reference ≠ independent verification ≠ FINAL**.
 
-Two controlled A→B attempts reached native Nimiq Pay approval and failed afterward. We independently checked chain history, recipient balance, backend intent state, and Neon finality state. Both attempts were classified `NOT_BROADCAST`; NimCarry did not move custody or manufacture ARRIVED.
+Earlier controlled attempts failed closed and did not move custody. Later investigation uncovered two integration realities that changed the diagnosis: Nimiq Pay itself had to be explicitly aligned to TESTNET, and outgoing Nimiq Pay transfers can use an HTLC payment rail whose on-chain sender differs from the human/basic account identity. NimCarry now checks both realities directly instead of attributing the earlier failures to an unconfirmed provider regression.
 
 ---
 
 ## Demo
 
-The recommended judge path is the deterministic [Guided Demo](https://nimcarry.faadil-casecraft.workers.dev/?demo=1). It uses the real product UI and state model without requiring wallet or network writes while the TESTNET submission issue remains unresolved.
+The recommended judge path is the deterministic [Guided Demo](https://nimcarry.faadil-casecraft.workers.dev/?demo=1&tour=1&reset=1). It uses the real product UI/state model but is permanently marked **PRACTICE** and performs no wallet or network writes. It is presentation evidence, not a claim of real TESTNET finality.
 
 **Watch the final 84-second demo:** [NimCarry — One NIM. One Bridge at a Time.](https://youtu.be/SAyv8hyZG6Q)
 
@@ -168,15 +175,19 @@ After a failed wallet attempt, a stale pass intent remained. NimCarry now reuses
 
 ### Refusing to confuse approval with proof
 
-Two controlled A→B attempts reached the native Nimiq Pay approval screen and failed afterward. NimCarry kept custody at the last verified holder and classified both attempts `NOT_BROADCAST` after independent checks.
+Controlled attempts taught the product to separate four different facts: wallet authorization, a provider-returned transaction reference, independent chain observation, and FINAL. NimCarry keeps custody at the last verified holder through every pre-FINAL state.
 
-### Current TESTNET limitation
+### Aligning the wallet and product to the same network
 
-Provider initialization, account access, consensus, block height, recipient presence, value, fee, and payload size all passed validation. Wallet approval opens, but no transaction hash returns. The current classification remains:
+During testing, NimCarry's TESTNET expectation and the wallet's actual network were not always the same. The fix was not another label: NimCarry now has a read-only preflight that checks provider readiness and TESTNET alignment before a controlled transactional gate.
 
-`LIKELY_EXTERNAL_NIMIQ_PAY_TESTNET_SUBMISSION_REGRESSION_NOT_YET_CONFIRMED`
+### Identity is not necessarily `tx.from`
 
-NimCarry does not claim that Nimiq has officially confirmed the cause.
+A successful native TESTNET transfer showed that Nimiq Pay can route outgoing value through an HTLC payment rail. The human/basic Nimiq Pay identity therefore does not have to be the raw transaction sender. NimCarry's verifier now allows an HTLC sender only when independent chain evidence links that rail to the authorized holder, while preserving the exact recipient, exactly 1 NIM, opaque commitment and FINAL requirements.
+
+### Current real-proof boundary
+
+The corrected integration has not yet completed a fresh NimCarry A→B→C TESTNET route all the way to real `FINAL` / `ARRIVED`. Until that happens, the guided demo stays explicitly simulated and the repository makes no real-arrival claim.
 
 ---
 
@@ -185,7 +196,7 @@ NimCarry does not claim that Nimiq has officially confirmed the cause.
 - Nimiq wallet signatures authorize holder-sensitive actions.
 - Target wallets are encrypted with AES-256-GCM and matched at arrival with a separate keyed HMAC-SHA256.
 - Pass intents require opaque `co:v1:<commitment>` recipient data.
-- The client requests exactly `100000` Luna with requested fee `0`; the backend independently verifies sender and finalized chain evidence.
+- The client requests exactly `100000` Luna with requested fee `0`; the backend independently verifies the authorized holder, the allowed direct/HTLC sender relationship, the intended recipient, opaque commitment and finalized chain evidence.
 - Route-view and broadcast capabilities are scoped and short-lived.
 - Infrastructure uncertainty surfaces as delayed verification, never as a false custody change.
 
@@ -226,7 +237,7 @@ npm run build
 ## Useful links
 
 - [Live App](https://nimcarry.faadil-casecraft.workers.dev)
-- [Guided Demo](https://nimcarry.faadil-casecraft.workers.dev/?demo=1)
+- [Guided Demo](https://nimcarry.faadil-casecraft.workers.dev/?demo=1&tour=1&reset=1)
 - [Demo Video](https://youtu.be/SAyv8hyZG6Q)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Security](SECURITY.md)
