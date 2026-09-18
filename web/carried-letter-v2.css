@@ -444,7 +444,6 @@
 }
 
 /* Arrival + carried-letter receipt. */
-.carried-letter-v2 .clv2-arrived .hc-arrived-moment{display:none!important}
 .carried-letter-v2 .clv2-arrived{
   background:
     radial-gradient(circle at 88% 8%,rgba(213,166,62,.08),transparent 28rem),
