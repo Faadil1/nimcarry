@@ -246,6 +246,166 @@
 .clv2-record-disclosure summary{cursor:pointer;font-weight:750;color:var(--cl-green)}
 .clv2-record-disclosure p{max-width:610px;margin:9px 0 0;line-height:1.55}
 
+/* Compose + address the letter: human intent first, delivery details second. */
+.carried-letter-v2 .clv2-write-letter{
+  background:
+    radial-gradient(circle at 100% 0,rgba(213,166,62,.06),transparent 24rem),
+    linear-gradient(180deg,#fffaf0,#f8ecda);
+}
+.clv2-compose-sheet{
+  position:relative;
+  display:grid;
+  gap:5px;
+  margin:18px 0 20px;
+  padding:18px 72px 18px 20px;
+  border:1px solid rgba(33,30,26,.17);
+  background:
+    repeating-linear-gradient(0deg,transparent 0 21px,rgba(85,66,42,.018) 21px 22px),
+    var(--cl-paper);
+  box-shadow:0 12px 26px rgba(68,49,30,.08);
+  transform:rotate(-.25deg);
+}
+.clv2-compose-sheet-kicker{
+  color:var(--cl-vermilion);
+  font:850 .54rem/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.13em;
+}
+.clv2-compose-sheet strong{
+  color:var(--cl-green);
+  font:650 clamp(1.2rem,3.4vw,1.55rem)/1.05 var(--hc-display,Georgia,serif);
+  letter-spacing:-.03em;
+}
+.clv2-compose-sheet p{margin:0;color:var(--cl-muted);font-size:.72rem;line-height:1.45}
+.clv2-compose-mini-seal{
+  position:absolute;
+  right:20px;
+  top:50%;
+  width:40px;
+  height:40px;
+  transform:translateY(-50%) rotate(7deg);
+  border-radius:50% 46% 52% 48%;
+  background:radial-gradient(circle at 34% 30%,#f0ca69,var(--cl-gold) 42%,var(--cl-gold-dark));
+  border:1px solid #8d651e;
+  box-shadow:0 4px 8px rgba(83,56,17,.18);
+}
+.carried-letter-v2 .clv2-compose-human{
+  position:relative;
+}
+.carried-letter-v2 .clv2-compose-human>input,
+.carried-letter-v2 .clv2-compose-human>textarea{
+  background:#fffdf7;
+}
+.carried-letter-v2 .clv2-compose-technical{
+  margin-top:8px;
+  padding:12px 13px;
+  border:1px dashed rgba(33,30,26,.16);
+  background:rgba(255,248,233,.48);
+}
+.carried-letter-v2 .clv2-compose-technical::before{
+  content:"SEALED DELIVERY DETAIL";
+  display:block;
+  margin-bottom:6px;
+  color:var(--cl-gold-dark);
+  font:850 .5rem/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.12em;
+}
+.clv2-delivery-caption{
+  display:block;
+  margin:5px 0 -2px;
+  color:var(--cl-muted);
+  font-size:.62rem;
+  line-height:1.35;
+}
+
+.clv2-first-carrier{
+  margin:16px 0 18px;
+  padding:18px 20px;
+  border-top:1px solid rgba(33,30,26,.13);
+  border-bottom:1px solid rgba(33,30,26,.13);
+  background:linear-gradient(90deg,rgba(213,166,62,.08),transparent 68%);
+}
+.clv2-first-carrier-kicker{
+  display:block;
+  margin-bottom:6px;
+  color:var(--cl-vermilion);
+  font:850 .54rem/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.12em;
+}
+.clv2-first-carrier strong{
+  display:block;
+  color:var(--cl-green);
+  font:650 clamp(1.25rem,3.5vw,1.65rem)/1.05 var(--hc-display,Georgia,serif);
+  letter-spacing:-.03em;
+}
+.clv2-first-carrier p{margin:6px 0 0;color:var(--cl-muted);font-size:.76rem;line-height:1.48}
+
+.clv2-invite-dialog form{
+  background:
+    linear-gradient(180deg,rgba(255,250,240,.98),rgba(245,235,219,.98));
+}
+.clv2-invite-dialog .dialog-kicker{color:var(--cl-vermilion)}
+.clv2-invite-dialog label{display:block}
+.clv2-invite-dialog .clv2-why-helper,
+.clv2-invite-dialog .clv2-wallet-helper{
+  display:block;
+  margin-top:5px;
+  color:var(--cl-muted);
+  font-size:.62rem;
+  line-height:1.4;
+}
+.clv2-invite-dialog #candidate-wallet{
+  background:rgba(255,248,233,.7);
+  border-style:dashed;
+}
+
+.clv2-invite-ready{
+  position:relative;
+  margin-top:16px;
+  padding:20px!important;
+  overflow:hidden;
+  background:
+    repeating-linear-gradient(0deg,transparent 0 21px,rgba(85,66,42,.018) 21px 22px),
+    var(--cl-paper)!important;
+  border:1px solid rgba(33,30,26,.18)!important;
+  box-shadow:0 14px 34px rgba(68,49,30,.09);
+}
+.clv2-invite-ready::after{
+  content:"PRIVATE";
+  position:absolute;
+  right:14px;
+  top:14px;
+  width:58px;
+  height:58px;
+  display:grid;
+  place-items:center;
+  border:2px double rgba(169,79,55,.28);
+  border-radius:50%;
+  color:rgba(169,79,55,.34);
+  font:900 .45rem/1 var(--hc-ui,system-ui,sans-serif);
+  letter-spacing:.09em;
+  transform:rotate(-10deg);
+}
+.clv2-invite-ready-copy{
+  max-width:640px;
+  margin:8px 72px 12px 0;
+}
+.clv2-invite-ready-copy strong{
+  color:var(--cl-green);
+  font:650 1.13rem/1.1 var(--hc-display,Georgia,serif);
+}
+.clv2-invite-ready-copy p{margin:5px 0 0;color:var(--cl-muted);font-size:.72rem;line-height:1.48}
+.clv2-invite-ready .invite-link{
+  font-size:.68rem;
+  opacity:.78;
+  overflow-wrap:anywhere;
+}
+.carried-letter-v2-demo .clv2-invite-ready::after{
+  content:"PRACTICE";
+  border-color:rgba(78,75,134,.32);
+  color:rgba(78,75,134,.4);
+}
+.carried-letter-v2-demo .clv2-compose-mini-seal{background:var(--cl-indigo);border-color:#39366a}
+
 /* Write, invitation and mission — preserve data contracts, change the human framing. */
 .carried-letter-v2 .clv2-write-letter>.kicker,
 .carried-letter-v2 .clv2-invitation>.kicker,
@@ -805,6 +965,9 @@
     transition:none!important;
   }
   .clv2-envelope{transform:none}
+  .clv2-compose-sheet,
+  .clv2-compose-mini-seal,
+  .clv2-invite-ready::after{transform:none}
   .clv2-ink-signature{transform:none}
   .clv2-route-state-stamp,
   .clv2-unavailable-letter::before{transform:none}
