@@ -138,3 +138,14 @@ The presentation layer may humanize these states but cannot manufacture an actio
 - A refresh after the first simulated FINAL must reload into practice mode, retain the practice banner, and continue the deterministic tour.
 - Practice continuity is presentation safety: losing the query flags must never make simulated state visually resemble a real TESTNET route.
 - HTML asset wiring must contain real line breaks rather than escaped `\\n` text so the V2 layer loads cleanly in browser source and static hosts.
+
+
+## Gate 9 — Route as the back of the letter
+
+- The route screen is a provenance artifact, not a dashboard. Existing legacy route embellishments collapse into one letter-back presentation.
+- Each already-rendered route entry must still come from independently finalized route data before the V2 layer sees it.
+- V2 may add a visual postmark per rendered FINAL step, but it may not create, reorder, infer, or promote route entries.
+- The letter-back header states how many verified handoffs are present and reminds the viewer that pending activity never writes on the artifact.
+- Demo route marks remain explicitly PRACTICE / not on record.
+- Human carrier marks shown on a route step remain subject to the Gate 5 authorization/privacy rules.
+- The same route artifact must remain readable on mobile and under reduced motion.
