@@ -26,10 +26,10 @@
 
     const card = onboardingCard(
       "wallet-onboarding-create",
-      "First-time destination",
-      "No separate NimCarry signup.",
-      "NimCarry uses Nimiq wallet identity instead of an email/password account. The destination must have a Nimiq address before the mission starts because ARRIVED is verified against that private destination wallet. If they are new to Nimiq, set up a wallet first, then paste the NQ… address here.",
-      `${link(NIMIQ_WALLET_URL, "Create Nimiq wallet", "button secondary")}${link(NIMIQ_PAY_URL, "Get Nimiq Pay", "button ghost")}`,
+      "Protocol step",
+      "Your NimCarry profile and your Nimiq wallet are different things.",
+      "You can be a NimCarry user with just your name and email. A Nimiq wallet is required only when you create or accept custody, pass the 1 NIM baton, or become the verified destination. This mission still needs a known Nimiq destination because ARRIVED is verified against that private wallet.",
+      `${link(NIMIQ_WALLET_URL, "Create Nimiq wallet", "button secondary")}${link(NIMIQ_PAY_URL, "Open Nimiq Pay", "button ghost")}`,
     );
 
     form.parentElement?.insertBefore(card, form);
@@ -45,9 +45,9 @@
 
     const card = onboardingCard(
       "wallet-onboarding-invite",
-      "New to Nimiq?",
-      "You can still accept this route.",
-      "You do not need a NimCarry account. Create or connect a Nimiq wallet in Nimiq Pay, then reopen this same private invitation. Your wallet is bound to the mission only when you choose Accept as bridge.",
+      "Human first",
+      "You can join NimCarry before you have Nimiq.",
+      "A name + email NimCarry profile does not move funds and does not create custody. When you choose Accept as bridge, connect or create a Nimiq wallet in Nimiq Pay; that signed wallet authorization is what can bind you to the protocol.",
       `${link(NIMIQ_PAY_URL, "Set up Nimiq Pay", "button secondary")}${link(NIMIQ_WALLET_URL, "Create wallet", "button ghost")}`,
     );
 
@@ -63,7 +63,7 @@
     helper.id = "wallet-onboarding-share";
     helper.className = "warning";
     helper.style.marginTop = "14px";
-    helper.innerHTML = `Recipient has no wallet yet? No problem. Send the private invite, have them set up Nimiq Pay, then reopen the same invite. ${link(NIMIQ_PAY_URL, "Nimiq Pay setup", "button ghost")}`;
+    helper.innerHTML = `Recipient has no Nimiq wallet yet? They can still create a NimCarry profile from the invite first, then connect Nimiq Pay before accepting custody. ${link(NIMIQ_PAY_URL, "Nimiq Pay setup", "button ghost")}`;
     card.appendChild(helper);
   }
 
@@ -71,7 +71,7 @@
     if (!notice) return;
     const text = notice.textContent || "";
     if (!/No Nimiq account was shared by Nimiq Pay\./i.test(text)) return;
-    notice.textContent = "No Nimiq wallet is available yet. Set one up in Nimiq Pay, then return to this same page. NimCarry does not require a separate account.";
+    notice.textContent = "No Nimiq wallet is available yet. Your NimCarry profile can exist without one; set up a wallet in Nimiq Pay only when you are ready for a custody action.";
   }
 
   function enhance() {
