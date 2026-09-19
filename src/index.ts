@@ -15,6 +15,8 @@ import { MemoryIdempotencyStore } from "./service/idempotency.js";
 import { createMissionHttpServer } from "./service/mission-http-server.js";
 import { MemoryRateLimiter } from "./service/rate-limiter.js";
 import { createHttpServer } from "./service/http-server.js";
+import { createNimCarryHttpServer } from "./users/http.js";
+import type { UserDirectory } from "./users/user-directory.js";
 
 const port = Number(process.env.PORT ?? 8787);
 const defaultRpcUrl = process.env.NIMIQ_RPC_URL ?? "https://rpc.testnet.nimiqwatch.com";
@@ -31,7 +33,7 @@ async function main(): Promise<void> {
   const stores = await createRepositoryStores();
   const rpc = new ResilientNimiqRpcClient(rpcUrls.map((url) => new HttpNimiqRpcClient(url)));
   const relayService = new CanonicalRelayService(stores.relayStore, rpc);
-  const app = createApplicationServer(relayService, stores.missionRepository);
+  const app = createApplicationServer(relayService, stores.missionRepository, stores.userDirectory);
   registerMaintenance(app);
 
   app.server.listen(port, () => {
@@ -54,7 +56,11 @@ async function main(): Promise<void> {
   process.once("SIGTERM", () => void shutdown(0));
 }
 
-function createApplicationServer(relayService: CanonicalRelayService, postgresRepository: MissionRepository | null): Application {
+function createApplicationServer(
+  relayService: CanonicalRelayService,
+  postgresRepository: MissionRepository | null,
+  userDirectory: UserDirectory
+): Application {
   const missionStateFile = process.env.CARRY_ONE_MISSION_STATE_FILE;
   const encryptionKey = process.env.CARRY_ONE_TARGET_ENCRYPTION_KEY_B64URL;
   const hmacKey = process.env.CARRY_ONE_TARGET_HMAC_KEY_B64URL;
@@ -69,10 +75,21 @@ function createApplicationServer(relayService: CanonicalRelayService, postgresRe
   const canonicalOrigin = process.env.CARRY_ONE_CANONICAL_ORIGIN ?? `http://localhost:${port}`;
   const coordinator = new ReachMissionCoordinator(missions, repository, relayService, protector);
   const authorizer = new NimiqWalletAuthorizer(repository, canonicalOrigin);
+  const missionServer = createMissionHttpServer({
+    coordinator,
+    missions,
+    repository,
+    authorizer,
+    relay: relayService,
+    protector,
+    canonicalOrigin,
+    idempotency: new MemoryIdempotencyStore(),
+    limiter: new MemoryRateLimiter(),
+  });
 
   console.log(`Reach Mission HTTP bindings enabled (${postgresRepository ? "PostgreSQL" : `state: ${missionStateFile}`}, canonical origin: ${canonicalOrigin})`);
   return {
-    server: createMissionHttpServer({ coordinator, missions, repository, authorizer, relay: relayService, protector, canonicalOrigin, idempotency: new MemoryIdempotencyStore(), limiter: new MemoryRateLimiter() }),
+    server: createNimCarryHttpServer(missionServer, userDirectory, canonicalOrigin),
     sweep: () => repository.expireDueInvitations(Date.now()),
   };
 }

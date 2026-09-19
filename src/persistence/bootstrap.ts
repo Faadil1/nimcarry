@@ -1,5 +1,6 @@
 import { RelayStore } from "../core/relay.js";
 import type { MissionRepository } from "../mission/repository.js";
+import { MemoryUserDirectory, PgUserDirectory, type UserDirectory } from "../users/user-directory.js";
 import { FileRelayStore } from "./file-relay-store.js";
 import { PgPool, type PgPoolLike } from "./pg-pool.js";
 import { PgMissionRepository } from "./pg-mission-repository.js";
@@ -10,6 +11,7 @@ export type RepositoryMode = "postgres" | "file";
 export interface RepositoryStores {
   relayStore: RelayStore;
   missionRepository: MissionRepository | null;
+  userDirectory: UserDirectory;
   pool: PgPoolLike | null;
   close(): Promise<void>;
 }
@@ -26,10 +28,9 @@ export function resolveRepositoryMode(env: NodeJS.ProcessEnv = process.env): Rep
 }
 
 /**
- * Build the configured storage layer. In "file" mode this reproduces the
- * pre-Postgres wiring exactly (in-memory RelayStore, or FileRelayStore when
- * CARRY_ONE_RELAY_STATE_FILE is set). In "postgres" mode a single shared pool
- * backs both the durable PgRelayStore and the PgMissionRepository.
+ * Build the configured storage layer. In "file" mode mission/relay behavior
+ * remains unchanged and the human-user directory is process-local. Production
+ * Postgres mode persists user profiles and wallet links in Neon/PostgreSQL.
  */
 export async function createRepositoryStores(
   env: NodeJS.ProcessEnv = process.env,
@@ -49,6 +50,7 @@ export async function createRepositoryStores(
     return {
       relayStore,
       missionRepository: new PgMissionRepository(pool),
+      userDirectory: new PgUserDirectory(pool),
       pool,
       close: () => pool.close(),
     };
@@ -58,6 +60,7 @@ export async function createRepositoryStores(
   return {
     relayStore: relayStateFile ? new FileRelayStore(relayStateFile) : new RelayStore(),
     missionRepository: null,
+    userDirectory: new MemoryUserDirectory(),
     pool: null,
     close: async () => undefined,
   };

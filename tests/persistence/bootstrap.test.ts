@@ -6,6 +6,7 @@ import { RelayStore } from "../../src/core/relay.js";
 import { PgRelayStore } from "../../src/persistence/pg-relay-store.js";
 import { PgMissionRepository } from "../../src/persistence/pg-mission-repository.js";
 import { createRepositoryStores, resolveRepositoryMode } from "../../src/persistence/bootstrap.js";
+import { MemoryUserDirectory, PgUserDirectory } from "../../src/users/user-directory.js";
 
 const MIGRATION_PATH = join(import.meta.dirname!, "../../migrations/001_reach_mission_foundation.sql");
 
@@ -27,9 +28,10 @@ describe("repository mode resolution", () => {
 });
 
 describe("repository store bootstrap (file mode)", () => {
-  it("builds an in-memory RelayStore when no state file is configured", async () => {
+  it("builds in-memory relay + human user stores when no state file is configured", async () => {
     const stores = await createRepositoryStores({ CARRY_ONE_REPOSITORY: "file" });
     expect(stores.relayStore).toBeInstanceOf(RelayStore);
+    expect(stores.userDirectory).toBeInstanceOf(MemoryUserDirectory);
     expect(stores.pool).toBeNull();
     expect(stores.missionRepository).toBeNull();
     await stores.close();
@@ -42,7 +44,7 @@ describe("repository store bootstrap (postgres mode)", () => {
     await expect(stores).rejects.toThrow(/CARRY_ONE_DATABASE_URL or DATABASE_URL/);
   });
 
-  it("builds PgRelayStore + PgMissionRepository on a shared pool", async () => {
+  it("builds PgRelayStore + PgMissionRepository + PgUserDirectory on a shared pool", async () => {
     const pool = new PgMemPool();
     const sql = readFileSync(MIGRATION_PATH, "utf8");
     await pool.exec(sql);
@@ -57,6 +59,7 @@ describe("repository store bootstrap (postgres mode)", () => {
 
     expect(stores.relayStore).toBeInstanceOf(PgRelayStore);
     expect(stores.missionRepository).toBeInstanceOf(PgMissionRepository);
+    expect(stores.userDirectory).toBeInstanceOf(PgUserDirectory);
     expect(stores.pool).toBe(pool);
     await stores.close();
   });

@@ -4,14 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#183f36" />
-  <meta name="description" content="NimCarry helps Nimiq Pay users move warm introductions, referrals and opportunities toward one specific person through consenting human bridges." />
+  <meta name="description" content="NimCarry helps people move warm introductions, referrals and opportunities toward one specific person through consenting human bridges." />
   <meta property="og:title" content="NimCarry — People move opportunity forward." />
   <meta property="og:description" content="One destination. Real people. A warm introduction you can actually follow until it arrives." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="/social-card.svg" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="NimCarry — People move opportunity forward." />
-  <meta name="twitter:description" content="Human routes for warm introductions, referrals, opportunities and community access — powered by Nimiq Pay." />
+  <meta name="twitter:description" content="Human routes for warm introductions, referrals, opportunities and community access — with Nimiq Pay when custody moves." />
   <meta name="twitter:image" content="/social-card.svg" />
   <title>NimCarry — People move opportunity forward.</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -41,7 +41,7 @@
 
   <dialog id="wallet-dialog" class="wallet-dialog">
     <form method="dialog" id="wallet-form">
-      <div class="dialog-kicker">Nimiq Pay</div><h2>Choose the account you expect to use</h2><p>NimCarry binds authorization to this wallet identity, independently verifies any Nimiq Pay HTLC payment rail on-chain, and refuses payment unless TESTNET alignment is proven.</p><div id="wallet-options" class="wallet-options"></div><div class="dialog-actions"><button value="cancel" class="button ghost">Cancel</button><button id="wallet-confirm" value="default" class="button primary">Continue</button></div>
+      <div class="dialog-kicker">Nimiq Pay</div><h2>Choose the account you expect to use</h2><p>NimCarry binds protocol authorization to this wallet identity, independently verifies any Nimiq Pay HTLC payment rail on-chain, and refuses payment unless TESTNET alignment is proven.</p><div id="wallet-options" class="wallet-options"></div><div class="dialog-actions"><button value="cancel" class="button ghost">Cancel</button><button id="wallet-confirm" value="default" class="button primary">Continue</button></div>
     </form>
   </dialog>
 
@@ -54,6 +54,7 @@
   <script type="module" src="/http-compat.js"></script>
   <script type="module" src="/invitation-resume.js"></script>
   <script type="module" src="/app.js"></script>
+  <script type="module" src="/user-profile.js"></script>
   <script src="/network-label-guard.js" defer></script>
   <script src="/wallet-onboarding.js" defer></script>
   <script src="/winning-intelligence.js" defer></script>
