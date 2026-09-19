@@ -236,9 +236,10 @@ The public `main` branch is intentionally compact for judges and contributors:
 - `migrations/` — PostgreSQL schema and concurrency guards
 - `cloudflare/` — production Worker / Container runtime
 - `docs/` — concise architecture, release, submission, and README assets
+- `product-intelligence/` — public product hypotheses, experiments, LLM council prompts, monetization, visual, safety, and analytics planning
 - `scripts/` — local development, smoke, migration, and safety utilities
 
-Internal research, strategy notes, transcript analysis, judge Q&A, and operational handovers are intentionally not part of the current public tree.
+Raw private user research, sensitive transcripts, secrets, and operational handovers are intentionally not part of the public tree. Reusable product intelligence is kept public so assumptions and experiments remain inspectable.
 
 ---
 
@@ -263,6 +264,8 @@ npm run build
 - [Demo Video](https://youtu.be/SAyv8hyZG6Q)
 - [Live usage evidence](https://nimcarry.faadil-casecraft.workers.dev/real-usage)
 - [Real usage snapshot](docs/evidence/real-usage-2026-09-19.json)
+- [Continuous Product Intelligence](product-intelligence/README.md)
+- [LLM Product Council prompts](product-intelligence/LLM-COUNCIL/RUNBOOK.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Security](SECURITY.md)
 - [Release notes](docs/release/RELEASE-NOTES-V1.0.0.md)
