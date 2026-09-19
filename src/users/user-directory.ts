@@ -364,35 +364,39 @@ export class PgUserDirectory implements UserDirectory {
         "SELECT count(DISTINCT user_id)::text AS count FROM user_wallets WHERE verified_at IS NOT NULL"
       ),
       this.pool.query<{ count: string }>(
-        `SELECT count(DISTINCT uw.user_id)::text AS count
-         FROM user_wallets uw
-         WHERE uw.verified_at IS NOT NULL
-           AND (
-             EXISTS (
-               SELECT 1
-               FROM missions m
-               WHERE m.creator_wallet_normalized = uw.wallet_normalized
-                 AND m.created_at >= uw.verified_at
-             )
-             OR EXISTS (
-               SELECT 1
-               FROM invitations i
-               WHERE i.candidate_wallet_normalized = uw.wallet_normalized
-                 AND i.accepted_at IS NOT NULL
-                 AND i.accepted_at >= uw.verified_at
-             )
-             OR EXISTS (
-               SELECT 1
-               FROM hops h
-               WHERE h.status = 'FINAL'
-                 AND h.finalized_at IS NOT NULL
-                 AND h.finalized_at >= uw.verified_at
-                 AND (
-                   h.sender_wallet_normalized = uw.wallet_normalized
-                   OR h.recipient_wallet_normalized = uw.wallet_normalized
-                 )
-             )
-           )`
+        `SELECT count(*)::text AS count
+         FROM (
+           SELECT uw.user_id
+           FROM user_wallets uw
+           JOIN missions m
+             ON m.creator_wallet_normalized = uw.wallet_normalized
+            AND m.created_at >= uw.verified_at
+           WHERE uw.verified_at IS NOT NULL
+
+           UNION
+
+           SELECT uw.user_id
+           FROM user_wallets uw
+           JOIN invitations i
+             ON i.candidate_wallet_normalized = uw.wallet_normalized
+            AND i.accepted_at IS NOT NULL
+            AND i.accepted_at >= uw.verified_at
+           WHERE uw.verified_at IS NOT NULL
+
+           UNION
+
+           SELECT uw.user_id
+           FROM user_wallets uw
+           JOIN hops h
+             ON h.status = 'FINAL'
+            AND h.finalized_at IS NOT NULL
+            AND h.finalized_at >= uw.verified_at
+            AND (
+              h.sender_wallet_normalized = uw.wallet_normalized
+              OR h.recipient_wallet_normalized = uw.wallet_normalized
+            )
+           WHERE uw.verified_at IS NOT NULL
+         ) activated_users`
       ),
       this.pool.query<{ count: string }>(
         `SELECT count(DISTINCT uw.user_id)::text AS count
