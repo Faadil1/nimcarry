@@ -68,7 +68,7 @@ try {
     "privacy disclosure must cover profile data, deletion, and immutable protocol evidence"
   );
 
-  const usageEvidence = await get("/usage.html");
+  const usageEvidence = await get("/real-usage");
   record("usage-evidence-http-200", usageEvidence.response.ok, `${usageEvidence.response.status} in ${usageEvidence.ms}ms`);
   record(
     "usage-evidence-contract",
