@@ -5,6 +5,7 @@ import { getNimiqProvider } from "/nimiq-provider.js";
 
   const TOKEN_KEY = "nimcarry.userToken";
   const PROFILE_ID = "nimcarry-human-profile";
+  const PRIVACY_NOTICE_VERSION = "2026-09-19";
   let cachedProfile = null;
   let loading = false;
 
@@ -66,6 +67,10 @@ import { getNimiqProvider } from "/nimiq-provider.js";
       <form id="nimcarry-user-register" class="form-grid">
         <label>Name<input name="display_name" maxlength="80" autocomplete="name" required placeholder="Your name" /></label>
         <label>Email<input name="email" maxlength="254" autocomplete="email" type="email" required placeholder="you@example.com" /></label>
+        <label class="checkline">
+          <input name="privacy_consent" type="checkbox" required />
+          <span>I agree to NimCarry storing my name and email to create my profile and measure real product usage. My email is not public and does not authorize custody. <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy Notice</a>.</span>
+        </label>
         <button class="button secondary" type="submit">Create my NimCarry profile</button>
       </form>
       <small id="nimcarry-user-status">No Nimiq wallet required to register.</small>
@@ -89,10 +94,12 @@ import { getNimiqProvider } from "/nimiq-provider.js";
           ? `<span class="button ghost" aria-disabled="true">Wallet verified · ${esc(wallets[0]?.fingerprint || "NQ…")}</span>`
           : '<button id="nimcarry-link-wallet" class="button secondary" type="button">Connect Nimiq Pay when ready</button>'}
       </div>
-      <small>Email verification is not yet used for protocol authority. Wallet signatures remain the authority for custody.</small>
+      <small>Email verification is not used for protocol authority. Wallet signatures remain the authority for custody. <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy Notice</a>.</small>
+      <div class="button-row" style="margin-top:10px"><button id="nimcarry-delete-profile" class="button ghost" type="button">Delete my profile</button></div>
     `;
     host.appendChild(card);
     card.querySelector("#nimcarry-link-wallet")?.addEventListener("click", linkWallet);
+    card.querySelector("#nimcarry-delete-profile")?.addEventListener("click", deleteProfile);
   }
 
   async function registerUser(event) {
@@ -108,6 +115,8 @@ import { getNimiqProvider } from "/nimiq-provider.js";
         body: {
           display_name: String(form.get("display_name") || "").trim(),
           email: String(form.get("email") || "").trim(),
+          privacy_consent: form.get("privacy_consent") === "on",
+          privacy_notice_version: PRIVACY_NOTICE_VERSION,
         },
       });
       localStorage.setItem(TOKEN_KEY, profile.user_token);
@@ -119,6 +128,29 @@ import { getNimiqProvider } from "/nimiq-provider.js";
         status.textContent = error.reason === "EMAIL_ALREADY_REGISTERED"
           ? "That email already has a NimCarry profile on another browser/session. This build does not yet email recovery links."
           : (error.message || "Could not create profile.");
+      }
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function deleteProfile() {
+    if (loading) return;
+    if (!confirm("Delete your NimCarry profile? Linked wallet records and unused wallet-link challenges will be removed. Protocol records and public blockchain history are not rewritten.")) return;
+    loading = true;
+    try {
+      await userApi("/users/me", { method: "DELETE" });
+      localStorage.removeItem(TOKEN_KEY);
+      cachedProfile = null;
+      await refresh(true);
+    } catch (error) {
+      const host = document.querySelector(`#${PROFILE_ID}`);
+      if (host) {
+        const note = document.createElement("div");
+        note.className = "warning";
+        note.style.marginTop = "12px";
+        note.textContent = error.message || "Could not delete profile.";
+        host.appendChild(note);
       }
     } finally {
       loading = false;
