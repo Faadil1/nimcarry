@@ -16,6 +16,17 @@ describe("human-first user onboarding surface", () => {
     expect(profile).toContain("Name + email creates your NimCarry user profile.");
   });
 
+  it("persists only a minimal returning-user sign-in checkpoint across refreshes", () => {
+    expect(profile).toContain("nimcarry.signInProgress");
+    expect(profile).toContain("REQUESTING");
+    expect(profile).toContain("CODE_SENT");
+    expect(profile).toContain("VERIFYING");
+    expect(profile).toContain("restoreSignInProgress");
+    expect(profile).toContain("never persist the email address or one-time code");
+    expect(profile).toContain("challenge_id");
+    expect(profile).toContain("expires_at");
+  });
+
   it("keeps wallet linking explicit and signed through Nimiq Pay", () => {
     expect(profile).toContain('getNimiqProvider');
     expect(profile).toContain('"/users/wallet/challenge"');
