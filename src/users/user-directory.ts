@@ -31,6 +31,8 @@ export interface UserStats {
   registeredUsers: number;
   consentedUsers: number;
   walletLinkedUsers: number;
+  activatedUsers: number;
+  finalizedUsers: number;
   protocolParticipants: number;
 }
 
@@ -179,6 +181,8 @@ export class MemoryUserDirectory implements UserDirectory {
         (user) => user.privacyNoticeVersion === PRIVACY_NOTICE_VERSION && Number.isFinite(user.privacyConsentAt)
       ).length,
       walletLinkedUsers: new Set(this.walletToId.values()).size,
+      activatedUsers: 0,
+      finalizedUsers: 0,
       protocolParticipants: 0,
     };
   }
@@ -351,23 +355,69 @@ export class PgUserDirectory implements UserDirectory {
   }
 
   async stats(): Promise<UserStats> {
-    const [registered, consented, linked, participants] = await Promise.all([
+    const [registered, consented, linked, activated, finalized] = await Promise.all([
       this.pool.query<{ count: string }>("SELECT count(*)::text AS count FROM users"),
       this.pool.query<{ count: string }>(
         "SELECT count(*)::text AS count FROM users WHERE privacy_notice_version IS NOT NULL AND privacy_consent_at IS NOT NULL"
       ),
-      this.pool.query<{ count: string }>("SELECT count(DISTINCT user_id)::text AS count FROM user_wallets"),
+      this.pool.query<{ count: string }>(
+        "SELECT count(DISTINCT user_id)::text AS count FROM user_wallets WHERE verified_at IS NOT NULL"
+      ),
       this.pool.query<{ count: string }>(
         `SELECT count(DISTINCT uw.user_id)::text AS count
-         FROM participants p
-         JOIN user_wallets uw ON uw.wallet_normalized=p.wallet_normalized`
+         FROM user_wallets uw
+         WHERE uw.verified_at IS NOT NULL
+           AND (
+             EXISTS (
+               SELECT 1
+               FROM missions m
+               WHERE m.creator_wallet_normalized = uw.wallet_normalized
+                 AND m.created_at >= uw.verified_at
+             )
+             OR EXISTS (
+               SELECT 1
+               FROM invitations i
+               WHERE i.candidate_wallet_normalized = uw.wallet_normalized
+                 AND i.accepted_at IS NOT NULL
+                 AND i.accepted_at >= uw.verified_at
+             )
+             OR EXISTS (
+               SELECT 1
+               FROM hops h
+               WHERE h.status = 'FINAL'
+                 AND h.finalized_at IS NOT NULL
+                 AND h.finalized_at >= uw.verified_at
+                 AND (
+                   h.sender_wallet_normalized = uw.wallet_normalized
+                   OR h.recipient_wallet_normalized = uw.wallet_normalized
+                 )
+             )
+           )`
+      ),
+      this.pool.query<{ count: string }>(
+        `SELECT count(DISTINCT uw.user_id)::text AS count
+         FROM user_wallets uw
+         JOIN hops h
+           ON h.status = 'FINAL'
+          AND h.finalized_at IS NOT NULL
+          AND h.finalized_at >= uw.verified_at
+          AND (
+            h.sender_wallet_normalized = uw.wallet_normalized
+            OR h.recipient_wallet_normalized = uw.wallet_normalized
+          )
+         WHERE uw.verified_at IS NOT NULL`
       ),
     ]);
+    const activatedUsers = Number(activated.rows[0]?.count ?? 0);
     return {
       registeredUsers: Number(registered.rows[0]?.count ?? 0),
       consentedUsers: Number(consented.rows[0]?.count ?? 0),
       walletLinkedUsers: Number(linked.rows[0]?.count ?? 0),
-      protocolParticipants: Number(participants.rows[0]?.count ?? 0),
+      activatedUsers,
+      finalizedUsers: Number(finalized.rows[0]?.count ?? 0),
+      // Compatibility alias: protocol participation is now deliberately
+      // post-verification activation, so legacy test rows can never inflate it.
+      protocolParticipants: activatedUsers,
     };
   }
 }
