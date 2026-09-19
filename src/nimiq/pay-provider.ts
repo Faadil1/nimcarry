@@ -30,6 +30,14 @@ export class WrongWalletSelectionError extends Error {
   }
 }
 
+export class AmbiguousPaymentSourceError extends Error {
+  constructor(public accountCount: number) {
+    super(
+      `Nimiq Pay exposes ${accountCount} accounts, but the Mini App payment API cannot choose which account funds the transaction. NimCarry stopped before requesting 1 NIM.`
+    );
+  }
+}
+
 export interface NimiqPayProvider {
   sendPass(request: PassPaymentRequest): Promise<PassPaymentResult>;
 }
@@ -49,10 +57,12 @@ function shortWallet(value: string): string {
 
 /**
  * Real adapter over Nimiq Pay's injected provider. The provider cannot be
- * instructed which sender account to use for sendBasicTransactionWithData,
- * so Carry One performs an explicit account preflight. The server still
- * independently rejects a transaction whose actual sender is not the
- * canonical holder — this client check is UX protection, not trust.
+ * instructed which sender account to use for sendBasicTransactionWithData.
+ * Therefore a canonical pass is allowed only when exactly one Nimiq account
+ * is exposed to the Mini App and it is the expected holder. A distinct HTLC
+ * payment rail is still accepted only after independent on-chain proof.
+ * This client check protects the user from a wrong-account payment; the server
+ * remains the custody authority.
  */
 export class MiniAppSdkPayProvider implements NimiqPayProvider {
   private providerPromise: Promise<NimiqProvider> | null = null;
@@ -84,7 +94,16 @@ export class MiniAppSdkPayProvider implements NimiqPayProvider {
 
     const nimiq = await this.provider();
     const accounts = await nimiq.listAccounts();
-    if (!Array.isArray(accounts) || !accounts.some((account) => normalizedWalletText(account) === normalizedWalletText(expectedSender))) {
+    const uniqueAccounts = Array.isArray(accounts)
+      ? [...new Map(accounts.map((account) => [normalizedWalletText(account), account])).values()]
+      : [];
+    if (uniqueAccounts.length === 0) {
+      throw new WrongWalletSelectionError(expectedSender);
+    }
+    if (uniqueAccounts.length !== 1) {
+      throw new AmbiguousPaymentSourceError(uniqueAccounts.length);
+    }
+    if (normalizedWalletText(uniqueAccounts[0]) !== normalizedWalletText(expectedSender)) {
       throw new WrongWalletSelectionError(expectedSender);
     }
 
