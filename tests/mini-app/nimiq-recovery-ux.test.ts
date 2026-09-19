@@ -26,6 +26,13 @@ describe("Nimiq Pay fail-closed recovery UX", () => {
     expect(js).toContain("Do not resend the baton.");
   });
 
+  it("explains when a full validity-window recheck proves no broadcast", () => {
+    expect(js).toContain("Previous handoff safely closed");
+    expect(js).toContain("No baton moved.");
+    expect(js).toContain("No verified broadcast = no custody change");
+    expect(js).toContain("prepare a fresh handoff");
+  });
+
   it("gives safe recovery paths for cancellation, wrong account, provider, and contract failures", () => {
     expect(js).toContain("The handoff was cancelled.");
     expect(js).toContain("Use the current holder wallet.");
