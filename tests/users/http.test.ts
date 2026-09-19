@@ -42,12 +42,34 @@ afterEach(async () => {
 });
 
 describe("human user HTTP API", () => {
+  it("refuses profile creation without explicit current privacy consent", async () => {
+    const { base } = await listen();
+    const response = await json(base, "/users/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        display_name: "Yasmine",
+        email: "yasmine@example.com",
+        privacy_consent: true,
+        privacy_notice_version: "2026-09-19",
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ error: "PRIVACY_CONSENT_REQUIRED" });
+  });
+
   it("registers a user without a wallet and counts them immediately", async () => {
     const { base } = await listen();
     const registered = await json(base, "/users/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ display_name: "Yasmine", email: "yasmine@example.com" }),
+      body: JSON.stringify({
+        display_name: "Yasmine",
+        email: "yasmine@example.com",
+        privacy_consent: true,
+        privacy_notice_version: "2026-09-19",
+      }),
     });
 
     expect(registered.status).toBe(201);
@@ -72,7 +94,12 @@ describe("human user HTTP API", () => {
     const registered = await json(base, "/users/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ display_name: "Yasmine", email: "yasmine@example.com" }),
+      body: JSON.stringify({
+        display_name: "Yasmine",
+        email: "yasmine@example.com",
+        privacy_consent: true,
+        privacy_notice_version: "2026-09-19",
+      }),
     });
     const token = registered.body.user_token as string;
     const s = signer();
@@ -112,6 +139,37 @@ describe("human user HTTP API", () => {
 
     const stats = await json(base, "/users/stats");
     expect(stats.body.wallet_linked_users).toBe(1);
+  });
+
+  it("lets a user delete their profile with the profile token", async () => {
+    const { base } = await listen();
+    const registered = await json(base, "/users/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        display_name: "Yasmine",
+        email: "yasmine@example.com",
+        privacy_consent: true,
+        privacy_notice_version: "2026-09-19",
+      }),
+    });
+    const token = registered.body.user_token as string;
+
+    const deleted = await json(base, "/users/me", {
+      method: "DELETE",
+      headers: { "X-NimCarry-User-Token": token },
+    });
+    expect(deleted.status).toBe(200);
+    expect(deleted.body.deleted).toBe(true);
+
+    const stats = await json(base, "/users/stats");
+    expect(stats.body.registered_users).toBe(0);
+
+    const me = await json(base, "/users/me", {
+      headers: { "X-NimCarry-User-Token": token },
+    });
+    expect(me.status).toBe(401);
+    expect(me.body.error).toBe("USER_TOKEN_INVALID");
   });
 
   it("delegates non-user routes to the existing mission server unchanged", async () => {
