@@ -4,6 +4,7 @@ import { getNimiqProvider } from "/nimiq-provider.js";
   "use strict";
 
   const TOKEN_KEY = "nimcarry.userToken";
+  const SIGNIN_PROGRESS_KEY = "nimcarry.signInProgress";
   const PROFILE_ID = "nimcarry-human-profile";
   const PRIVACY_NOTICE_VERSION = "2026-09-19";
   let cachedProfile = null;
@@ -17,6 +18,72 @@ import { getNimiqProvider } from "/nimiq-provider.js";
   function userToken() {
     const token = localStorage.getItem(TOKEN_KEY);
     return token && /^[A-Za-z0-9_-]{32,}$/.test(token) ? token : null;
+  }
+
+  function clearSignInProgress() {
+    localStorage.removeItem(SIGNIN_PROGRESS_KEY);
+  }
+
+  function writeSignInProgress(stage, details = {}) {
+    const progress = {
+      stage,
+      challenge_id: typeof details.challenge_id === "string" ? details.challenge_id : null,
+      expires_at: Number.isFinite(Number(details.expires_at)) ? Number(details.expires_at) : null,
+      updated_at: Date.now(),
+    };
+    // Privacy boundary: never persist the email address or one-time code here.
+    localStorage.setItem(SIGNIN_PROGRESS_KEY, JSON.stringify(progress));
+    return progress;
+  }
+
+  function readSignInProgress() {
+    let progress = null;
+    try { progress = JSON.parse(localStorage.getItem(SIGNIN_PROGRESS_KEY) || "null"); }
+    catch { clearSignInProgress(); return null; }
+    if (!progress || !["REQUESTING", "CODE_SENT", "VERIFYING"].includes(progress.stage)) {
+      clearSignInProgress();
+      return null;
+    }
+    if (
+      ["CODE_SENT", "VERIFYING"].includes(progress.stage) &&
+      (!progress.challenge_id || !Number.isFinite(Number(progress.expires_at)))
+    ) {
+      clearSignInProgress();
+      return null;
+    }
+    if (
+      ["CODE_SENT", "VERIFYING"].includes(progress.stage) &&
+      Number(progress.expires_at) <= Date.now()
+    ) {
+      clearSignInProgress();
+      return { stage: "EXPIRED" };
+    }
+    return progress;
+  }
+
+  function restoreSignInProgress(card) {
+    const progress = readSignInProgress();
+    if (!progress) return;
+    const status = card.querySelector("#nimcarry-signin-status");
+    const verify = card.querySelector("#nimcarry-user-signin-verify");
+
+    if (progress.stage === "EXPIRED") {
+      if (status) status.textContent = "Your previous sign-in code expired. Request a new code to continue with the same profile.";
+      return;
+    }
+
+    if (progress.stage === "REQUESTING") {
+      if (status) status.textContent = "A previous sign-in request was interrupted before a code was confirmed. Request a fresh code to continue.";
+      return;
+    }
+
+    loginChallengeId = progress.challenge_id;
+    if (verify) verify.hidden = false;
+    if (status) {
+      status.textContent = progress.stage === "VERIFYING"
+        ? "Code verification was interrupted. Try the code once more. If it was already consumed, request a new code."
+        : "Resume sign-in: enter the 6-digit code already sent. This step survives refresh until the code expires.";
+    }
   }
 
   async function userApi(path, { method = "GET", body } = {}) {
@@ -95,6 +162,7 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     card.querySelector("#nimcarry-user-signin-request")?.addEventListener("submit", requestSignIn);
     card.querySelector("#nimcarry-user-signin-verify")?.addEventListener("submit", verifySignIn);
     card.querySelector("#nimcarry-user-register")?.addEventListener("submit", registerUser);
+    restoreSignInProgress(card);
   }
 
   function renderProfile(host, profile) {
@@ -126,6 +194,7 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     loading = true;
     const status = document.querySelector("#nimcarry-signin-status");
     if (status) status.textContent = "Sending code…";
+    writeSignInProgress("REQUESTING");
     try {
       const form = new FormData(event.currentTarget);
       const result = await userApi("/users/auth/request", {
@@ -133,11 +202,20 @@ import { getNimiqProvider } from "/nimiq-provider.js";
         body: { email: String(form.get("email") || "").trim() },
       });
       loginChallengeId = result.challenge_id;
+      const expiresAt = Number.isFinite(Date.parse(String(result.expires_at || "")))
+        ? Date.parse(String(result.expires_at))
+        : Date.now() + (Number(result.expires_in_seconds) || 600) * 1000;
+      writeSignInProgress("CODE_SENT", {
+        challenge_id: loginChallengeId,
+        expires_at: expiresAt,
+      });
       const verify = document.querySelector("#nimcarry-user-signin-verify");
       if (verify) verify.hidden = false;
       verify?.querySelector('input[name="code"]')?.focus();
       if (status) status.textContent = "If that email belongs to a NimCarry profile, a 6-digit code has been sent. It expires in 10 minutes.";
     } catch (error) {
+      clearSignInProgress();
+      loginChallengeId = null;
       if (status) {
         status.textContent = error.reason === "EMAIL_DELIVERY_NOT_CONFIGURED"
           ? "Returning-user email sign-in is being configured. Your existing profile is safe; try again shortly."
@@ -154,6 +232,11 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     loading = true;
     const status = document.querySelector("#nimcarry-signin-status");
     if (status) status.textContent = "Checking code…";
+    const currentProgress = readSignInProgress();
+    writeSignInProgress("VERIFYING", {
+      challenge_id: loginChallengeId,
+      expires_at: currentProgress?.expires_at || (Date.now() + 10 * 60 * 1000),
+    });
     try {
       const form = new FormData(event.currentTarget);
       const profile = await userApi("/users/auth/verify", {
@@ -166,15 +249,31 @@ import { getNimiqProvider } from "/nimiq-provider.js";
       localStorage.setItem(TOKEN_KEY, profile.user_token);
       cachedProfile = profile;
       loginChallengeId = null;
+      clearSignInProgress();
       await refresh(true);
       dispatchEvent(new CustomEvent("nimcarry:user-ready", { detail: { user_id: profile.user_id, returning: true } }));
     } catch (error) {
+      const terminal = ["LOGIN_CODE_EXPIRED", "LOGIN_CODE_LOCKED", "LOGIN_CODE_REPLAY"].includes(error.reason);
+      if (terminal) {
+        clearSignInProgress();
+        loginChallengeId = null;
+        const verify = document.querySelector("#nimcarry-user-signin-verify");
+        if (verify) verify.hidden = true;
+      } else {
+        const progress = readSignInProgress();
+        writeSignInProgress("CODE_SENT", {
+          challenge_id: loginChallengeId,
+          expires_at: progress?.expires_at || (Date.now() + 10 * 60 * 1000),
+        });
+      }
       if (status) {
         status.textContent = error.reason === "LOGIN_CODE_EXPIRED"
           ? "That code expired. Request a new one."
           : error.reason === "LOGIN_CODE_LOCKED"
             ? "Too many incorrect attempts. Request a new code."
-            : (error.message || "Could not sign in.");
+            : error.reason === "LOGIN_CODE_REPLAY"
+              ? "That code was already used. Request a new code to restore this browser."
+              : (error.message || "Could not sign in.");
       }
     } finally {
       loading = false;

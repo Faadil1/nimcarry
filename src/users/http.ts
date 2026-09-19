@@ -164,10 +164,10 @@ async function handleUsers(
     }
 
     const id = randomUUID();
+    const now = Date.now();
+    const expiresAt = now + LOGIN_CODE_TTL_MS;
     const profile = await directory.findByEmail(email);
     if (profile) {
-      const now = Date.now();
-      const expiresAt = now + LOGIN_CODE_TTL_MS;
       const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
       await directory.createLoginChallenge({
         id,
@@ -190,6 +190,7 @@ async function handleUsers(
       challenge_id: id,
       message: "If that email belongs to a NimCarry profile, a 6-digit sign-in code has been sent.",
       expires_in_seconds: Math.floor(LOGIN_CODE_TTL_MS / 1000),
+      expires_at: new Date(expiresAt).toISOString(),
     });
   }
 

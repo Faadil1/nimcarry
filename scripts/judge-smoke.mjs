@@ -126,6 +126,15 @@ try {
     "existing profiles must have a real returning-user path rather than forcing duplicate signup"
   );
   record(
+    "returning-signin-resume-contract",
+    /nimcarry\.signInProgress/.test(userProfileAsset?.text || "") &&
+      /REQUESTING/.test(userProfileAsset?.text || "") &&
+      /CODE_SENT/.test(userProfileAsset?.text || "") &&
+      /VERIFYING/.test(userProfileAsset?.text || "") &&
+      /restoreSignInProgress/.test(userProfileAsset?.text || ""),
+    "returning-user sign-in must resume the correct checkpoint after refresh without duplicating the profile"
+  );
+  record(
     "wallet-provider-guidance-contract",
     /nimcarry-wallet-link-notice/.test(userProfileAsset?.text || "") &&
       /Open NimCarry inside Nimiq Pay to connect your wallet/.test(userProfileAsset?.text || ""),
@@ -136,7 +145,8 @@ try {
   const authRequestPass =
     authRequestProbe.response.status === 202 &&
     authRequestProbe.payload?.accepted === true &&
-    /^[0-9a-f-]{36}$/i.test(String(authRequestProbe.payload?.challenge_id || ""));
+    /^[0-9a-f-]{36}$/i.test(String(authRequestProbe.payload?.challenge_id || "")) &&
+    Number.isFinite(Date.parse(String(authRequestProbe.payload?.expires_at || "")));
   record(
     "returning-auth-request-contract",
     authRequestPass,

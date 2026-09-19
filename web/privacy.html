@@ -18,7 +18,7 @@
 
       <h2>What we collect</h2>
       <p>When you create a NimCarry profile, we store your name and email, the version and time of your privacy consent, technical profile timestamps, and one-way hashes of private profile/session tokens. Your email is not public and is not used to authorize custody.</p>
-      <p>When you sign in as a returning user, NimCarry uses your email to deliver a short-lived one-time code. We store the code only as a one-way keyed hash together with its expiry, attempt count, and used/unused state. A successful code verifies the email for profile recovery and creates a separate browser session without replacing your other active sessions.</p>
+      <p>When you sign in as a returning user, NimCarry uses your email to deliver a short-lived one-time code. We store the code only as a one-way keyed hash together with its expiry, attempt count, and used/unused state. A successful code verifies the email for profile recovery and creates a separate browser session without replacing your other active sessions. To let an interrupted sign-in resume after a refresh, the browser may temporarily keep only the sign-in stage, an opaque challenge identifier, and its expiry; NimCarry does not store the email address or one-time code in that browser checkpoint.</p>
       <p>If you later link Nimiq, we store the verified wallet address and short-lived wallet-link challenge records. If you take protocol actions, mission, participant, custody, finality, and related audit records may also be stored.</p>
 
       <h2>Why we use it</h2>
