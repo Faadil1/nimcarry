@@ -134,7 +134,28 @@ try {
   await page.waitForURL(/\/mission\/[^/]+$/, { timeout: 8_000 });
   await page.locator("#pass-button").waitFor({ state: "visible", timeout: 8_000 });
   mark("shot20_destination_accepted");
-  await sleep(1_500);
+  await sleep(850);
+
+  // Shot 21: B -> C practice handoff, captured only as presentation UI.
+  await page.locator("#pass-button").click();
+  await page.waitForURL(/\/mission\/[^/]+\/pass/, { timeout: 8_000 });
+  await page.locator("#send").waitFor({ state: "visible", timeout: 8_000 });
+  await page.locator("#send").evaluate((element) => {
+    element.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
+  });
+  mark("shot21_second_handoff_ready");
+  await sleep(1_000);
+
+  await page.locator("#send").click();
+  await page.locator('.clv2-wax-scene[data-phase="verification-pending"]').waitFor({ state: "visible", timeout: 4_000 });
+  mark("shot21_second_handoff_warm_wax");
+  await sleep(1_250);
+
+  await page.locator('.clv2-wax-scene[data-phase="final"]').waitFor({ state: "visible", timeout: 6_000 });
+  await page.waitForURL(/\/mission\/[^/]+\/route/, { timeout: 8_000 });
+  await page.locator(".hc-arrived-moment").waitFor({ state: "visible", timeout: 8_000 });
+  mark("shot21_practice_arrived");
+  await sleep(1_000);
 
   const state = await page.evaluate(() => ({
     path: location.pathname,
@@ -157,7 +178,7 @@ try {
       generated_at: new Date().toISOString(),
       source: `${baseUrl}/?demo=1&tour=1&reset=1`,
       mode: "LIVE_PRODUCTION_RUNTIME_GUIDED_PRACTICE",
-      truth_boundary: "Shots 09–20 are guided-practice UI capture. Practice postmarks are presentation only; FINAL/ARRIVED proof must come from the real TESTNET run.",
+      truth_boundary: "Shots 09–21 are guided-practice UI capture. Shot 21 practice FINAL/ARRIVED is presentation-only; real FINAL/ARRIVED proof comes from the verified TESTNET run.",
       viewport,
       marks,
       final_state: state,
@@ -169,7 +190,7 @@ try {
   throw error;
 }
 
-const webmPath = join(outputRoot, "shots-09-20-live-practice.webm");
+const webmPath = join(outputRoot, "shots-09-21-live-practice.webm");
 if (!video) throw new Error("Playwright video handle unavailable");
 
 // Playwright finalizes video when the page closes. Start saveAs before
