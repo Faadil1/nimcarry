@@ -10,6 +10,7 @@ interface IntentRow {
   recipient_wallet_normalized: string;
   nonce: string;
   recipient_data: string;
+  authorized_payment_wallets: string[] | null;
   created_at: Date;
 }
 
@@ -36,6 +37,9 @@ function intentFromRow(row: IntentRow): PassIntent {
     recipient: row.recipient_wallet_normalized,
     nonce: row.nonce,
     recipientData: row.recipient_data,
+    authorizedPaymentWallets: row.authorized_payment_wallets?.length
+      ? row.authorized_payment_wallets
+      : [row.current_holder_wallet_normalized],
     createdAt: row.created_at.getTime(),
   };
 }
@@ -130,15 +134,16 @@ export class PgRelayStore extends RelayStore {
           await client.query(
             `INSERT INTO pass_intents
               (mission_id, invitation_id, sequence, current_holder_wallet_normalized,
-               recipient_wallet_normalized, nonce, recipient_data, created_at)
+               recipient_wallet_normalized, nonce, recipient_data, authorized_payment_wallets, created_at)
              VALUES ($1,(SELECT id FROM invitations WHERE mission_id=$1 AND sequence=$2 LIMIT 1),
-                     $2,$3,$4,$5,$6,$7)
+                     $2,$3,$4,$5,$6,$7,$8)
              ON CONFLICT (mission_id) DO UPDATE SET
                sequence=EXCLUDED.sequence,
                current_holder_wallet_normalized=EXCLUDED.current_holder_wallet_normalized,
                recipient_wallet_normalized=EXCLUDED.recipient_wallet_normalized,
                nonce=EXCLUDED.nonce,
                recipient_data=EXCLUDED.recipient_data,
+               authorized_payment_wallets=EXCLUDED.authorized_payment_wallets,
                created_at=EXCLUDED.created_at`,
             [
               intent.batonId,
@@ -147,6 +152,7 @@ export class PgRelayStore extends RelayStore {
               intent.recipient,
               intent.nonce,
               intent.recipientData,
+              intent.authorizedPaymentWallets,
               new Date(intent.createdAt),
             ]
           );
