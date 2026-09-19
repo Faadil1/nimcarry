@@ -216,6 +216,8 @@ describe("human user HTTP API", () => {
     });
     expect(requested.status).toBe(202);
     expect(requested.body.challenge_id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(Date.parse(requested.body.expires_at)).toBeGreaterThan(Date.now());
+    expect(requested.body.expires_in_seconds).toBe(600);
     expect(sentLoginCodes).toHaveLength(1);
     expect(sentLoginCodes[0].to).toBe("returning@example.com");
     expect(sentLoginCodes[0].code).toMatch(/^\d{6}$/);
@@ -260,6 +262,8 @@ describe("human user HTTP API", () => {
     expect(response.status).toBe(202);
     expect(response.body).toMatchObject({ accepted: true });
     expect(response.body.challenge_id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(Date.parse(response.body.expires_at)).toBeGreaterThan(Date.now());
+    expect(response.body.expires_in_seconds).toBe(600);
     expect(sentLoginCodes).toHaveLength(0);
   });
 
