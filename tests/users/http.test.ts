@@ -79,6 +79,7 @@ describe("human user HTTP API", () => {
     const stats = await json(base, "/users/stats");
     expect(stats.body).toMatchObject({
       registered_users: 1,
+      consented_users: 1,
       wallet_linked_users: 0,
       protocol_participants: 0,
     });

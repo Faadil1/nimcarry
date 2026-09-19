@@ -34,6 +34,7 @@ describe("human user directory", () => {
     expect(await directory.walletsForUser(profile.id)).toEqual([]);
     expect(await directory.stats()).toEqual({
       registeredUsers: 1,
+      consentedUsers: 1,
       walletLinkedUsers: 0,
       protocolParticipants: 0,
     });
