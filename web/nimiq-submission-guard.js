@@ -82,6 +82,14 @@
           location.assign(routePath(id));
           return true;
         }
+        if (hopStatus === "INVALID") {
+          clearMarker(id);
+          setNotice(
+            "NO_BROADCAST_CONFIRMED: the previous handoff validity window ended without an independently verified matching transaction. Custody did not change. Return to the mission and prepare a fresh handoff.",
+            true
+          );
+          return false;
+        }
         await sleep(POLL_MS);
       }
       const marker = readMarker(id) || writeMarker(id);
