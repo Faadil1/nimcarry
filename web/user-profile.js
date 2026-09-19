@@ -8,6 +8,7 @@ import { getNimiqProvider } from "/nimiq-provider.js";
   const PRIVACY_NOTICE_VERSION = "2026-09-19";
   let cachedProfile = null;
   let loading = false;
+  let loginChallengeId = null;
 
   const esc = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;",
@@ -61,9 +62,24 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     card.id = PROFILE_ID;
     card.className = "card human-profile-card";
     card.innerHTML = `
-      <div class="kicker">Human first</div>
-      <h3>Join NimCarry without a wallet.</h3>
-      <p>Name + email creates your NimCarry user profile. A Nimiq wallet is only required later for custody actions such as accepting, holding, or passing the 1 NIM baton.</p>
+      <div class="kicker">Returning user</div>
+      <h3>Already have a NimCarry profile?</h3>
+      <p>Use the same email you registered with. We’ll send a 6-digit code so you can restore your existing profile on this browser or inside Nimiq Pay.</p>
+      <form id="nimcarry-user-signin-request" class="form-grid">
+        <label>Email<input name="email" maxlength="254" autocomplete="email" type="email" required placeholder="you@example.com" /></label>
+        <button class="button secondary" type="submit">Send sign-in code</button>
+      </form>
+      <form id="nimcarry-user-signin-verify" class="form-grid" hidden style="margin-top:12px">
+        <label>6-digit code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="123456" /></label>
+        <button class="button secondary" type="submit">Sign in to my profile</button>
+      </form>
+      <small id="nimcarry-signin-status">Returning users keep the same profile, history, and linked wallets.</small>
+
+      <div style="margin:22px 0 18px;border-top:1px solid var(--line,#d8cbbb);padding-top:18px">
+        <div class="kicker">New to NimCarry?</div>
+        <h3>Create your profile without a wallet.</h3>
+        <p>Name + email creates your NimCarry user profile. A Nimiq wallet is only required later for custody actions such as accepting, holding, or passing the 1 NIM baton.</p>
+      </div>
       <form id="nimcarry-user-register" class="form-grid">
         <label>Name<input name="display_name" maxlength="80" autocomplete="name" required placeholder="Your name" /></label>
         <label>Email<input name="email" maxlength="254" autocomplete="email" type="email" required placeholder="you@example.com" /></label>
@@ -76,6 +92,8 @@ import { getNimiqProvider } from "/nimiq-provider.js";
       <small id="nimcarry-user-status">No Nimiq wallet required to register.</small>
     `;
     host.appendChild(card);
+    card.querySelector("#nimcarry-user-signin-request")?.addEventListener("submit", requestSignIn);
+    card.querySelector("#nimcarry-user-signin-verify")?.addEventListener("submit", verifySignIn);
     card.querySelector("#nimcarry-user-register")?.addEventListener("submit", registerUser);
   }
 
@@ -94,12 +112,73 @@ import { getNimiqProvider } from "/nimiq-provider.js";
           ? `<span class="button ghost" aria-disabled="true">Wallet verified · ${esc(wallets[0]?.fingerprint || "NQ…")}</span>`
           : '<button id="nimcarry-link-wallet" class="button secondary" type="button">Connect Nimiq Pay when ready</button>'}
       </div>
-      <small>Email verification is not used for protocol authority. Wallet signatures remain the authority for custody. <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy Notice</a>.</small>
+      <small>${profile.email_verified ? "Email verified for profile recovery." : "Email not verified yet."} Email is never protocol authority; wallet signatures remain the authority for custody. <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy Notice</a>.</small>
       <div class="button-row" style="margin-top:10px"><button id="nimcarry-delete-profile" class="button ghost" type="button">Delete my profile</button></div>
     `;
     host.appendChild(card);
     card.querySelector("#nimcarry-link-wallet")?.addEventListener("click", linkWallet);
     card.querySelector("#nimcarry-delete-profile")?.addEventListener("click", deleteProfile);
+  }
+
+  async function requestSignIn(event) {
+    event.preventDefault();
+    if (loading) return;
+    loading = true;
+    const status = document.querySelector("#nimcarry-signin-status");
+    if (status) status.textContent = "Sending code…";
+    try {
+      const form = new FormData(event.currentTarget);
+      const result = await userApi("/users/auth/request", {
+        method: "POST",
+        body: { email: String(form.get("email") || "").trim() },
+      });
+      loginChallengeId = result.challenge_id;
+      const verify = document.querySelector("#nimcarry-user-signin-verify");
+      if (verify) verify.hidden = false;
+      verify?.querySelector('input[name="code"]')?.focus();
+      if (status) status.textContent = "If that email belongs to a NimCarry profile, a 6-digit code has been sent. It expires in 10 minutes.";
+    } catch (error) {
+      if (status) {
+        status.textContent = error.reason === "EMAIL_DELIVERY_NOT_CONFIGURED"
+          ? "Returning-user email sign-in is being configured. Your existing profile is safe; try again shortly."
+          : (error.message || "Could not send sign-in code.");
+      }
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function verifySignIn(event) {
+    event.preventDefault();
+    if (loading || !loginChallengeId) return;
+    loading = true;
+    const status = document.querySelector("#nimcarry-signin-status");
+    if (status) status.textContent = "Checking code…";
+    try {
+      const form = new FormData(event.currentTarget);
+      const profile = await userApi("/users/auth/verify", {
+        method: "POST",
+        body: {
+          challenge_id: loginChallengeId,
+          code: String(form.get("code") || "").trim(),
+        },
+      });
+      localStorage.setItem(TOKEN_KEY, profile.user_token);
+      cachedProfile = profile;
+      loginChallengeId = null;
+      await refresh(true);
+      dispatchEvent(new CustomEvent("nimcarry:user-ready", { detail: { user_id: profile.user_id, returning: true } }));
+    } catch (error) {
+      if (status) {
+        status.textContent = error.reason === "LOGIN_CODE_EXPIRED"
+          ? "That code expired. Request a new one."
+          : error.reason === "LOGIN_CODE_LOCKED"
+            ? "Too many incorrect attempts. Request a new code."
+            : (error.message || "Could not sign in.");
+      }
+    } finally {
+      loading = false;
+    }
   }
 
   async function registerUser(event) {
@@ -126,7 +205,7 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     } catch (error) {
       if (status) {
         status.textContent = error.reason === "EMAIL_ALREADY_REGISTERED"
-          ? "That email already has a NimCarry profile on another browser/session. This build does not yet email recovery links."
+          ? "That email already has a NimCarry profile. Use “Returning user” above to sign in instead of creating another account."
           : (error.message || "Could not create profile.");
       }
     } finally {

@@ -16,6 +16,7 @@ import { createMissionHttpServer } from "./service/mission-http-server.js";
 import { MemoryRateLimiter } from "./service/rate-limiter.js";
 import { createHttpServer } from "./service/http-server.js";
 import { createNimCarryHttpServer } from "./users/http.js";
+import { createUserEmailSender } from "./users/email-sender.js";
 import type { UserDirectory } from "./users/user-directory.js";
 
 const port = Number(process.env.PORT ?? 8787);
@@ -89,7 +90,13 @@ function createApplicationServer(
 
   console.log(`Reach Mission HTTP bindings enabled (${postgresRepository ? "PostgreSQL" : `state: ${missionStateFile}`}, canonical origin: ${canonicalOrigin})`);
   return {
-    server: createNimCarryHttpServer(missionServer, userDirectory, canonicalOrigin),
+    server: createNimCarryHttpServer(
+      missionServer,
+      userDirectory,
+      canonicalOrigin,
+      createUserEmailSender(process.env),
+      process.env.CARRY_ONE_TARGET_HMAC_KEY_B64URL ?? ""
+    ),
     sweep: () => repository.expireDueInvitations(Date.now()),
   };
 }
