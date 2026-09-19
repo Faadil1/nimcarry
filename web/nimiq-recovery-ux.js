@@ -148,15 +148,15 @@
       };
     }
 
-    if (/payment_source_ambiguous/.test(lower)) {
+    if (/payment_source_unverified|payment_source_ambiguous/.test(lower)) {
       return {
         kind: "account",
-        eyebrow: "Payment source needs one clear account",
+        eyebrow: "Verify the payment wallet first",
         title: "NimCarry stopped before requesting 1 NIM.",
-        body: "Nimiq Pay currently exposes more than one account, while the Mini App payment API cannot choose which account will fund the transaction. Keep only the current holder account available to this Mini App, then retry.",
-        primary: ["Retry account check", location.pathname],
+        body: "Nimiq Pay exposes a wallet that was not in this pass's verified same-profile payment set. Link that wallet to your NimCarry profile, then return and authorize a fresh pass. The canonical holder does not change.",
+        primary: ["Manage verified wallets", "/"],
         secondary: ["Run provider check", providerCheckPath()],
-        rule: "One signed holder · one available payment account",
+        rule: "Holder authorizes · verified wallet may pay · FINAL moves custody",
       };
     }
 
