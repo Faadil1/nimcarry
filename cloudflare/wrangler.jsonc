@@ -8,7 +8,8 @@
     "head_sampling_rate": 1
   },
   "vars": {
-    "CARRY_ONE_CANONICAL_ORIGIN": "https://nimcarry.faadil-casecraft.workers.dev"
+    "CARRY_ONE_CANONICAL_ORIGIN": "https://nimcarry.faadil-casecraft.workers.dev",
+    "NIMCARRY_EMAIL_FROM": "NimCarry <signin@nimcarry.dynv6.net>"
   },
   "secrets": {
     "required": [
