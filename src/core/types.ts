@@ -18,6 +18,12 @@ export interface PassIntent {
   sequence: number; // expected next hop number
   currentHolder: string; // wallet identity authorized to make this pass
   recipient: string; // intended next holder
+  /**
+   * Frozen at AUTHORIZE_PASS. The holder remains the custody authority, but
+   * any wallet in this snapshot may fund the exact committed 1 NIM payment.
+   * The set is never expanded during later reconciliation.
+   */
+  authorizedPaymentWallets: string[];
   nonce: string; // uniqueness guard against duplicate/replayed intents
   /**
    * Reach Mission production flows bind the pass to an opaque on-chain
