@@ -78,6 +78,7 @@ export class MiniAppSdkPayProvider implements NimiqPayProvider {
 
   async sendPass({
     expectedSender,
+    authorizedPaymentWallets = [],
     recipient,
     amountLuna,
     data,
@@ -103,8 +104,7 @@ export class MiniAppSdkPayProvider implements NimiqPayProvider {
       throw new WrongWalletSelectionError(expectedSender);
     }
 
-    const allowed = [expectedSender, ...(arguments[0].authorizedPaymentWallets ?? [])]
-      .map(normalizedWalletText);
+    const allowed = [expectedSender, ...authorizedPaymentWallets].map(normalizedWalletText);
     const allowedSet = new Set(allowed);
     const unverified = uniqueAccounts.filter((account) => !allowedSet.has(normalizedWalletText(account)));
     if (unverified.length > 0) {
