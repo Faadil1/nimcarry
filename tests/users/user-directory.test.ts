@@ -53,6 +53,8 @@ describe("human user directory", () => {
       email: "PERSON@example.com",
       displayName: "Other",
       tokenHash: profileTokenHash(newProfileToken()),
+      privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
+      privacyConsentAt: Date.now(),
     })).rejects.toMatchObject({ reason: "EMAIL_ALREADY_REGISTERED" });
   });
 
