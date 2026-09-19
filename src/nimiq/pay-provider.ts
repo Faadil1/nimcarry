@@ -104,14 +104,15 @@ export class MiniAppSdkPayProvider implements NimiqPayProvider {
       throw new WrongWalletSelectionError(expectedSender);
     }
 
+    const expectedKey = normalizedWalletText(expectedSender);
+    if (!uniqueAccounts.some((account) => normalizedWalletText(account) === expectedKey)) {
+      throw new WrongWalletSelectionError(expectedSender);
+    }
     const allowed = [expectedSender, ...authorizedPaymentWallets].map(normalizedWalletText);
     const allowedSet = new Set(allowed);
     const unverified = uniqueAccounts.filter((account) => !allowedSet.has(normalizedWalletText(account)));
     if (unverified.length > 0) {
       throw new UnverifiedPaymentSourceError(unverified);
-    }
-    if (!uniqueAccounts.some((account) => normalizedWalletText(account) === normalizedWalletText(expectedSender))) {
-      throw new WrongWalletSelectionError(expectedSender);
     }
 
     const result = await nimiq.sendBasicTransactionWithData({
