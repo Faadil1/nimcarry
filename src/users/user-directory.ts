@@ -58,6 +58,7 @@ export interface RegisterUserInput {
 export interface UserDirectory {
   register(input: RegisterUserInput): Promise<UserProfile>;
   getByTokenHash(tokenHash: string): Promise<UserProfile | undefined>;
+  getById(userId: string): Promise<UserProfile | undefined>;
   getByEmail(email: string): Promise<UserProfile | undefined>;
   createSession(userId: string, tokenHash: string, now?: number): Promise<void>;
   markEmailVerified(userId: string, now?: number): Promise<void>;
@@ -143,6 +144,11 @@ export class MemoryUserDirectory implements UserDirectory {
   async getByTokenHash(tokenHash: string): Promise<UserProfile | undefined> {
     const id = this.tokenToId.get(tokenHash);
     const profile = id ? this.users.get(id) : undefined;
+    return profile ? { ...profile } : undefined;
+  }
+
+  async getById(userId: string): Promise<UserProfile | undefined> {
+    const profile = this.users.get(userId);
     return profile ? { ...profile } : undefined;
   }
 
@@ -425,6 +431,11 @@ export class PgUserDirectory implements UserDirectory {
     if (result.rows.length) return fromRow(result.rows[0]);
     const legacy = await this.pool.query<UserRow>("SELECT * FROM users WHERE profile_token_hash=$1", [tokenHash]);
     return legacy.rows.length ? fromRow(legacy.rows[0]) : undefined;
+  }
+
+  async getById(userId: string): Promise<UserProfile | undefined> {
+    const result = await this.pool.query<UserRow>("SELECT * FROM users WHERE id=$1", [userId]);
+    return result.rows.length ? fromRow(result.rows[0]) : undefined;
   }
 
   async getByEmail(email: string): Promise<UserProfile | undefined> {
