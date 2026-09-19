@@ -8,6 +8,7 @@ import { getNimiqProvider } from "/nimiq-provider.js";
   const PRIVACY_NOTICE_VERSION = "2026-09-19";
   let cachedProfile = null;
   let loading = false;
+  let pendingLoginRequest = null;
 
   const esc = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;",
@@ -62,21 +63,124 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     card.className = "card human-profile-card";
     card.innerHTML = `
       <div class="kicker">Human first</div>
-      <h3>Join NimCarry without a wallet.</h3>
-      <p>Name + email creates your NimCarry user profile. A Nimiq wallet is only required later for custody actions such as accepting, holding, or passing the 1 NIM baton.</p>
-      <form id="nimcarry-user-register" class="form-grid">
-        <label>Name<input name="display_name" maxlength="80" autocomplete="name" required placeholder="Your name" /></label>
-        <label>Email<input name="email" maxlength="254" autocomplete="email" type="email" required placeholder="you@example.com" /></label>
-        <label class="checkline">
-          <input name="privacy_consent" type="checkbox" required />
-          <span>I agree to NimCarry storing my name and email to create my profile and measure real product usage. My email is not public and does not authorize custody. <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy Notice</a>.</span>
-        </label>
-        <button class="button secondary" type="submit">Create my NimCarry profile</button>
-      </form>
-      <small id="nimcarry-user-status">No Nimiq wallet required to register.</small>
+      <h3>Your NimCarry profile.</h3>
+      <p>Return with your email, or create a profile without a wallet. Nimiq is only required when you move into custody actions.</p>
+
+      <div class="button-row nimcarry-auth-switch" style="margin:14px 0">
+        <button id="nimcarry-auth-signup-tab" class="button secondary" type="button" aria-pressed="true">Create profile</button>
+        <button id="nimcarry-auth-signin-tab" class="button ghost" type="button" aria-pressed="false">Sign in</button>
+      </div>
+
+      <div id="nimcarry-auth-signup-panel">
+        <form id="nimcarry-user-register" class="form-grid">
+          <label>Name<input name="display_name" maxlength="80" autocomplete="name" required placeholder="Your name" /></label>
+          <label>Email<input name="email" maxlength="254" autocomplete="email" type="email" required placeholder="you@example.com" /></label>
+          <label class="checkline">
+            <input name="privacy_consent" type="checkbox" required />
+            <span>I agree to NimCarry storing my name and email to create my profile and measure real product usage. My email is not public and does not authorize custody. <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy Notice</a>.</span>
+          </label>
+          <button class="button secondary" type="submit">Create my NimCarry profile</button>
+        </form>
+        <small id="nimcarry-user-status">Already registered on another browser or device? Use Sign in above.</small>
+      </div>
+
+      <div id="nimcarry-auth-signin-panel" hidden>
+        <form id="nimcarry-user-login-request" class="form-grid">
+          <label>Email<input name="email" maxlength="254" autocomplete="email" type="email" required placeholder="you@example.com" /></label>
+          <button class="button secondary" type="submit">Send me a sign-in code</button>
+        </form>
+        <div id="nimcarry-login-code-panel" hidden style="margin-top:14px">
+          <form id="nimcarry-user-login-verify" class="form-grid">
+            <label>6-digit code<input name="code" maxlength="6" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" required placeholder="123456" /></label>
+            <button class="button green" type="submit">Continue to my profile</button>
+          </form>
+        </div>
+        <small id="nimcarry-login-status">We’ll email a one-time code. No password required.</small>
+      </div>
     `;
     host.appendChild(card);
     card.querySelector("#nimcarry-user-register")?.addEventListener("submit", registerUser);
+    card.querySelector("#nimcarry-user-login-request")?.addEventListener("submit", requestLoginCode);
+    card.querySelector("#nimcarry-user-login-verify")?.addEventListener("submit", verifyLoginCode);
+    card.querySelector("#nimcarry-auth-signup-tab")?.addEventListener("click", () => setAuthMode("signup"));
+    card.querySelector("#nimcarry-auth-signin-tab")?.addEventListener("click", () => setAuthMode("signin"));
+  }
+
+  function setAuthMode(mode, prefillEmail = "") {
+    const signupPanel = document.querySelector("#nimcarry-auth-signup-panel");
+    const signinPanel = document.querySelector("#nimcarry-auth-signin-panel");
+    const signupTab = document.querySelector("#nimcarry-auth-signup-tab");
+    const signinTab = document.querySelector("#nimcarry-auth-signin-tab");
+    const signingIn = mode === "signin";
+    if (signupPanel) signupPanel.hidden = signingIn;
+    if (signinPanel) signinPanel.hidden = !signingIn;
+    signupTab?.classList.toggle("secondary", !signingIn);
+    signupTab?.classList.toggle("ghost", signingIn);
+    signinTab?.classList.toggle("secondary", signingIn);
+    signinTab?.classList.toggle("ghost", !signingIn);
+    signupTab?.setAttribute("aria-pressed", String(!signingIn));
+    signinTab?.setAttribute("aria-pressed", String(signingIn));
+    if (signingIn && prefillEmail) {
+      const input = signinPanel?.querySelector('input[name="email"]');
+      if (input) input.value = prefillEmail;
+    }
+  }
+
+  async function requestLoginCode(event) {
+    event.preventDefault();
+    if (loading) return;
+    loading = true;
+    const status = document.querySelector("#nimcarry-login-status");
+    const form = new FormData(event.currentTarget);
+    const email = String(form.get("email") || "").trim();
+    if (status) status.textContent = "Sending sign-in code…";
+    try {
+      const response = await userApi("/users/login/request", {
+        method: "POST",
+        body: { email },
+      });
+      pendingLoginRequest = { requestId: response.request_id, email };
+      const panel = document.querySelector("#nimcarry-login-code-panel");
+      if (panel) panel.hidden = false;
+      if (status) status.textContent = "If that email has a NimCarry profile, a 6-digit code was sent. Check spam if you don’t see it.";
+      document.querySelector('#nimcarry-user-login-verify input[name="code"]')?.focus();
+    } catch (error) {
+      if (status) {
+        status.textContent = error.reason === "EMAIL_SIGNIN_UNAVAILABLE"
+          ? "Returning-user sign in is being enabled. Your existing NimCarry profile is safe."
+          : (error.message || "Could not send a sign-in code.");
+      }
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function verifyLoginCode(event) {
+    event.preventDefault();
+    if (loading || !pendingLoginRequest?.requestId) return;
+    loading = true;
+    const status = document.querySelector("#nimcarry-login-status");
+    const form = new FormData(event.currentTarget);
+    const code = String(form.get("code") || "").trim();
+    if (status) status.textContent = "Verifying code…";
+    try {
+      const profile = await userApi("/users/login/verify", {
+        method: "POST",
+        body: {
+          request_id: pendingLoginRequest.requestId,
+          code,
+        },
+      });
+      localStorage.setItem(TOKEN_KEY, profile.user_token);
+      cachedProfile = profile;
+      pendingLoginRequest = null;
+      await refresh(true);
+      dispatchEvent(new CustomEvent("nimcarry:user-ready", { detail: { user_id: profile.user_id, returning: true } }));
+    } catch (error) {
+      if (status) status.textContent = error.message || "That code is invalid or expired. Request a new one.";
+    } finally {
+      loading = false;
+    }
   }
 
   function renderProfile(host, profile) {
@@ -125,9 +229,13 @@ import { getNimiqProvider } from "/nimiq-provider.js";
       dispatchEvent(new CustomEvent("nimcarry:user-ready", { detail: { user_id: profile.user_id } }));
     } catch (error) {
       if (status) {
-        status.textContent = error.reason === "EMAIL_ALREADY_REGISTERED"
-          ? "That email already has a NimCarry profile on another browser/session. This build does not yet email recovery links."
-          : (error.message || "Could not create profile.");
+        if (error.reason === "EMAIL_ALREADY_REGISTERED") {
+          const email = String(new FormData(event.currentTarget).get("email") || "").trim();
+          status.textContent = "That email already has a NimCarry profile. Use Sign in to return to it.";
+          setAuthMode("signin", email);
+        } else {
+          status.textContent = error.message || "Could not create profile.";
+        }
       }
     } finally {
       loading = false;
