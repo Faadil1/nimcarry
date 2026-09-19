@@ -35,7 +35,7 @@ describe("Nimiq Pay ambiguous-submission hardening", () => {
     expect(guard).toContain('hopStatus === "INVALID"');
     expect(guard).toContain("NO_BROADCAST_CONFIRMED");
     expect(guard).toContain("clearMarker(id)");
-    expect(guard).toContain("full transaction validity window");
+    expect(guard).toContain("previous handoff validity window ended");
   });
 
   it("persists only a local safety hold, not wallet or transaction secrets", () => {
