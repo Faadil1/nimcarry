@@ -111,6 +111,8 @@ export class NimCarryContainer extends Container {
     CARRY_ONE_TARGET_ENCRYPTION_KEY_B64URL: runtimeEnv.CARRY_ONE_TARGET_ENCRYPTION_KEY_B64URL,
     CARRY_ONE_TARGET_HMAC_KEY_B64URL: runtimeEnv.CARRY_ONE_TARGET_HMAC_KEY_B64URL,
     CARRY_ONE_CANONICAL_ORIGIN: runtimeEnv.CARRY_ONE_CANONICAL_ORIGIN,
+    RESEND_API_KEY: runtimeEnv.RESEND_API_KEY || "",
+    NIMCARRY_EMAIL_FROM: runtimeEnv.NIMCARRY_EMAIL_FROM || "",
     NIMIQ_RPC_URL: runtimeEnv.NIMIQ_RPC_URL || "https://rpc.testnet.nimiqwatch.com",
     NIMIQ_RPC_URLS: runtimeEnv.NIMIQ_RPC_URLS || runtimeEnv.NIMIQ_RPC_URL || "https://rpc.testnet.nimiqwatch.com",
   };
