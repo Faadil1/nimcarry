@@ -76,6 +76,18 @@
       };
     }
 
+    if (/no_broadcast_confirmed/.test(lower)) {
+      return {
+        kind: "cancelled",
+        eyebrow: "Previous handoff safely closed",
+        title: "No baton moved.",
+        body: "NimCarry rechecked the chain after the full transaction validity window and found no matching finalized handoff. Custody stayed with the last verified holder. You can return to the mission and prepare a fresh handoff.",
+        primary: ["Back to mission", missionPath()],
+        secondary: ["Check verified route", routePath()],
+        rule: "No verified broadcast = no custody change",
+      };
+    }
+
     if (/pass_deadline_expired|pass_intent_expired|authorized pass intent has expired/.test(lower)) {
       return {
         kind: "expired",
