@@ -29,6 +29,7 @@ export interface UserWalletChallenge {
 
 export interface UserStats {
   registeredUsers: number;
+  consentedUsers: number;
   walletLinkedUsers: number;
   protocolParticipants: number;
 }
@@ -174,6 +175,9 @@ export class MemoryUserDirectory implements UserDirectory {
   async stats(): Promise<UserStats> {
     return {
       registeredUsers: this.users.size,
+      consentedUsers: [...this.users.values()].filter(
+        (user) => user.privacyNoticeVersion === PRIVACY_NOTICE_VERSION && Number.isFinite(user.privacyConsentAt)
+      ).length,
       walletLinkedUsers: new Set(this.walletToId.values()).size,
       protocolParticipants: 0,
     };
@@ -347,8 +351,11 @@ export class PgUserDirectory implements UserDirectory {
   }
 
   async stats(): Promise<UserStats> {
-    const [registered, linked, participants] = await Promise.all([
+    const [registered, consented, linked, participants] = await Promise.all([
       this.pool.query<{ count: string }>("SELECT count(*)::text AS count FROM users"),
+      this.pool.query<{ count: string }>(
+        "SELECT count(*)::text AS count FROM users WHERE privacy_notice_version IS NOT NULL AND privacy_consent_at IS NOT NULL"
+      ),
       this.pool.query<{ count: string }>("SELECT count(DISTINCT user_id)::text AS count FROM user_wallets"),
       this.pool.query<{ count: string }>(
         `SELECT count(DISTINCT uw.user_id)::text AS count
@@ -358,6 +365,7 @@ export class PgUserDirectory implements UserDirectory {
     ]);
     return {
       registeredUsers: Number(registered.rows[0]?.count ?? 0),
+      consentedUsers: Number(consented.rows[0]?.count ?? 0),
       walletLinkedUsers: Number(linked.rows[0]?.count ?? 0),
       protocolParticipants: Number(participants.rows[0]?.count ?? 0),
     };
