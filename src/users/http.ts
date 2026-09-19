@@ -172,6 +172,7 @@ async function handleUsers(
     const stats = await directory.stats();
     return send(res, 200, {
       registered_users: stats.registeredUsers,
+      consented_users: stats.consentedUsers,
       wallet_linked_users: stats.walletLinkedUsers,
       protocol_participants: stats.protocolParticipants,
     });
