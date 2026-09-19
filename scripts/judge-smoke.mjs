@@ -82,7 +82,16 @@ try {
     "judge-facing usage page must preserve metric boundaries and privacy"
   );
 
-  const demo = await get("/?demo=1");
+  const userProfileAsset = await get("/user-profile.js");
+  record("user-profile-http-200", userProfileAsset.response.ok, `${userProfileAsset.response.status} in ${userProfileAsset.ms}ms`);
+  record(
+    "wallet-provider-guidance-contract",
+    /nimcarry-wallet-link-notice/.test(userProfileAsset.text) &&
+      /Open NimCarry inside Nimiq Pay to connect your wallet/.test(userProfileAsset.text),
+    "browser fallback must show one clear Nimiq Pay instruction instead of raw repeated provider errors"
+  );
+
+    const demo = await get("/?demo=1");
   record("guided-demo-http-200", demo.response.ok, `${demo.response.status} in ${demo.ms}ms`);
   record("guided-demo-same-runtime", /final-human-craft\.css/.test(demo.text), "guided demo must use the same approved product runtime");
 
