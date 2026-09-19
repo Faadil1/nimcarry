@@ -134,15 +134,13 @@ try {
 
   const authRequestProbe = await postJson("/users/auth/request", { email: "nimcarry-smoke-missing@example.invalid" });
   const authRequestPass =
-    (authRequestProbe.response.status === 202 &&
-      authRequestProbe.payload?.accepted === true &&
-      /^[0-9a-f-]{36}$/i.test(String(authRequestProbe.payload?.challenge_id || ""))) ||
-    (authRequestProbe.response.status === 503 &&
-      authRequestProbe.payload?.error === "EMAIL_DELIVERY_NOT_CONFIGURED");
+    authRequestProbe.response.status === 202 &&
+    authRequestProbe.payload?.accepted === true &&
+    /^[0-9a-f-]{36}$/i.test(String(authRequestProbe.payload?.challenge_id || ""));
   record(
     "returning-auth-request-contract",
     authRequestPass,
-    `${authRequestProbe.response.status} in ${authRequestProbe.ms}ms — unknown emails must not disclose account existence; unconfigured delivery must fail closed`
+    `${authRequestProbe.response.status} in ${authRequestProbe.ms}ms — production email delivery must be configured and unknown emails must not disclose account existence`
   );
 
   const authVerifyProbe = await postJson("/users/auth/verify", {
