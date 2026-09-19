@@ -42,7 +42,7 @@ try {
   let rootAttempt = 0;
   for (rootAttempt = 1; rootAttempt <= 12; rootAttempt += 1) {
     root = await get("/");
-    if (root.response.ok && /usage\.html/.test(root.text) && /privacy\.html/.test(root.text)) break;
+    if (root.response.ok && /real-usage/.test(root.text) && /privacy\.html/.test(root.text)) break;
     if (rootAttempt < 12) {
       console.log(`WAIT ${base}/ — production HTML has not reached the expected release yet (attempt ${rootAttempt}/12)`);
       await sleep(10000);
@@ -55,7 +55,7 @@ try {
   record("final-only-proof-copy", /Only FINAL changes custody/.test(root.text), "judge-facing custody law must remain visible");
   record("mature-positioning-copy", /Real people · one destination/.test(root.text) || /People move opportunity forward/.test(root.text), "human-route positioning must remain visible");
   record("privacy-link-visible", /privacy\.html/.test(root.text), "public UI must disclose the Privacy Notice");
-  record("usage-evidence-link-visible", /usage\.html/.test(root.text), "public UI must expose aggregate usage evidence");
+  record("usage-evidence-link-visible", /real-usage/.test(root.text), "public UI must expose aggregate usage evidence");
 
   const privacy = await get("/privacy.html");
   record("privacy-http-200", privacy.response.ok, `${privacy.response.status} in ${privacy.ms}ms`);
