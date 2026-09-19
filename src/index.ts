@@ -15,6 +15,7 @@ import { MemoryIdempotencyStore } from "./service/idempotency.js";
 import { createMissionHttpServer } from "./service/mission-http-server.js";
 import { MemoryRateLimiter } from "./service/rate-limiter.js";
 import { createHttpServer } from "./service/http-server.js";
+import { createNimCarryHttpServer } from "./users/http.js";
 import type { UserDirectory } from "./users/user-directory.js";
 
 const port = Number(process.env.PORT ?? 8787);
@@ -74,21 +75,21 @@ function createApplicationServer(
   const canonicalOrigin = process.env.CARRY_ONE_CANONICAL_ORIGIN ?? `http://localhost:${port}`;
   const coordinator = new ReachMissionCoordinator(missions, repository, relayService, protector);
   const authorizer = new NimiqWalletAuthorizer(repository, canonicalOrigin);
+  const missionServer = createMissionHttpServer({
+    coordinator,
+    missions,
+    repository,
+    authorizer,
+    relay: relayService,
+    protector,
+    canonicalOrigin,
+    idempotency: new MemoryIdempotencyStore(),
+    limiter: new MemoryRateLimiter(),
+  });
 
   console.log(`Reach Mission HTTP bindings enabled (${postgresRepository ? "PostgreSQL" : `state: ${missionStateFile}`}, canonical origin: ${canonicalOrigin})`);
   return {
-    server: createMissionHttpServer({
-      coordinator,
-      missions,
-      repository,
-      userDirectory,
-      authorizer,
-      relay: relayService,
-      protector,
-      canonicalOrigin,
-      idempotency: new MemoryIdempotencyStore(),
-      limiter: new MemoryRateLimiter(),
-    }),
+    server: createNimCarryHttpServer(missionServer, userDirectory, canonicalOrigin),
     sweep: () => repository.expireDueInvitations(Date.now()),
   };
 }
