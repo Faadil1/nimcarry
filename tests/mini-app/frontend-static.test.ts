@@ -43,18 +43,20 @@ describe("static Mini App skeleton", () => {
     expect(js).toContain('intent.expected_sender');
     expect(js).toContain('WRONG_WALLET_SELECTION');
   });
-  it("fails before a 1 NIM payment when Nimiq Pay exposes multiple possible payer accounts", () => {
-    expect(js).toContain("chooseUnambiguousPaymentWallet");
-    expect(js).toContain("PAYMENT_SOURCE_AMBIGUOUS");
-    expect(js).toContain("Mini App payment API cannot choose which account funds the transaction");
-    expect(js).toContain('action === "AUTHORIZE_PASS"');
+  it("allows only the frozen verified same-profile wallet set before a 1 NIM payment", () => {
+    expect(js).toContain("assertAuthorizedPaymentAccounts");
+    expect(js).toContain("authorized_payment_wallets");
+    expect(js).toContain("PAYMENT_SOURCE_UNVERIFIED");
+    expect(js).toContain("NimCarry stopped before requesting 1 NIM");
+    expect(js).toContain('headers["X-NimCarry-User-Token"] = profileToken');
+    expect(js).toContain("sameOriginApi(path)");
     const executeStart = js.indexOf("async function executePass");
     const executeEnd = js.indexOf("\n  async function pollFinality", executeStart);
     const executePass = js.slice(executeStart, executeEnd);
     expect(executePass).toContain('signedAuth("AUTHORIZE_PASS"');
     expect(executePass).toContain("walletKey(auth.wallet)");
-    expect(executePass).not.toContain("const selectedWallet = await chooseWallet()");
-    expect(html).toContain("it does not choose the payment source");
+    expect(executePass).toContain("assertAuthorizedPaymentAccounts(intent)");
+    expect(html).toContain("already verified on the same NimCarry profile");
   });
 
   it("traces pass provider phases without logging wallet or transaction secrets", () => {

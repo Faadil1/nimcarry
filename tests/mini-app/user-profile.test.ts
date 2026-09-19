@@ -34,6 +34,13 @@ describe("human-first user onboarding surface", () => {
     expect(profile).toContain('"/users/wallet/link"');
   });
 
+  it("keeps multiwallet profile linking available after the first verified wallet", () => {
+    expect(profile).toContain("Add another Nimiq wallet");
+    expect(profile).toContain("wallets.map((wallet)");
+    expect(profile).toContain('id="nimcarry-link-wallet"');
+    expect(profile).toContain("wallets.length");
+  });
+
   it("shows one human-readable Nimiq Pay notice instead of stacking provider errors", () => {
     expect(profile).toContain('nimcarry-wallet-link-notice');
     expect(profile).toContain("Open NimCarry inside Nimiq Pay to connect your wallet.");

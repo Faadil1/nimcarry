@@ -41,7 +41,7 @@
 
   <dialog id="wallet-dialog" class="wallet-dialog">
     <form method="dialog" id="wallet-form">
-      <div class="dialog-kicker">Nimiq Pay</div><h2>Choose the wallet identity for this action</h2><p>This choice authorizes the action; it does not choose the payment source. For a 1 NIM pass, NimCarry proceeds only when Nimiq Pay exposes the current holder as the single available payment account, then independently verifies any HTLC payment rail on-chain.</p><div id="wallet-options" class="wallet-options"></div><div class="dialog-actions"><button value="cancel" class="button ghost">Cancel</button><button id="wallet-confirm" value="default" class="button primary">Continue</button></div>
+      <div class="dialog-kicker">Nimiq Pay</div><h2>Choose the wallet identity for this action</h2><p>This choice authorizes the action; it does not choose the payment source. For a 1 NIM pass, NimCarry accepts multiple exposed accounts only when each was already verified on the same NimCarry profile as the current holder, then independently verifies the exact payment and any HTLC rail on-chain.</p><div id="wallet-options" class="wallet-options"></div><div class="dialog-actions"><button value="cancel" class="button ghost">Cancel</button><button id="wallet-confirm" value="default" class="button primary">Continue</button></div>
     </form>
   </dialog>
 

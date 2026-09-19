@@ -6,6 +6,7 @@ import { ONE_NIM_IN_LUNA } from "../core/types.js";
 /** Reach Mission payment request. The server-authorized opaque commitment is mandatory. */
 export interface PassPaymentRequest {
   expectedSender: string;
+  authorizedPaymentWallets?: string[];
   recipient: string;
   amountLuna: number;
   data: string;
@@ -30,10 +31,10 @@ export class WrongWalletSelectionError extends Error {
   }
 }
 
-export class AmbiguousPaymentSourceError extends Error {
-  constructor(public accountCount: number) {
+export class UnverifiedPaymentSourceError extends Error {
+  constructor(public unverifiedAccounts: string[]) {
     super(
-      `Nimiq Pay exposes ${accountCount} accounts, but the Mini App payment API cannot choose which account funds the transaction. NimCarry stopped before requesting 1 NIM.`
+      `Nimiq Pay exposes payment account(s) that are not in this pass's verified payment-wallet snapshot: ${unverifiedAccounts.map(shortWallet).join(", ")}. NimCarry stopped before requesting 1 NIM.`
     );
   }
 }
@@ -58,11 +59,12 @@ function shortWallet(value: string): string {
 /**
  * Real adapter over Nimiq Pay's injected provider. The provider cannot be
  * instructed which sender account to use for sendBasicTransactionWithData.
- * Therefore a canonical pass is allowed only when exactly one Nimiq account
- * is exposed to the Mini App and it is the expected holder. A distinct HTLC
- * payment rail is still accepted only after independent on-chain proof.
- * This client check protects the user from a wrong-account payment; the server
- * remains the custody authority.
+ * Therefore a canonical pass proceeds only when every exposed Nimiq account
+ * belongs to the frozen verified payment-wallet snapshot for that pass and the
+ * canonical holder remains present. Multiple same-profile wallets are allowed;
+ * any HTLC rail is still accepted only after independent on-chain proof.
+ * This client check protects the user from an unrelated-account payment; the
+ * server remains the custody authority.
  */
 export class MiniAppSdkPayProvider implements NimiqPayProvider {
   private providerPromise: Promise<NimiqProvider> | null = null;
@@ -76,6 +78,7 @@ export class MiniAppSdkPayProvider implements NimiqPayProvider {
 
   async sendPass({
     expectedSender,
+    authorizedPaymentWallets = [],
     recipient,
     amountLuna,
     data,
@@ -100,11 +103,16 @@ export class MiniAppSdkPayProvider implements NimiqPayProvider {
     if (uniqueAccounts.length === 0) {
       throw new WrongWalletSelectionError(expectedSender);
     }
-    if (uniqueAccounts.length !== 1) {
-      throw new AmbiguousPaymentSourceError(uniqueAccounts.length);
-    }
-    if (normalizedWalletText(uniqueAccounts[0]) !== normalizedWalletText(expectedSender)) {
+
+    const expectedKey = normalizedWalletText(expectedSender);
+    if (!uniqueAccounts.some((account) => normalizedWalletText(account) === expectedKey)) {
       throw new WrongWalletSelectionError(expectedSender);
+    }
+    const allowed = [expectedSender, ...authorizedPaymentWallets].map(normalizedWalletText);
+    const allowedSet = new Set(allowed);
+    const unverified = uniqueAccounts.filter((account) => !allowedSet.has(normalizedWalletText(account)));
+    if (unverified.length > 0) {
+      throw new UnverifiedPaymentSourceError(unverified);
     }
 
     const result = await nimiq.sendBasicTransactionWithData({

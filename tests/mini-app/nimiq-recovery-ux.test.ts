@@ -33,11 +33,11 @@ describe("Nimiq Pay fail-closed recovery UX", () => {
     expect(js).toContain("prepare a fresh handoff");
   });
 
-  it("explains multi-account payment ambiguity before any 1 NIM request", () => {
-    expect(js).toContain("Payment source needs one clear account");
+  it("guides verification of an unrecognized payment wallet before any 1 NIM request", () => {
+    expect(js).toContain("Verify the payment wallet first");
     expect(js).toContain("NimCarry stopped before requesting 1 NIM.");
-    expect(js).toContain("Mini App payment API cannot choose which account will fund the transaction");
-    expect(js).toContain("One signed holder · one available payment account");
+    expect(js).toContain("verified same-profile payment set");
+    expect(js).toContain("Holder authorizes · verified wallet may pay · FINAL moves custody");
   });
 
   it("gives safe recovery paths for cancellation, wrong account, provider, and contract failures", () => {

@@ -120,7 +120,8 @@ import { getNimiqProvider } from "/nimiq-provider.js";
 
   function statusLine(profile) {
     if (!profile) return "";
-    if (profile.wallet_linked) return "Nimiq wallet linked and verified.";
+    const count = Array.isArray(profile.wallets) ? profile.wallets.length : 0;
+    if (count > 0) return `${count} Nimiq wallet${count === 1 ? "" : "s"} linked and verified.`;
     return "You are a NimCarry user. Connect Nimiq only when you need custody actions.";
   }
 
@@ -175,10 +176,11 @@ import { getNimiqProvider } from "/nimiq-provider.js";
       <h3>${esc(profile.display_name)}</h3>
       <p>${esc(profile.email)}</p>
       <div class="warning" style="margin-top:12px">${esc(statusLine(profile))}</div>
+      ${wallets.length
+        ? `<div class="button-row" style="margin-top:10px">${wallets.map((wallet) => `<span class="button ghost" aria-disabled="true">Verified · ${esc(wallet.fingerprint || "NQ…")}</span>`).join("")}</div>`
+        : ""}
       <div class="button-row" style="margin-top:12px">
-        ${profile.wallet_linked
-          ? `<span class="button ghost" aria-disabled="true">Wallet verified · ${esc(wallets[0]?.fingerprint || "NQ…")}</span>`
-          : '<button id="nimcarry-link-wallet" class="button secondary" type="button">Connect Nimiq Pay when ready</button>'}
+        <button id="nimcarry-link-wallet" class="button secondary" type="button">${wallets.length ? "Add another Nimiq wallet" : "Connect Nimiq Pay when ready"}</button>
       </div>
       <small>${profile.email_verified ? "Email verified for profile recovery." : "Email not verified yet."} Email is never protocol authority; wallet signatures remain the authority for custody. <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy Notice</a>.</small>
       <div class="button-row" style="margin-top:10px"><button id="nimcarry-delete-profile" class="button ghost" type="button">Delete my profile</button></div>

@@ -39,7 +39,13 @@ export class RelayStore {
     if (snapshot) {
       // Backward-compatible hydration: snapshots written before the opaque
       // commitment hardening did not have recipientData.
-      this.intents = new Map(snapshot.intents.map((intent) => [intent.batonId, clone({ ...intent, recipientData: intent.recipientData ?? null })]));
+      this.intents = new Map(snapshot.intents.map((intent) => [intent.batonId, clone({
+        ...intent,
+        recipientData: intent.recipientData ?? null,
+        authorizedPaymentWallets: intent.authorizedPaymentWallets?.length
+          ? intent.authorizedPaymentWallets
+          : [intent.currentHolder],
+      })]));
       this.hops = snapshot.hops.map(clone);
       this.holders = new Map(snapshot.holders);
     }
@@ -95,7 +101,7 @@ export class RelayStore {
     batonId: string,
     currentHolder: string,
     recipient: string,
-    options: { requireOpaqueTag?: boolean } = {}
+    options: { requireOpaqueTag?: boolean; authorizedPaymentWallets?: string[] } = {}
   ): PassIntent {
     const existing = this.getActiveIntent(batonId);
     if (existing) {
@@ -117,14 +123,27 @@ export class RelayStore {
 
     const sequence = this.getCurrentSequence(batonId) + 1;
     const nonce = randomUUID();
+    const paymentWallets = [currentHolder, ...(options.authorizedPaymentWallets ?? [])]
+      .filter((wallet, index, all) =>
+        Boolean(addressKey(wallet))
+        && all.findIndex((candidate) => addressKey(candidate) === addressKey(wallet)) === index
+      );
     const intent: PassIntent = {
       batonId,
       sequence,
       currentHolder,
       recipient,
+      authorizedPaymentWallets: paymentWallets,
       nonce,
       recipientData: options.requireOpaqueTag
-        ? opaqueHopCommitment({ batonId, sequence, currentHolder, recipient, nonce })
+        ? opaqueHopCommitment({
+            batonId,
+            sequence,
+            currentHolder,
+            recipient,
+            nonce,
+            authorizedPaymentWallets: paymentWallets,
+          })
         : null,
       createdAt: Date.now(),
     };

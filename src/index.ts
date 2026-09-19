@@ -86,6 +86,7 @@ function createApplicationServer(
     canonicalOrigin,
     idempotency: new MemoryIdempotencyStore(),
     limiter: new MemoryRateLimiter(),
+    userDirectory,
   });
 
   console.log(`Reach Mission HTTP bindings enabled (${postgresRepository ? "PostgreSQL" : `state: ${missionStateFile}`}, canonical origin: ${canonicalOrigin})`);

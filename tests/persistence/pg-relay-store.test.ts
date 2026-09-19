@@ -46,6 +46,9 @@ beforeAll(async () => {
   pool = new PgMemPool();
   const sql = readFileSync(MIGRATION_PATH, "utf8");
   await pool.exec(sql);
+  // pg-mem lacks PostgreSQL's cardinality(text[]) function used by migration 006.
+  // Add only the column here; production applies the full constraints in migration 006.
+  await pool.exec("ALTER TABLE pass_intents ADD COLUMN authorized_payment_wallets text[]");
   missionRepo = new PgMissionRepository(pool);
 });
 
@@ -89,8 +92,13 @@ describe("PgRelayStore", () => {
     const { mission } = await seededMission();
     const relay = await PgRelayStore.load(pool);
     const creator = normalizeNimiqAddress(mission.creatorWalletNormalized);
-    const intent = relay.createIntent(mission.id, creator, "RECIPIENT_W0", { requireOpaqueTag: true });
+    const paymentWallet = normalizeNimiqAddress(wallet());
+    const intent = relay.createIntent(mission.id, creator, "RECIPIENT_W0", {
+      requireOpaqueTag: true,
+      authorizedPaymentWallets: [creator, paymentWallet],
+    });
     expect(intent.recipientData).toMatch(/^co:v1:/);
+    expect(intent.authorizedPaymentWallets).toEqual([creator, paymentWallet]);
     await relay.flush();
 
     // Reload from DB in a brand new store
@@ -99,6 +107,7 @@ describe("PgRelayStore", () => {
     expect(reloaded).toBeDefined();
     expect(reloaded!.recipientData).toBe(intent.recipientData);
     expect(reloaded!.sequence).toBe(intent.sequence);
+    expect(reloaded!.authorizedPaymentWallets).toEqual(intent.authorizedPaymentWallets);
   });
 
   it("persists a hop with tx hash and rehydrates it", async () => {

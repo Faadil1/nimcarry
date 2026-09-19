@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { ONE_NIM_IN_LUNA, type NimiqTxLookup } from "../../src/core/types.js";
 import { ReachMissionCoordinator } from "../../src/mission/coordinator.js";
 import { ReachMissionService } from "../../src/mission/service.js";
-import { TargetWalletProtector } from "../../src/mission/target-wallet-crypto.js";
+import { normalizeNimiqAddress, TargetWalletProtector } from "../../src/mission/target-wallet-crypto.js";
 import { NimiqWalletAuthorizer, nimiqSignedMessageDigest } from "../../src/mission/wallet-auth.js";
 import type { NimiqRpcClient } from "../../src/nimiq/rpc-client.js";
 import { createRepositoryStores } from "../../src/persistence/bootstrap.js";
@@ -15,6 +15,7 @@ import { CanonicalRelayService } from "../../src/service/canonical-relay-service
 import { MemoryIdempotencyStore } from "../../src/service/idempotency.js";
 import { createMissionHttpServer } from "../../src/service/mission-http-server.js";
 import { MemoryRateLimiter } from "../../src/service/rate-limiter.js";
+import { MemoryUserDirectory, PRIVACY_NOTICE_VERSION, profileTokenHash } from "../../src/users/user-directory.js";
 import { PgMemPool } from "../helpers/pg-mem-pool.js";
 
 interface Signer {
@@ -77,6 +78,9 @@ describe("secure shared vertical slice", () => {
 
     const pool = new PgMemPool();
     await pool.exec(FOUNDATION_SQL);
+    // pg-mem fixture: production migration 006 adds constraints using
+    // cardinality(text[]), which pg-mem does not implement.
+    await pool.exec("ALTER TABLE pass_intents ADD COLUMN authorized_payment_wallets text[]");
     const stores = await createRepositoryStores(
       { CARRY_ONE_REPOSITORY: "postgres", CARRY_ONE_DATABASE_URL: "test://vertical" },
       () => pool
@@ -89,6 +93,7 @@ describe("secure shared vertical slice", () => {
     const missions = new ReachMissionService(repository, protector);
     const coordinator = new ReachMissionCoordinator(missions, repository, relay, protector);
     const authorizer = new NimiqWalletAuthorizer(repository, "https://nimcarry.example");
+    const userDirectory = new MemoryUserDirectory();
     const server = createMissionHttpServer({
       coordinator,
       missions,
@@ -99,6 +104,7 @@ describe("secure shared vertical slice", () => {
       canonicalOrigin: "https://nimcarry.example",
       idempotency: new MemoryIdempotencyStore(),
       limiter: new MemoryRateLimiter(),
+      userDirectory,
       legacyRelayEnabled: false,
     });
     const baseUrl = await listen(server);
@@ -124,8 +130,19 @@ describe("secure shared vertical slice", () => {
     }
 
     const creator = wallet();
+    const paymentWallet = wallet();
     const bridge = wallet();
     const destination = wallet();
+    const profileToken = "verticalprofiletoken_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const profile = await userDirectory.register({
+      displayName: "Creator A",
+      email: "creator@example.test",
+      tokenHash: profileTokenHash(profileToken),
+      privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
+      privacyConsentAt: Date.now(),
+    });
+    await userDirectory.linkVerifiedWallet(profile.id, creator.address);
+    await userDirectory.linkVerifiedWallet(profile.id, paymentWallet.address);
 
     const createChallenge = await challenge(creator, "CREATE_MISSION");
     const created = await request("POST", "/missions", {
@@ -191,9 +208,16 @@ describe("secure shared vertical slice", () => {
     const intent = await request("POST", `/missions/${missionId}/pass-intent`, {
       ...envelope(passChallenge, creator),
       invitation_id: invitationId,
-    }, { "Idempotency-Key": "vertical-pass" });
+    }, {
+      "Idempotency-Key": "vertical-pass",
+      "X-NimCarry-User-Token": profileToken,
+    });
     expect(intent.status).toBe(200);
     expect(intent.body.value_luna).toBe(ONE_NIM_IN_LUNA);
+    expect(intent.body.authorized_payment_wallets).toEqual([
+      normalizeNimiqAddress(creator.address),
+      normalizeNimiqAddress(paymentWallet.address),
+    ]);
     expect(intent.body.recipient_data).toMatch(/^co:v1:/);
     expect(intent.body.broadcast_capability).toMatch(/^[A-Za-z0-9_-]+$/);
 
