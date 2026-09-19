@@ -14,7 +14,7 @@
   ·
   <a href="https://youtu.be/SAyv8hyZG6Q"><strong>Demo Video</strong></a>
   ·
-  <a href="https://nimcarry.faadil-casecraft.workers.dev/usage.html"><strong>Live Usage Evidence</strong></a>
+  <a href="https://nimcarry.faadil-casecraft.workers.dev/real-usage"><strong>Live Usage Evidence</strong></a>
   ·
   <a href="https://github.com/Faadil1/nimcarry/releases/tag/v1.0.0"><strong>v1.0.0 Release</strong></a>
 </p>
@@ -154,7 +154,7 @@ The earlier protocol test state remains separate: **7 participation rows across 
 
 Judges can verify current aggregate counts without access to personal data:
 
-- [Live usage evidence page](https://nimcarry.faadil-casecraft.workers.dev/usage.html)
+- [Live usage evidence page](https://nimcarry.faadil-casecraft.workers.dev/real-usage)
 - [Aggregate user JSON](https://nimcarry.faadil-casecraft.workers.dev/users/stats)
 - [Protocol runtime aggregate JSON](https://nimcarry.faadil-casecraft.workers.dev/usage)
 - [Timestamped repository snapshot](docs/evidence/real-usage-2026-09-19.json)
@@ -254,7 +254,7 @@ npm run build
 - [Live App](https://nimcarry.faadil-casecraft.workers.dev)
 - [Guided Demo](https://nimcarry.faadil-casecraft.workers.dev/?demo=1)
 - [Demo Video](https://youtu.be/SAyv8hyZG6Q)
-- [Live usage evidence](https://nimcarry.faadil-casecraft.workers.dev/usage.html)
+- [Live usage evidence](https://nimcarry.faadil-casecraft.workers.dev/real-usage)
 - [Real usage snapshot](docs/evidence/real-usage-2026-09-19.json)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Security](SECURITY.md)
