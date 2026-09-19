@@ -102,6 +102,42 @@ describe("human user directory", () => {
       .rejects.toMatchObject({ reason: "USER_CHALLENGE_REPLAY" });
   });
 
+  it("supports multiple sessions and one-time login challenges for the same profile", async () => {
+    const directory = new MemoryUserDirectory();
+    const firstToken = newProfileToken();
+    const profile = await directory.register({
+      email: "person@example.com",
+      displayName: "Person",
+      tokenHash: profileTokenHash(firstToken),
+      privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
+      privacyConsentAt: Date.now(),
+    });
+
+    const secondToken = newProfileToken();
+    await directory.createSession(profile.id, profileTokenHash(secondToken));
+    expect((await directory.getByTokenHash(profileTokenHash(firstToken)))?.id).toBe(profile.id);
+    expect((await directory.getByTokenHash(profileTokenHash(secondToken)))?.id).toBe(profile.id);
+
+    await directory.createLoginChallenge({
+      id: "9cc2d3d7-17d0-49bf-93a6-4c43b47cd6eb",
+      userId: profile.id,
+      codeHash: "hash",
+      expiresAt: 10_000,
+      usedAt: null,
+      failedAttempts: 0,
+      createdAt: 1_000,
+    });
+    expect((await directory.getLoginChallenge("9cc2d3d7-17d0-49bf-93a6-4c43b47cd6eb"))?.failedAttempts).toBe(0);
+    expect(await directory.recordLoginFailure("9cc2d3d7-17d0-49bf-93a6-4c43b47cd6eb")).toBe(1);
+    await directory.consumeLoginChallenge("9cc2d3d7-17d0-49bf-93a6-4c43b47cd6eb", 2_000);
+    await expect(directory.consumeLoginChallenge("9cc2d3d7-17d0-49bf-93a6-4c43b47cd6eb", 3_000))
+      .rejects.toMatchObject({ reason: "LOGIN_CODE_INVALID" });
+
+    await directory.markEmailVerified(profile.id, 4_000);
+    expect((await directory.getById(profile.id))?.emailVerifiedAt).toBe(4_000);
+    expect((await directory.getByEmail("PERSON@example.com"))?.id).toBe(profile.id);
+  });
+
   it("validates human identity fields", () => {
     expect(normalizeEmail(" A@Example.COM ")).toBe("a@example.com");
     expect(normalizeDisplayName("  A   B  ")).toBe("A B");
