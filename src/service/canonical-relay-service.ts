@@ -70,7 +70,7 @@ export class CanonicalRelayService {
     batonId: string,
     currentHolder: string,
     recipient: string,
-    options: { requireOpaqueTag?: boolean } = {}
+    options: { requireOpaqueTag?: boolean; authorizedPaymentWallets?: string[] } = {}
   ): PassIntent {
     return this.store.createIntent(batonId, currentHolder, recipient, options);
   }
@@ -134,29 +134,36 @@ export class CanonicalRelayService {
   }
 
   /**
-   * Nimiq Pay can spend through an HTLC payment rail even though listAccounts()
-   * exposes the user's basic wallet identity. We accept that indirection only
-   * after proving on-chain that:
-   *   1) the observed tx sender is an HTLC account;
-   *   2) the HTLC declares the signed holder as its sender; and
-   *   3) the HTLC's original total amount was funded on-chain by that same holder.
+   * A pass keeps one custody holder, but its AUTHORIZE_PASS snapshot may include
+   * additional wallets that the same signed-in NimCarry profile verified before
+   * the intent was created. Those wallets may fund the exact committed payment
+   * without becoming the canonical holder.
    *
-   * This keeps AUTHORIZE_PASS bound to the human wallet identity without
-   * weakening sender checks to "any HTLC" or trusting Nimiq Pay UI state.
+   * Direct basic-wallet payments are accepted only when the observed sender is
+   * in the frozen snapshot. HTLC rails are accepted only when their on-chain
+   * declared sender is in that snapshot and that same wallet funded the HTLC's
+   * original total amount.
    */
   private async verifiedPaymentRail(intent: PassIntent, tx: NimiqTxLookup): Promise<string | null> {
-    if (addressKey(tx.from) === addressKey(intent.currentHolder)) return null;
+    const authorizedWallets = new Set(
+      (intent.authorizedPaymentWallets?.length ? intent.authorizedPaymentWallets : [intent.currentHolder])
+        .map(addressKey)
+    );
+
+    if (authorizedWallets.has(addressKey(tx.from))) {
+      return addressKey(tx.from) === addressKey(intent.currentHolder) ? null : tx.from;
+    }
     if (!this.rpc.getAccountByAddress || !this.rpc.getTransactionsByAddress) return null;
 
     const account = await this.rpc.getAccountByAddress(tx.from);
     if (!account || String(account.type).toLowerCase() !== "htlc") return null;
-    if (!account.sender || addressKey(account.sender) !== addressKey(intent.currentHolder)) return null;
+    if (!account.sender || !authorizedWallets.has(addressKey(account.sender))) return null;
     if (!Number.isFinite(account.totalAmount) || Number(account.totalAmount) <= 0) return null;
 
     const history = await this.rpc.getTransactionsByAddress(tx.from);
     const creationFunding = history.find((candidate) =>
       addressKey(candidate.to) === addressKey(tx.from)
-      && addressKey(candidate.from) === addressKey(intent.currentHolder)
+      && addressKey(candidate.from) === addressKey(account.sender!)
       && candidate.value === Number(account.totalAmount)
     );
     return creationFunding ? tx.from : null;
