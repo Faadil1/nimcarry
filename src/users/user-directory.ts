@@ -159,7 +159,7 @@ export class MemoryUserDirectory implements UserDirectory {
     return profile ? { ...profile } : undefined;
   }
 
-  async createSession(userId: string, tokenHash: string): Promise<void> {
+  async createSession(userId: string, tokenHash: string, _now = Date.now()): Promise<void> {
     if (!this.users.has(userId)) throw new UserDirectoryError("USER_NOT_FOUND", "NimCarry user does not exist");
     if (this.tokenToId.has(tokenHash) || this.sessionTokenToId.has(tokenHash)) {
       throw new UserDirectoryError("TOKEN_COLLISION", "Profile token collision");
