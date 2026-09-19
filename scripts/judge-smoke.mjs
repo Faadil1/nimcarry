@@ -73,9 +73,12 @@ try {
   record(
     "usage-evidence-contract",
     /Real usage evidence/i.test(usageEvidence.text) &&
-      /Registered human profiles/i.test(usageEvidence.text) &&
+      /Registered profiles/i.test(usageEvidence.text) &&
       /aggregate only/i.test(usageEvidence.text) &&
-      /Registration is not a wallet claim/i.test(usageEvidence.text),
+      /Registration is acquisition, not activation/i.test(usageEvidence.text) &&
+      /Nimiq-verified users/i.test(usageEvidence.text) &&
+      /Activated users/i.test(usageEvidence.text) &&
+      /Finalized users/i.test(usageEvidence.text),
     "judge-facing usage page must preserve metric boundaries and privacy"
   );
 
@@ -103,9 +106,13 @@ try {
     try { userStatsPayload = JSON.parse(userStats.text); } catch { userStatsPayload = null; }
     if (
       userStats.response.ok &&
+      userStatsPayload?.metric_policy_version === "real-usage-v2" &&
       Number.isInteger(Number(userStatsPayload?.registered_users)) &&
       Number.isInteger(Number(userStatsPayload?.consented_users)) &&
+      Number.isInteger(Number(userStatsPayload?.nimiq_verified_users)) &&
       Number.isInteger(Number(userStatsPayload?.wallet_linked_users)) &&
+      Number.isInteger(Number(userStatsPayload?.activated_users)) &&
+      Number.isInteger(Number(userStatsPayload?.finalized_users)) &&
       Number.isInteger(Number(userStatsPayload?.protocol_participants))
     ) break;
     if (attempt < 12) {
@@ -116,10 +123,15 @@ try {
   record("users-stats-http-200", Boolean(userStats?.response.ok), userStats ? `${userStats.response.status} in ${userStats.ms}ms` : "no response");
   record(
     "users-stats-json-contract",
-    Number.isInteger(Number(userStatsPayload?.registered_users)) &&
+    userStatsPayload?.metric_policy_version === "real-usage-v2" &&
+      Number.isInteger(Number(userStatsPayload?.registered_users)) &&
       Number.isInteger(Number(userStatsPayload?.consented_users)) &&
+      Number.isInteger(Number(userStatsPayload?.nimiq_verified_users)) &&
       Number.isInteger(Number(userStatsPayload?.wallet_linked_users)) &&
-      Number.isInteger(Number(userStatsPayload?.protocol_participants)),
+      Number.isInteger(Number(userStatsPayload?.activated_users)) &&
+      Number.isInteger(Number(userStatsPayload?.finalized_users)) &&
+      Number.isInteger(Number(userStatsPayload?.protocol_participants)) &&
+      userStatsPayload?.assurance?.nimiq_verified_users === "valid_nimiq_wallet_signature",
     "Human-first user metrics must be routed to the container as JSON, never the SPA shell"
   );
 

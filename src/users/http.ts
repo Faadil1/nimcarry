@@ -171,10 +171,20 @@ async function handleUsers(
   if (req.method === "GET" && path === "/users/stats") {
     const stats = await directory.stats();
     return send(res, 200, {
+      metric_policy_version: "real-usage-v2",
       registered_users: stats.registeredUsers,
       consented_users: stats.consentedUsers,
+      nimiq_verified_users: stats.walletLinkedUsers,
       wallet_linked_users: stats.walletLinkedUsers,
+      activated_users: stats.activatedUsers,
+      finalized_users: stats.finalizedUsers,
       protocol_participants: stats.protocolParticipants,
+      assurance: {
+        registered_users: "self_asserted_profile_with_explicit_privacy_consent",
+        nimiq_verified_users: "valid_nimiq_wallet_signature",
+        activated_users: "verified_wallet_plus_post_verification_mission_create_accept_or_final",
+        finalized_users: "verified_wallet_plus_post_verification_finalized_hop",
+      },
     });
   }
 

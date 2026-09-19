@@ -36,6 +36,8 @@ describe("human user directory", () => {
       registeredUsers: 1,
       consentedUsers: 1,
       walletLinkedUsers: 0,
+      activatedUsers: 0,
+      finalizedUsers: 0,
       protocolParticipants: 0,
     });
   });

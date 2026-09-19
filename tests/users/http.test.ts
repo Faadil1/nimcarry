@@ -78,9 +78,13 @@ describe("human user HTTP API", () => {
 
     const stats = await json(base, "/users/stats");
     expect(stats.body).toMatchObject({
+      metric_policy_version: "real-usage-v2",
       registered_users: 1,
       consented_users: 1,
+      nimiq_verified_users: 0,
       wallet_linked_users: 0,
+      activated_users: 0,
+      finalized_users: 0,
       protocol_participants: 0,
     });
   });
@@ -134,7 +138,15 @@ describe("human user HTTP API", () => {
     expect(linked.body.wallets).toHaveLength(1);
 
     const stats = await json(base, "/users/stats");
+    expect(stats.body.nimiq_verified_users).toBe(1);
     expect(stats.body.wallet_linked_users).toBe(1);
+    expect(stats.body.activated_users).toBe(0);
+    expect(stats.body.finalized_users).toBe(0);
+    expect(stats.body.assurance).toMatchObject({
+      nimiq_verified_users: "valid_nimiq_wallet_signature",
+      activated_users: "verified_wallet_plus_post_verification_mission_create_accept_or_final",
+      finalized_users: "verified_wallet_plus_post_verification_finalized_hop",
+    });
   });
 
   it("lets a user delete their profile with the profile token", async () => {

@@ -137,27 +137,34 @@ The strongest production statement is also the most important evidence boundary:
 
 Two controlled A→B attempts reached native Nimiq Pay approval and failed afterward. We independently checked chain history, recipient balance, backend intent state, and Neon finality state. Both attempts were classified `NOT_BROADCAST`; NimCarry did not move custody or manufacture ARRIVED.
 
-### Real usage — privacy-safe and judge-verifiable
+### Real usage — privacy-safe, anti-gaming, judge-verifiable
 
-NimCarry now keeps **human registration**, **verified Nimiq wallet linking**, and **protocol participation** as separate evidence classes. This prevents development/test protocol rows from being presented as real-user traction.
+NimCarry uses **Real Usage Assurance v2**. Registration is treated as an acquisition signal, not as the strongest proof of product use. The public funnel is deliberately ordered by increasing assurance:
 
-Production snapshot captured **2026-09-19 11:57:03 UTC**:
+**Registered → Consented → Nimiq verified → Activated → Finalized**
 
-| Metric | Snapshot | Meaning |
+Production snapshot captured **2026-09-19 12:26:44 UTC**:
+
+| Metric | Snapshot | Assurance |
 |---|---:|---|
-| Registered human profiles | **27** | Distinct voluntary profiles stored in production |
-| Profiles with recorded privacy consent | **27** | Current Privacy Notice version + consent timestamp recorded |
-| Wallet-linked registered users | **0** | Requires a real Nimiq wallet signature |
-| Registered protocol participants | **0** | Requires a verified linked wallet that appears in protocol participation |
+| Registered profiles | **27** | Voluntary profile; useful acquisition signal, but low-cost to create |
+| Profiles with recorded privacy consent | **27** | Current Privacy Notice version + consent timestamp |
+| Nimiq-verified users | **0** | Valid Nimiq wallet signature |
+| Activated users | **0** | Verified wallet + mission creation, invitation acceptance, or FINAL hop **after wallet verification** |
+| Finalized users | **0** | Verified wallet + independently verified FINAL hop after wallet verification |
 
-The earlier protocol test state remains separate: **7 participation rows across 3 distinct wallets** existed before the human registry and is **not counted as registered-user traction**.
+The time-ordering rule is intentional. Linking an old wallet later cannot convert pre-registry development/test activity into traction. The earlier test state — **7 participation rows across 3 wallets** — remains excluded.
+
+Rate limits reduce operational abuse, but NimCarry does **not** treat an IP limit, email entry, wallet count, or screenshot as proof of a real user. Stronger usage claims require cryptographically verified Nimiq behavior and, at the highest tier, independently observed finality.
 
 Judges can verify current aggregate counts without access to personal data:
 
 - [Live usage evidence page](https://nimcarry.faadil-casecraft.workers.dev/real-usage)
 - [Aggregate user JSON](https://nimcarry.faadil-casecraft.workers.dev/users/stats)
 - [Protocol runtime aggregate JSON](https://nimcarry.faadil-casecraft.workers.dev/usage)
-- [Timestamped repository snapshot](docs/evidence/real-usage-2026-09-19.json)
+- [Real Usage Assurance v2 policy](docs/evidence/REAL-USAGE-ASSURANCE-V2.md)
+- [Timestamped v2 snapshot](docs/evidence/real-usage-assurance-v2-2026-09-19.json)
+- [Original registration snapshot](docs/evidence/real-usage-2026-09-19.json)
 
 No screenshot containing a user's name or email is published as usage evidence. The public evidence surface exposes aggregate counts only.
 

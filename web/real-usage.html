@@ -28,27 +28,31 @@
       <div id="usage-state" class="warning">Loading live production counts…</div>
 
       <div class="evidence-grid" aria-live="polite">
-        <div class="evidence-metric"><strong id="registered-users">—</strong><span>Registered human profiles</span></div>
+        <div class="evidence-metric"><strong id="registered-users">—</strong><span>Registered profiles · acquisition signal</span></div>
         <div class="evidence-metric"><strong id="consented-users">—</strong><span>Profiles with recorded privacy consent</span></div>
-        <div class="evidence-metric"><strong id="wallet-linked-users">—</strong><span>Registered profiles with a verified Nimiq wallet</span></div>
-        <div class="evidence-metric"><strong id="protocol-participants">—</strong><span>Registered users who have participated in protocol custody</span></div>
+        <div class="evidence-metric"><strong id="nimiq-verified-users">—</strong><span>Nimiq-verified users · valid wallet signature</span></div>
+        <div class="evidence-metric"><strong id="activated-users">—</strong><span>Activated users · verified wallet + post-verification mission action</span></div>
+        <div class="evidence-metric"><strong id="finalized-users">—</strong><span>Finalized users · verified wallet + independently FINAL hop</span></div>
+        <div class="evidence-metric"><strong id="metric-policy">v2</strong><span>Real Usage Assurance policy</span></div>
       </div>
 
       <h2>Evidence boundary</h2>
-      <p class="evidence-note"><strong>Registration is not a wallet claim.</strong> A person can register with name + email and explicit privacy consent without Nimiq. A wallet is counted only after a real Nimiq signature. Protocol participation is counted only when a registered user's verified wallet appears in protocol participation records.</p>
-      <p class="evidence-note">Pre-registry development/test participation rows are intentionally excluded from the registered-user participation metric. Screenshots containing user emails are not published as evidence.</p>
+      <p class="evidence-note"><strong>Registration is acquisition, not activation.</strong> A profile can be created with name + email and explicit privacy consent without Nimiq. We therefore do not use registration count as the strongest real-usage claim.</p>
+      <p class="evidence-note"><strong>Nimiq verification</strong> requires a valid wallet signature. <strong>Activation</strong> requires that verified wallet to create a mission, accept an invitation, or participate in a FINAL hop <em>after</em> the wallet was verified. <strong>Finalized</strong> requires independently verified on-chain finality after verification.</p>
+      <p class="evidence-note">This time ordering prevents pre-registry development/test activity from becoming real-user traction later just because an old wallet is linked. Screenshots containing user emails are not published as evidence.</p>
 
       <h2>Protocol runtime evidence</h2>
       <div class="evidence-grid">
         <div class="evidence-metric"><strong id="missions-created">—</strong><span>Missions created in runtime storage</span></div>
         <div class="evidence-metric"><strong id="finalized-hops">—</strong><span>Independently finalized hops</span></div>
       </div>
-      <p class="evidence-note">Mission/runtime counts can include controlled development or test activity and must not be interpreted as unique human users. NimCarry continues to state the stronger boundary: approval ≠ broadcast ≠ FINAL.</p>
+      <p class="evidence-note">Mission/runtime counts can include controlled development or test activity and must not be interpreted as unique human users. Rate limits reduce abuse but are not treated as proof of humanity. NimCarry continues to state the stronger boundary: registration ≠ verification ≠ activation ≠ FINAL.</p>
 
       <p id="usage-updated" class="evidence-note"></p>
       <div class="evidence-links">
         <a class="button secondary" href="/users/stats">Raw aggregate user JSON</a>
         <a class="button ghost" href="/usage">Raw protocol usage JSON</a>
+        <a class="button ghost" href="https://github.com/Faadil1/nimcarry/blob/main/docs/evidence/REAL-USAGE-ASSURANCE-V2.md" target="_blank" rel="noreferrer">Metric policy</a>
         <a class="button ghost" href="/">Back to NimCarry</a>
       </div>
     </section>

@@ -14,13 +14,15 @@ try {
 
   setText("registered-users", Number(users.registered_users ?? 0));
   setText("consented-users", Number(users.consented_users ?? 0));
-  setText("wallet-linked-users", Number(users.wallet_linked_users ?? 0));
-  setText("protocol-participants", Number(users.protocol_participants ?? 0));
+  setText("nimiq-verified-users", Number(users.nimiq_verified_users ?? users.wallet_linked_users ?? 0));
+  setText("activated-users", Number(users.activated_users ?? 0));
+  setText("finalized-users", Number(users.finalized_users ?? 0));
+  setText("metric-policy", String(users.metric_policy_version || "unknown").replace("real-usage-", ""));
   setText("missions-created", Number(protocol.missions_created ?? 0));
   setText("finalized-hops", Number(protocol.finalized_hops ?? 0));
 
   const state = document.getElementById("usage-state");
-  if (state) state.textContent = "Live production aggregates loaded. No personally identifying records are exposed.";
+  if (state) state.textContent = "Live production aggregates loaded. Registration is shown as acquisition; activation and finality carry the stronger assurance.";
   setText("usage-updated", `Loaded from production at ${new Date().toISOString()}.`);
 } catch (error) {
   const state = document.getElementById("usage-state");

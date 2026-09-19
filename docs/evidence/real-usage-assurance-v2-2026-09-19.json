@@ -1,0 +1,42 @@
+{
+  "schema": "nimcarry-real-usage-assurance/v2",
+  "captured_at_utc": "2026-09-19T12:26:44.760Z",
+  "environment": "production",
+  "runtime": "https://nimcarry.faadil-casecraft.workers.dev",
+  "metric_policy_version": "real-usage-v2",
+  "source": {
+    "database": "Neon/PostgreSQL production aggregate query",
+    "live_user_endpoint": "https://nimcarry.faadil-casecraft.workers.dev/users/stats",
+    "live_evidence_page": "https://nimcarry.faadil-casecraft.workers.dev/real-usage",
+    "policy": "docs/evidence/REAL-USAGE-ASSURANCE-V2.md"
+  },
+  "funnel": {
+    "registered_users": 27,
+    "consented_users": 27,
+    "nimiq_verified_users": 0,
+    "activated_users": 0,
+    "finalized_users": 0
+  },
+  "assurance": {
+    "registered_users": "self_asserted_profile_with_explicit_privacy_consent",
+    "consented_users": "current_privacy_notice_version_and_timestamp",
+    "nimiq_verified_users": "valid_nimiq_wallet_signature",
+    "activated_users": "verified_wallet_plus_post_verification_mission_create_accept_or_final",
+    "finalized_users": "verified_wallet_plus_post_verification_finalized_hop"
+  },
+  "anti_gaming": {
+    "registration_is_activation": false,
+    "ip_rate_limit_is_proof_of_humanity": false,
+    "wallet_count_without_signature_is_accepted": false,
+    "pre_verification_activity_can_activate_later": false,
+    "legacy_test_activity_counted_as_real_user_traction": false
+  },
+  "privacy": {
+    "contains_names": false,
+    "contains_emails": false,
+    "contains_wallet_addresses": false,
+    "contains_invite_tokens": false,
+    "contains_target_wallets": false,
+    "aggregate_only": true
+  }
+}
