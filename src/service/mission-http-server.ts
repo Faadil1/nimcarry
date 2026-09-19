@@ -42,6 +42,7 @@ import {
 import { idempotencyFingerprint, type IdempotencyStore } from "./idempotency.js";
 import type { RateLimiter } from "./rate-limiter.js";
 import { composeMissionView, type MissionView } from "./mission-view.js";
+import { profileTokenHash, type UserDirectory } from "../users/user-directory.js";
 
 const MAX_BODY_BYTES = 16 * 1024;
 const MISSION_ACTIONS = [
@@ -75,6 +76,8 @@ export interface MissionHttpDeps {
   broadcastCapabilities?: BroadcastCapabilityStore;
   /** Optional injection point for tests. Defaults to a process-local store. */
   routeViewCapabilities?: RouteViewCapabilityStore;
+  /** Optional human-profile registry used only to freeze verified same-user payment wallets at AUTHORIZE_PASS. */
+  userDirectory?: UserDirectory;
   /**
    * Explicit legacy `/relay` mutation gate. Defaults to
    * `CARRY_ONE_LEGACY_RELAY_ENABLED` (enabled outside production, disabled in
@@ -122,6 +125,31 @@ export function httpLimitsFromEnv(env: NodeJS.ProcessEnv = process.env): HttpLim
 
 function resolveLimits(deps: MissionHttpDeps): HttpLimits {
   return deps.limits ?? httpLimitsFromEnv();
+}
+
+const USER_PROFILE_TOKEN_RE = /^[A-Za-z0-9_-]{32,}$/;
+
+async function authorizedPaymentWalletSnapshot(
+  deps: MissionHttpDeps,
+  req: IncomingMessage,
+  holderWallet: string
+): Promise<string[]> {
+  const holder = normalizeNimiqAddress(holderWallet);
+  if (!deps.userDirectory) return [holder];
+
+  const raw = req.headers["x-nimcarry-user-token"];
+  const token = typeof raw === "string" ? raw : Array.isArray(raw) ? raw[0] : undefined;
+  if (!token || !USER_PROFILE_TOKEN_RE.test(token)) return [holder];
+
+  const profile = await deps.userDirectory.getByTokenHash(profileTokenHash(token));
+  if (!profile) return [holder];
+
+  const verified = (await deps.userDirectory.walletsForUser(profile.id)).map(normalizeNimiqAddress);
+  if (!verified.includes(holder)) return [holder];
+
+  return [holder, ...verified].filter(
+    (wallet, index, all) => all.findIndex((candidate) => candidate === wallet) === index
+  );
 }
 
 export function createMissionHttpServer(deps: MissionHttpDeps) {
@@ -337,8 +365,15 @@ async function authorizePass(deps: MissionHttpDeps, req: IncomingMessage, missio
   rejectUnknownKeys(obj, ["challenge_id", "public_key", "signature", "invitation_id"]);
 
   const auth = await verifyEnvelope(deps, envelope);
-  const intent = await deps.coordinator.authorizePass({ missionId, invitationId, auth });
   const now = Date.now();
+  const authorizedPaymentWallets = await authorizedPaymentWalletSnapshot(deps, req, auth.wallet);
+  const intent = await deps.coordinator.authorizePass({
+    missionId,
+    invitationId,
+    auth,
+    authorizedPaymentWallets,
+    now,
+  });
   const intentExpiresAt = intent.createdAt + INTENT_VALIDITY_WINDOW_MS;
   const ttlMs = Math.min(BROADCAST_CAPABILITY_TTL_MS, intentExpiresAt - now);
   if (ttlMs <= 0) {
@@ -697,6 +732,7 @@ function toPassIntentPayload(intent: PassIntent, capability: { token: string; ex
     fee_luna: 0,
     recipient_data: intent.recipientData,
     expected_sender: intent.currentHolder,
+    authorized_payment_wallets: intent.authorizedPaymentWallets,
     expires_at: new Date(intent.createdAt + INTENT_VALIDITY_WINDOW_MS).toISOString(),
     broadcast_capability: capability.token,
     broadcast_capability_expires_at: new Date(capability.expiresAt).toISOString(),
