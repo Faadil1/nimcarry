@@ -4,24 +4,24 @@ import { describe, expect, it } from "vitest";
 const html = readFileSync("web/index.html", "utf8");
 const onboarding = readFileSync("web/wallet-onboarding.js", "utf8");
 
-describe("first-time Nimiq wallet onboarding", () => {
+describe("human-first Nimiq wallet onboarding", () => {
   it("loads after the core app so onboarding only enhances rendered product states", () => {
     expect(html).toContain('src="/wallet-onboarding.js"');
     expect(html.indexOf('src="/app.js"')).toBeLessThan(html.indexOf('src="/wallet-onboarding.js"'));
   });
 
-  it("explains that NimCarry uses wallet identity rather than a separate account", () => {
-    expect(onboarding).toContain("No separate NimCarry signup.");
-    expect(onboarding).toContain("NimCarry uses Nimiq wallet identity instead of an email/password account.");
-    expect(onboarding).toContain("The destination must have a Nimiq address before the mission starts");
+  it("separates NimCarry user identity from Nimiq protocol custody", () => {
+    expect(onboarding).toContain("You can be a NimCarry user with just your name and email.");
+    expect(onboarding).toContain("A Nimiq wallet is required only when you create or accept custody");
+    expect(onboarding).toContain("ARRIVED is verified against that private wallet");
   });
 
-  it("gives first-time users an explicit Nimiq setup path and lets invitees return to the same invite", () => {
+  it("lets invitees register human-first and connect Nimiq only before custody", () => {
+    expect(onboarding).toContain("You can join NimCarry before you have Nimiq.");
+    expect(onboarding).toContain("name + email NimCarry profile");
+    expect(onboarding).toContain("connect or create a Nimiq wallet in Nimiq Pay");
     expect(onboarding).toContain("https://www.nimiq.com/nimiq-pay/");
     expect(onboarding).toContain("https://www.nimiq.com/wallet/");
-    expect(onboarding).toContain('document.querySelector("#accept")');
-    expect(onboarding).toContain("reopen this same private invitation");
-    expect(onboarding).toContain("MutationObserver");
   });
 
   it("does not gain authority over mission, signing, or transaction state", () => {
