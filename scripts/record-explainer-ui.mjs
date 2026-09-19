@@ -78,19 +78,32 @@ try {
   await page.locator("#invite-confirm").click();
   await page.locator("#demo-tour-open-invite").waitFor({ state: "visible", timeout: 8_000 });
   mark("shot10_invite_ready");
-  await sleep(1_600);
+  await sleep(1_300);
+
+  await page.locator("#demo-tour-open-invite").click();
+  await page.waitForURL(/\/i\//, { timeout: 8_000 });
+  await page.locator("#accept").waitFor({ state: "visible", timeout: 8_000 });
+  mark("shot12_accept_ready");
+  await sleep(1_300);
+
+  await page.locator("#accept").click();
+  await page.waitForURL(/\/mission\/[^/]+$/, { timeout: 8_000 });
+  await page.locator("#pass-button").waitFor({ state: "visible", timeout: 8_000 });
+  mark("shot12_accepted");
+  await sleep(1_500);
 
   const state = await page.evaluate(() => ({
     path: location.pathname,
     search: location.search,
     screen: document.querySelector("#screen")?.dataset.clv2Screen || null,
     bodyClass: document.body.className,
-    hasInviteReady: Boolean(document.querySelector("#demo-tour-open-invite")),
+    hasPassReady: Boolean(document.querySelector("#pass-button")),
+    invitationStatus: document.querySelector(".clv2-invite-status")?.textContent?.trim() || null,
     overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
   }));
 
   if (state.overflow) throw new Error("Recording surface has horizontal overflow");
-  if (!state.hasInviteReady) throw new Error("Invite-ready state missing at end of recording");
+  if (!state.hasPassReady) throw new Error("Accepted mission did not expose Pass 1 NIM");
 
   mark("recording_complete");
 
@@ -100,7 +113,7 @@ try {
       generated_at: new Date().toISOString(),
       source: `${baseUrl}/?demo=1&tour=1&reset=1`,
       mode: "LIVE_PRODUCTION_RUNTIME_GUIDED_PRACTICE",
-      truth_boundary: "Shots 09–10 are guided-practice UI capture; FINAL/ARRIVED proof must come from the real TESTNET run.",
+      truth_boundary: "Shots 09–12 are guided-practice UI capture; FINAL/ARRIVED proof must come from the real TESTNET run.",
       viewport,
       marks,
       final_state: state,
@@ -112,7 +125,7 @@ try {
   throw error;
 }
 
-const webmPath = join(outputRoot, "shots-09-10-live-practice.webm");
+const webmPath = join(outputRoot, "shots-09-12-live-practice.webm");
 if (!video) throw new Error("Playwright video handle unavailable");
 
 // Playwright finalizes video when the page closes. Start saveAs before
