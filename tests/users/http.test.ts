@@ -47,12 +47,7 @@ describe("human user HTTP API", () => {
     const response = await json(base, "/users/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        display_name: "Yasmine",
-        email: "yasmine@example.com",
-        privacy_consent: true,
-        privacy_notice_version: "2026-09-19",
-      }),
+      body: JSON.stringify({ display_name: "Yasmine", email: "yasmine@example.com" }),
     });
 
     expect(response.status).toBe(400);
