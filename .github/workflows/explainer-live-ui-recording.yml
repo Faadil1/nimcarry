@@ -71,14 +71,14 @@ jobs:
         run: |
           set -euo pipefail
           ffmpeg -y \
-            -i "$EXPLAINER_OUTPUT/shots-09-12-live-practice.webm" \
+            -i "$EXPLAINER_OUTPUT/shots-09-20-live-practice.webm" \
             -c:v libx264 \
             -preset medium \
             -crf 18 \
             -pix_fmt yuv420p \
             -movflags +faststart \
             -an \
-            "$EXPLAINER_OUTPUT/shots-09-12-live-practice.mp4"
+            "$EXPLAINER_OUTPUT/shots-09-20-live-practice.mp4"
 
       - name: Upload explainer recording
         if: always()
