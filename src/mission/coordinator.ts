@@ -33,6 +33,7 @@ export class ReachMissionCoordinator {
     missionId: string;
     invitationId: string;
     auth: VerifiedWalletAction;
+    authorizedPaymentWallets?: string[];
     now?: number;
   }): Promise<PassIntent> {
     const mission = await this.missions.getMissionRecord(input.missionId);
@@ -80,7 +81,10 @@ export class ReachMissionCoordinator {
             throw new MissionValidationError("STALE_BROADCASTED_INTENT", "A stale pass intent has broadcast evidence and cannot be replaced");
           }
           this.relay.cancelPass(mission.id);
-          const renewed = this.relay.initiatePass(mission.id, signer, invitation.candidateWalletNormalized, { requireOpaqueTag: true });
+          const renewed = this.relay.initiatePass(mission.id, signer, invitation.candidateWalletNormalized, {
+            requireOpaqueTag: true,
+            authorizedPaymentWallets: input.authorizedPaymentWallets,
+          });
           if (!renewed.recipientData) {
             throw new MissionValidationError("MISSING_HOP_COMMITMENT", "Reach Mission pass authorization must include an opaque on-chain commitment");
           }
@@ -93,7 +97,10 @@ export class ReachMissionCoordinator {
       throw new MissionValidationError("RELAY_INTENT_CONFLICT", "A different relay intent is already active for this mission");
     }
 
-    const intent = this.relay.initiatePass(mission.id, signer, invitation.candidateWalletNormalized, { requireOpaqueTag: true });
+    const intent = this.relay.initiatePass(mission.id, signer, invitation.candidateWalletNormalized, {
+      requireOpaqueTag: true,
+      authorizedPaymentWallets: input.authorizedPaymentWallets,
+    });
     if (!intent.recipientData) {
       throw new MissionValidationError("MISSING_HOP_COMMITMENT", "Reach Mission pass authorization must include an opaque on-chain commitment");
     }
