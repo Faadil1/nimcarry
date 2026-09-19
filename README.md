@@ -14,6 +14,8 @@
   ·
   <a href="https://youtu.be/SAyv8hyZG6Q"><strong>Demo Video</strong></a>
   ·
+  <a href="https://nimcarry.faadil-casecraft.workers.dev/usage.html"><strong>Live Usage Evidence</strong></a>
+  ·
   <a href="https://github.com/Faadil1/nimcarry/releases/tag/v1.0.0"><strong>v1.0.0 Release</strong></a>
 </p>
 
@@ -135,6 +137,30 @@ The strongest production statement is also the most important evidence boundary:
 
 Two controlled A→B attempts reached native Nimiq Pay approval and failed afterward. We independently checked chain history, recipient balance, backend intent state, and Neon finality state. Both attempts were classified `NOT_BROADCAST`; NimCarry did not move custody or manufacture ARRIVED.
 
+### Real usage — privacy-safe and judge-verifiable
+
+NimCarry now keeps **human registration**, **verified Nimiq wallet linking**, and **protocol participation** as separate evidence classes. This prevents development/test protocol rows from being presented as real-user traction.
+
+Production snapshot captured **2026-09-19 11:57:03 UTC**:
+
+| Metric | Snapshot | Meaning |
+|---|---:|---|
+| Registered human profiles | **27** | Distinct voluntary profiles stored in production |
+| Profiles with recorded privacy consent | **27** | Current Privacy Notice version + consent timestamp recorded |
+| Wallet-linked registered users | **0** | Requires a real Nimiq wallet signature |
+| Registered protocol participants | **0** | Requires a verified linked wallet that appears in protocol participation |
+
+The earlier protocol test state remains separate: **7 participation rows across 3 distinct wallets** existed before the human registry and is **not counted as registered-user traction**.
+
+Judges can verify current aggregate counts without access to personal data:
+
+- [Live usage evidence page](https://nimcarry.faadil-casecraft.workers.dev/usage.html)
+- [Aggregate user JSON](https://nimcarry.faadil-casecraft.workers.dev/users/stats)
+- [Protocol runtime aggregate JSON](https://nimcarry.faadil-casecraft.workers.dev/usage)
+- [Timestamped repository snapshot](docs/evidence/real-usage-2026-09-19.json)
+
+No screenshot containing a user's name or email is published as usage evidence. The public evidence surface exposes aggregate counts only.
+
 ---
 
 ## Demo
@@ -228,6 +254,8 @@ npm run build
 - [Live App](https://nimcarry.faadil-casecraft.workers.dev)
 - [Guided Demo](https://nimcarry.faadil-casecraft.workers.dev/?demo=1)
 - [Demo Video](https://youtu.be/SAyv8hyZG6Q)
+- [Live usage evidence](https://nimcarry.faadil-casecraft.workers.dev/usage.html)
+- [Real usage snapshot](docs/evidence/real-usage-2026-09-19.json)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Security](SECURITY.md)
 - [Release notes](docs/release/RELEASE-NOTES-V1.0.0.md)
