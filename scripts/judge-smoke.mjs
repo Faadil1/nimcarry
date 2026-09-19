@@ -108,7 +108,8 @@ try {
       userProfileAsset.response.ok &&
       /Returning user/.test(userProfileAsset.text) &&
       /\/users\/auth\/request/.test(userProfileAsset.text) &&
-      /\/users\/auth\/verify/.test(userProfileAsset.text)
+      /\/users\/auth\/verify/.test(userProfileAsset.text) &&
+      /Add another Nimiq wallet/.test(userProfileAsset.text)
     ) break;
     if (profileAssetAttempt < 12) {
       console.log(`WAIT ${base}/user-profile.js — returning-user asset not promoted yet (attempt ${profileAssetAttempt}/12)`);
@@ -140,6 +141,12 @@ try {
       /Open NimCarry inside Nimiq Pay to connect your wallet/.test(userProfileAsset?.text || ""),
     "browser fallback must show one clear Nimiq Pay instruction instead of raw repeated provider errors"
   );
+  record(
+    "profile-multiwallet-linking-contract",
+    /Add another Nimiq wallet/.test(userProfileAsset?.text || "") &&
+      /wallets\.map\(\(wallet\)/.test(userProfileAsset?.text || ""),
+    "verified profiles must be able to add and display more than one Nimiq wallet"
+  );
 
   let appAsset = null;
   let appAssetAttempt = 0;
@@ -147,22 +154,26 @@ try {
     appAsset = await get("/app.js");
     if (
       appAsset.response.ok &&
-      /chooseUnambiguousPaymentWallet/.test(appAsset.text) &&
-      /PAYMENT_SOURCE_AMBIGUOUS/.test(appAsset.text) &&
-      /Mini App payment API cannot choose which account funds the transaction/.test(appAsset.text)
+      /assertAuthorizedPaymentAccounts/.test(appAsset.text) &&
+      /PAYMENT_SOURCE_UNVERIFIED/.test(appAsset.text) &&
+      /authorized_payment_wallets/.test(appAsset.text) &&
+      /X-NimCarry-User-Token/.test(appAsset.text) &&
+      /sameOriginApi/.test(appAsset.text)
     ) break;
     if (appAssetAttempt < 12) {
-      console.log(`WAIT ${base}/app.js — payment-source safety guard not promoted yet (attempt ${appAssetAttempt}/12)`);
+      console.log(`WAIT ${base}/app.js — verified multiwallet payment guard not promoted yet (attempt ${appAssetAttempt}/12)`);
       await sleep(10000);
     }
   }
   record(
-    "payment-source-ambiguity-guard",
+    "verified-multiwallet-payment-guard",
     Boolean(appAsset?.response.ok) &&
-      /chooseUnambiguousPaymentWallet/.test(appAsset?.text || "") &&
-      /PAYMENT_SOURCE_AMBIGUOUS/.test(appAsset?.text || "") &&
-      /Mini App payment API cannot choose which account funds the transaction/.test(appAsset?.text || ""),
-    appAsset ? `${appAsset.response.status} in ${appAsset.ms}ms (attempt ${appAssetAttempt}) — multi-account sessions must stop before any 1 NIM request` : "no response"
+      /assertAuthorizedPaymentAccounts/.test(appAsset?.text || "") &&
+      /PAYMENT_SOURCE_UNVERIFIED/.test(appAsset?.text || "") &&
+      /authorized_payment_wallets/.test(appAsset?.text || "") &&
+      /X-NimCarry-User-Token/.test(appAsset?.text || "") &&
+      /sameOriginApi/.test(appAsset?.text || ""),
+    appAsset ? `${appAsset.response.status} in ${appAsset.ms}ms (attempt ${appAssetAttempt}) — multiple payment accounts are allowed only when frozen into the verified same-profile pass snapshot` : "no response"
   );
 
   const authRequestProbe = await postJson("/users/auth/request", { email: "nimcarry-smoke-missing@example.invalid" });
