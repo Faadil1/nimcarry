@@ -205,14 +205,14 @@ import { getNimiqProvider } from "/nimiq-provider.js";
       throw new Error("PAYMENT_SOURCE_CONTRACT_MISMATCH: pass intent does not authorize its canonical holder.");
     }
 
+    if (!uniqueAccounts.some((account) => walletKey(account) === expectedKey)) {
+      throw new Error("PAYMENT_SOURCE_HOLDER_MISSING: the canonical holder wallet is no longer available in this Nimiq Pay session. No payment was requested.");
+    }
     const unauthorized = uniqueAccounts.filter((account) => !allowedKeys.has(walletKey(account)));
     if (unauthorized.length > 0) {
       throw new Error(
         `PAYMENT_SOURCE_UNVERIFIED: Nimiq Pay exposes ${unauthorized.map(short).join(", ")} but that wallet was not verified on the same NimCarry profile when this pass was authorized. NimCarry stopped before requesting 1 NIM. Link that wallet to your profile, then authorize a fresh pass.`
       );
-    }
-    if (!uniqueAccounts.some((account) => walletKey(account) === expectedKey)) {
-      throw new Error("PAYMENT_SOURCE_HOLDER_MISSING: the canonical holder wallet is no longer available in this Nimiq Pay session. No payment was requested.");
     }
 
     passDiagnostic("payment_source_preflight_completed", {
