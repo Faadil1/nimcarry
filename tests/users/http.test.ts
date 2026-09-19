@@ -3,6 +3,7 @@ import { PrivateKey, PublicKey, Signature } from "@nimiq/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { nimiqSignedMessageDigest } from "../../src/mission/wallet-auth.js";
 import { createNimCarryHttpServer } from "../../src/users/http.js";
+import type { LoginCodeEmail, UserEmailSender } from "../../src/users/email-sender.js";
 import { MemoryUserDirectory } from "../../src/users/user-directory.js";
 
 const closers: Array<() => Promise<void>> = [];
@@ -13,12 +14,25 @@ async function listen() {
     res.end(JSON.stringify({ error: "MISSION_FALLBACK" }));
   });
   const directory = new MemoryUserDirectory();
-  const server = createNimCarryHttpServer(missionServer, directory, "https://nimcarry.example");
+  const sentLoginCodes: LoginCodeEmail[] = [];
+  const emailSender: UserEmailSender = {
+    available: true,
+    async sendLoginCode(input) {
+      sentLoginCodes.push(input);
+    },
+  };
+  const server = createNimCarryHttpServer(
+    missionServer,
+    directory,
+    "https://nimcarry.example",
+    emailSender,
+    "test-login-secret"
+  );
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
   if (!address || typeof address === "string") throw new Error("test server address unavailable");
   closers.push(() => new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve())));
-  return { base: `http://127.0.0.1:${address.port}`, directory };
+  return { base: `http://127.0.0.1:${address.port}`, directory, sentLoginCodes };
 }
 
 async function json(base: string, path: string, init: RequestInit = {}) {
@@ -178,6 +192,117 @@ describe("human user HTTP API", () => {
     });
     expect(me.status).toBe(401);
     expect(me.body.error).toBe("USER_TOKEN_INVALID");
+  });
+
+  it("restores an existing profile with a one-time email code without creating a duplicate", async () => {
+    const { base, sentLoginCodes } = await listen();
+    const registered = await json(base, "/users/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        display_name: "Returning Person",
+        email: "returning@example.com",
+        privacy_consent: true,
+        privacy_notice_version: "2026-09-19",
+      }),
+    });
+    const originalToken = registered.body.user_token as string;
+    const originalUserId = registered.body.user_id as string;
+
+    const requested = await json(base, "/users/auth/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "RETURNING@example.com" }),
+    });
+    expect(requested.status).toBe(202);
+    expect(requested.body.challenge_id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(sentLoginCodes).toHaveLength(1);
+    expect(sentLoginCodes[0].to).toBe("returning@example.com");
+    expect(sentLoginCodes[0].code).toMatch(/^\d{6}$/);
+
+    const restored = await json(base, "/users/auth/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        challenge_id: requested.body.challenge_id,
+        code: sentLoginCodes[0].code,
+      }),
+    });
+    expect(restored.status).toBe(200);
+    expect(restored.body.user_id).toBe(originalUserId);
+    expect(restored.body.user_status).toBe("RETURNING");
+    expect(restored.body.email_verified).toBe(true);
+    expect(restored.body.user_token).toMatch(/^[A-Za-z0-9_-]{32,}$/);
+    expect(restored.body.user_token).not.toBe(originalToken);
+
+    const stats = await json(base, "/users/stats");
+    expect(stats.body.registered_users).toBe(1);
+
+    const oldSessionStillWorks = await json(base, "/users/me", {
+      headers: { "X-NimCarry-User-Token": originalToken },
+    });
+    expect(oldSessionStillWorks.status).toBe(200);
+
+    const newSessionWorks = await json(base, "/users/me", {
+      headers: { "X-NimCarry-User-Token": restored.body.user_token },
+    });
+    expect(newSessionWorks.status).toBe(200);
+    expect(newSessionWorks.body.user_id).toBe(originalUserId);
+  });
+
+  it("does not reveal whether a sign-in email exists", async () => {
+    const { base, sentLoginCodes } = await listen();
+    const response = await json(base, "/users/auth/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "missing@example.com" }),
+    });
+    expect(response.status).toBe(202);
+    expect(response.body).toMatchObject({ accepted: true });
+    expect(response.body.challenge_id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(sentLoginCodes).toHaveLength(0);
+  });
+
+  it("rejects incorrect and replayed sign-in codes", async () => {
+    const { base, sentLoginCodes } = await listen();
+    await json(base, "/users/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        display_name: "Returning Person",
+        email: "retry@example.com",
+        privacy_consent: true,
+        privacy_notice_version: "2026-09-19",
+      }),
+    });
+    const requested = await json(base, "/users/auth/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "retry@example.com" }),
+    });
+
+    const wrong = await json(base, "/users/auth/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ challenge_id: requested.body.challenge_id, code: "000000" }),
+    });
+    expect(wrong.status).toBe(401);
+    expect(wrong.body.error).toBe("LOGIN_CODE_INVALID");
+
+    const correct = await json(base, "/users/auth/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ challenge_id: requested.body.challenge_id, code: sentLoginCodes[0].code }),
+    });
+    expect(correct.status).toBe(200);
+
+    const replay = await json(base, "/users/auth/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ challenge_id: requested.body.challenge_id, code: sentLoginCodes[0].code }),
+    });
+    expect(replay.status).toBe(401);
+    expect(replay.body.error).toBe("LOGIN_CODE_REPLAY");
   });
 
   it("delegates non-user routes to the existing mission server unchanged", async () => {
