@@ -4,6 +4,7 @@ import { PublicKey, Signature } from "@nimiq/core";
 import { normalizeNimiqAddress } from "../mission/target-wallet-crypto.js";
 import { nimiqSignedMessageDigest } from "../mission/wallet-auth.js";
 import {
+  PRIVACY_NOTICE_VERSION,
   UserDirectoryError,
   newProfileToken,
   profileTokenHash,
@@ -97,6 +98,8 @@ function profilePayload(profile: UserProfile, wallets: string[]) {
     display_name: profile.displayName,
     email: profile.emailNormalized,
     email_verified: profile.emailVerifiedAt !== null,
+    privacy_notice_version: profile.privacyNoticeVersion,
+    privacy_consent_at: new Date(profile.privacyConsentAt).toISOString(),
     wallet_linked: wallets.length > 0,
     wallets: wallets.map((wallet) => ({
       fingerprint: wallet.length > 16 ? `${wallet.slice(0, 7)}…${wallet.slice(-5)}` : wallet,
@@ -128,11 +131,18 @@ async function handleUsers(
     const body = await jsonBody(req);
     const displayName = stringField(body.display_name, "display_name", 80);
     const email = stringField(body.email, "email", 254);
+    if (body.privacy_consent !== true || body.privacy_notice_version !== PRIVACY_NOTICE_VERSION) {
+      throw new UserDirectoryError("PRIVACY_CONSENT_REQUIRED", "You must accept the current NimCarry Privacy Notice before creating a profile");
+    }
     const token = newProfileToken();
+    const now = Date.now();
     const profile = await directory.register({
       displayName,
       email,
       tokenHash: profileTokenHash(token),
+      privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
+      privacyConsentAt: now,
+      now,
     });
     const wallets = await directory.walletsForUser(profile.id);
     return send(res, 201, {
@@ -146,6 +156,16 @@ async function handleUsers(
   if (req.method === "GET" && path === "/users/me") {
     const profile = await requireUser(req, directory);
     return send(res, 200, profilePayload(profile, await directory.walletsForUser(profile.id)));
+  }
+
+  if (req.method === "DELETE" && path === "/users/me") {
+    const profile = await requireUser(req, directory);
+    await directory.deleteUser(profile.id);
+    return send(res, 200, {
+      deleted: true,
+      user_id: profile.id,
+      message: "NimCarry profile deleted. Protocol records and public blockchain history are not rewritten.",
+    });
   }
 
   if (req.method === "GET" && path === "/users/stats") {

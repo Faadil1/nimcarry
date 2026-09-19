@@ -2,11 +2,15 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { PgPoolLike } from "../persistence/pg-pool.js";
 import { normalizeNimiqAddress } from "../mission/target-wallet-crypto.js";
 
+export const PRIVACY_NOTICE_VERSION = "2026-09-19";
+
 export interface UserProfile {
   id: string;
   emailNormalized: string;
   displayName: string;
   emailVerifiedAt: number | null;
+  privacyNoticeVersion: string;
+  privacyConsentAt: number;
   createdAt: number;
   updatedAt: number;
   lastSeenAt: number;
@@ -29,10 +33,20 @@ export interface UserStats {
   protocolParticipants: number;
 }
 
+export interface RegisterUserInput {
+  email: string;
+  displayName: string;
+  tokenHash: string;
+  privacyNoticeVersion: string;
+  privacyConsentAt: number;
+  now?: number;
+}
+
 export interface UserDirectory {
-  register(input: { email: string; displayName: string; tokenHash: string; now?: number }): Promise<UserProfile>;
+  register(input: RegisterUserInput): Promise<UserProfile>;
   getByTokenHash(tokenHash: string): Promise<UserProfile | undefined>;
   touch(userId: string, now?: number): Promise<void>;
+  deleteUser(userId: string): Promise<void>;
   linkVerifiedWallet(userId: string, wallet: string, now?: number): Promise<void>;
   walletsForUser(userId: string): Promise<string[]>;
   createWalletChallenge(record: UserWalletChallenge): Promise<void>;
@@ -79,9 +93,12 @@ export class MemoryUserDirectory implements UserDirectory {
   private readonly walletToId = new Map<string, string>();
   private readonly walletChallenges = new Map<string, UserWalletChallenge>();
 
-  async register(input: { email: string; displayName: string; tokenHash: string; now?: number }): Promise<UserProfile> {
+  async register(input: RegisterUserInput): Promise<UserProfile> {
     const email = normalizeEmail(input.email);
     const displayName = normalizeDisplayName(input.displayName);
+    if (input.privacyNoticeVersion !== PRIVACY_NOTICE_VERSION || !Number.isFinite(input.privacyConsentAt)) {
+      throw new UserDirectoryError("PRIVACY_CONSENT_REQUIRED", "Current privacy notice consent is required");
+    }
     if (this.emailToId.has(email)) throw new UserDirectoryError("EMAIL_ALREADY_REGISTERED", "This email is already registered");
     if (this.tokenToId.has(input.tokenHash)) throw new UserDirectoryError("TOKEN_COLLISION", "Profile token collision");
     const now = input.now ?? Date.now();
@@ -90,6 +107,8 @@ export class MemoryUserDirectory implements UserDirectory {
       emailNormalized: email,
       displayName,
       emailVerifiedAt: null,
+      privacyNoticeVersion: input.privacyNoticeVersion,
+      privacyConsentAt: input.privacyConsentAt,
       createdAt: now,
       updatedAt: now,
       lastSeenAt: now,
@@ -111,6 +130,16 @@ export class MemoryUserDirectory implements UserDirectory {
     if (!profile) return;
     profile.lastSeenAt = now;
     profile.updatedAt = now;
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    const profile = this.users.get(userId);
+    if (!profile) return;
+    this.users.delete(userId);
+    this.emailToId.delete(profile.emailNormalized);
+    for (const [tokenHash, id] of this.tokenToId.entries()) if (id === userId) this.tokenToId.delete(tokenHash);
+    for (const [wallet, id] of this.walletToId.entries()) if (id === userId) this.walletToId.delete(wallet);
+    for (const [id, challenge] of this.walletChallenges.entries()) if (challenge.userId === userId) this.walletChallenges.delete(id);
   }
 
   async linkVerifiedWallet(userId: string, wallet: string): Promise<void> {
@@ -156,6 +185,8 @@ interface UserRow {
   email_normalized: string;
   display_name: string;
   email_verified_at: Date | null;
+  privacy_notice_version: string;
+  privacy_consent_at: Date;
   created_at: Date;
   updated_at: Date;
   last_seen_at: Date;
@@ -178,6 +209,8 @@ function fromRow(row: UserRow): UserProfile {
     emailNormalized: row.email_normalized,
     displayName: row.display_name,
     emailVerifiedAt: row.email_verified_at?.getTime() ?? null,
+    privacyNoticeVersion: row.privacy_notice_version,
+    privacyConsentAt: row.privacy_consent_at.getTime(),
     createdAt: row.created_at.getTime(),
     updatedAt: row.updated_at.getTime(),
     lastSeenAt: row.last_seen_at.getTime(),
@@ -200,17 +233,21 @@ function challengeFromRow(row: UserWalletChallengeRow): UserWalletChallenge {
 export class PgUserDirectory implements UserDirectory {
   constructor(private readonly pool: PgPoolLike) {}
 
-  async register(input: { email: string; displayName: string; tokenHash: string; now?: number }): Promise<UserProfile> {
+  async register(input: RegisterUserInput): Promise<UserProfile> {
     const email = normalizeEmail(input.email);
     const displayName = normalizeDisplayName(input.displayName);
+    if (input.privacyNoticeVersion !== PRIVACY_NOTICE_VERSION || !Number.isFinite(input.privacyConsentAt)) {
+      throw new UserDirectoryError("PRIVACY_CONSENT_REQUIRED", "Current privacy notice consent is required");
+    }
     const now = new Date(input.now ?? Date.now());
+    const privacyConsentAt = new Date(input.privacyConsentAt);
     try {
       const result = await this.pool.query<UserRow>(
         `INSERT INTO users
-           (id, email_normalized, display_name, profile_token_hash, created_at, updated_at, last_seen_at)
-         VALUES ($1,$2,$3,$4,$5,$5,$5)
+           (id, email_normalized, display_name, profile_token_hash, privacy_notice_version, privacy_consent_at, created_at, updated_at, last_seen_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$7,$7)
          RETURNING *`,
-        [randomUUID(), email, displayName, input.tokenHash, now]
+        [randomUUID(), email, displayName, input.tokenHash, input.privacyNoticeVersion, privacyConsentAt, now]
       );
       return fromRow(result.rows[0]);
     } catch (error) {
@@ -233,6 +270,10 @@ export class PgUserDirectory implements UserDirectory {
 
   async touch(userId: string, now = Date.now()): Promise<void> {
     await this.pool.query("UPDATE users SET last_seen_at=$2, updated_at=$2 WHERE id=$1", [userId, new Date(now)]);
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    await this.pool.query("DELETE FROM users WHERE id=$1", [userId]);
   }
 
   async linkVerifiedWallet(userId: string, wallet: string, now = Date.now()): Promise<void> {
