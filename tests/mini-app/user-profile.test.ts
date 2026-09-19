@@ -8,7 +8,11 @@ const migration = readFileSync("migrations/003_human_user_registry.sql", "utf8")
 describe("human-first user onboarding surface", () => {
   it("loads the profile layer alongside the existing product app", () => {
     expect(html).toContain('src="/user-profile.js"');
-    expect(profile).toContain("Join NimCarry without a wallet.");
+    expect(profile).toContain("Already have a NimCarry profile?");
+    expect(profile).toContain("Create your profile without a wallet.");
+    expect(profile).toContain('"/users/auth/request"');
+    expect(profile).toContain('"/users/auth/verify"');
+    expect(profile).toContain("Sign in to my profile");
     expect(profile).toContain("Name + email creates your NimCarry user profile.");
   });
 
