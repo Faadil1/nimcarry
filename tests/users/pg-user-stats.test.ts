@@ -14,18 +14,39 @@ function wallet(): string {
   return PublicKey.derive(PrivateKey.generate()).toAddress().toUserFriendlyAddress();
 }
 
-const MIGRATIONS = [
-  "../../migrations/001_reach_mission_foundation.sql",
-  "../../migrations/003_human_user_registry.sql",
-  "../../migrations/004_user_privacy_consent.sql",
-];
+const FOUNDATION_MIGRATION = "../../migrations/001_reach_mission_foundation.sql";
+
+const USER_SCHEMA_FOR_PG_MEM = `
+  CREATE TABLE users (
+    id uuid PRIMARY KEY,
+    email_normalized text NOT NULL UNIQUE,
+    display_name text NOT NULL,
+    profile_token_hash text NOT NULL UNIQUE,
+    email_verified_at timestamptz,
+    privacy_notice_version text,
+    privacy_consent_at timestamptz,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    last_seen_at timestamptz NOT NULL
+  );
+
+  CREATE TABLE user_wallets (
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    wallet_normalized text NOT NULL UNIQUE,
+    linked_at timestamptz NOT NULL,
+    verified_at timestamptz NOT NULL,
+    PRIMARY KEY (user_id, wallet_normalized)
+  );
+`;
 
 describe("Postgres real-usage assurance metrics", () => {
   it("counts activation only after verified Nimiq behavior and finality only after verification", async () => {
     const pool = new PgMemPool();
-    for (const migration of MIGRATIONS) {
-      await pool.exec(readFileSync(join(import.meta.dirname!, migration), "utf8"));
-    }
+    await pool.exec(readFileSync(join(import.meta.dirname!, FOUNDATION_MIGRATION), "utf8"));
+    // pg-mem does not implement PostgreSQL position(), which is used by the
+    // production users migration check constraint. This minimal test schema
+    // mirrors only the columns exercised by PgUserDirectory.stats().
+    await pool.exec(USER_SCHEMA_FOR_PG_MEM);
 
     const directory = new PgUserDirectory(pool);
     const t0 = Date.UTC(2026, 8, 19, 12, 0, 0);
