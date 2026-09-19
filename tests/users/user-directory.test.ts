@@ -1,3 +1,4 @@
+import { PrivateKey, PublicKey } from "@nimiq/core";
 import { describe, expect, it } from "vitest";
 import {
   MemoryUserDirectory,
@@ -7,6 +8,10 @@ import {
   normalizeEmail,
   profileTokenHash,
 } from "../../src/users/user-directory.js";
+
+function wallet(): string {
+  return PublicKey.derive(PrivateKey.generate()).toAddress().toUserFriendlyAddress();
+}
 
 describe("human user directory", () => {
   it("registers a NimCarry user without requiring a Nimiq wallet", async () => {
@@ -51,9 +56,8 @@ describe("human user directory", () => {
       displayName: "Person",
       tokenHash: profileTokenHash(newProfileToken()),
     });
-    const wallet = "NQ08 1T30 G8US 8N76 7HNG 05DH 6P0J S8H6 T9V4";
 
-    await directory.linkVerifiedWallet(profile.id, wallet);
+    await directory.linkVerifiedWallet(profile.id, wallet());
     expect(await directory.walletsForUser(profile.id)).toHaveLength(1);
     expect((await directory.stats()).walletLinkedUsers).toBe(1);
   });
@@ -68,7 +72,7 @@ describe("human user directory", () => {
     const challenge = {
       id: "1c4a0b58-d667-44b7-b637-b8522480136a",
       userId: profile.id,
-      walletNormalized: "NQ08 1T30 G8US 8N76 7HNG 05DH 6P0J S8H6 T9V4",
+      walletNormalized: wallet(),
       nonceHash: "nonce",
       canonicalMessage: "message",
       expiresAt: 10_000,
