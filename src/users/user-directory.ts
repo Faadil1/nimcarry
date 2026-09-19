@@ -27,6 +27,16 @@ export interface UserWalletChallenge {
   createdAt: number;
 }
 
+export interface UserLoginChallenge {
+  id: string;
+  userId: string;
+  codeHash: string;
+  expiresAt: number;
+  usedAt: number | null;
+  failedAttempts: number;
+  createdAt: number;
+}
+
 export interface UserStats {
   registeredUsers: number;
   consentedUsers: number;
@@ -48,6 +58,9 @@ export interface RegisterUserInput {
 export interface UserDirectory {
   register(input: RegisterUserInput): Promise<UserProfile>;
   getByTokenHash(tokenHash: string): Promise<UserProfile | undefined>;
+  getByEmail(email: string): Promise<UserProfile | undefined>;
+  createSession(userId: string, tokenHash: string, now?: number): Promise<void>;
+  markEmailVerified(userId: string, now?: number): Promise<void>;
   touch(userId: string, now?: number): Promise<void>;
   deleteUser(userId: string): Promise<void>;
   linkVerifiedWallet(userId: string, wallet: string, now?: number): Promise<void>;
@@ -55,6 +68,10 @@ export interface UserDirectory {
   createWalletChallenge(record: UserWalletChallenge): Promise<void>;
   getWalletChallenge(id: string): Promise<UserWalletChallenge | undefined>;
   consumeWalletChallenge(id: string, now?: number): Promise<void>;
+  createLoginChallenge(record: UserLoginChallenge): Promise<void>;
+  getLoginChallenge(id: string): Promise<UserLoginChallenge | undefined>;
+  recordLoginFailure(id: string): Promise<number>;
+  consumeLoginChallenge(id: string, now?: number): Promise<void>;
   stats(): Promise<UserStats>;
 }
 
@@ -95,6 +112,7 @@ export class MemoryUserDirectory implements UserDirectory {
   private readonly tokenToId = new Map<string, string>();
   private readonly walletToId = new Map<string, string>();
   private readonly walletChallenges = new Map<string, UserWalletChallenge>();
+  private readonly loginChallenges = new Map<string, UserLoginChallenge>();
 
   async register(input: RegisterUserInput): Promise<UserProfile> {
     const email = normalizeEmail(input.email);
@@ -128,6 +146,25 @@ export class MemoryUserDirectory implements UserDirectory {
     return profile ? { ...profile } : undefined;
   }
 
+  async getByEmail(email: string): Promise<UserProfile | undefined> {
+    const id = this.emailToId.get(normalizeEmail(email));
+    const profile = id ? this.users.get(id) : undefined;
+    return profile ? { ...profile } : undefined;
+  }
+
+  async createSession(userId: string, tokenHash: string): Promise<void> {
+    if (!this.users.has(userId)) throw new UserDirectoryError("USER_NOT_FOUND", "NimCarry user does not exist");
+    if (this.tokenToId.has(tokenHash)) throw new UserDirectoryError("TOKEN_COLLISION", "Profile token collision");
+    this.tokenToId.set(tokenHash, userId);
+  }
+
+  async markEmailVerified(userId: string, now = Date.now()): Promise<void> {
+    const profile = this.users.get(userId);
+    if (!profile) throw new UserDirectoryError("USER_NOT_FOUND", "NimCarry user does not exist");
+    profile.emailVerifiedAt = profile.emailVerifiedAt ?? now;
+    profile.updatedAt = now;
+  }
+
   async touch(userId: string, now = Date.now()): Promise<void> {
     const profile = this.users.get(userId);
     if (!profile) return;
@@ -143,6 +180,7 @@ export class MemoryUserDirectory implements UserDirectory {
     for (const [tokenHash, id] of this.tokenToId.entries()) if (id === userId) this.tokenToId.delete(tokenHash);
     for (const [wallet, id] of this.walletToId.entries()) if (id === userId) this.walletToId.delete(wallet);
     for (const [id, challenge] of this.walletChallenges.entries()) if (challenge.userId === userId) this.walletChallenges.delete(id);
+    for (const [id, challenge] of this.loginChallenges.entries()) if (challenge.userId === userId) this.loginChallenges.delete(id);
   }
 
   async linkVerifiedWallet(userId: string, wallet: string): Promise<void> {
@@ -172,6 +210,82 @@ export class MemoryUserDirectory implements UserDirectory {
     if (challenge.usedAt !== null) throw new UserDirectoryError("USER_CHALLENGE_REPLAY", "Wallet-link challenge was already used");
     if (now >= challenge.expiresAt) throw new UserDirectoryError("USER_CHALLENGE_EXPIRED", "Wallet-link challenge has expired");
     challenge.usedAt = now;
+  }
+
+  async createLoginChallenge(record: UserLoginChallenge): Promise<void> {
+    if (this.loginChallenges.has(record.id)) throw new UserDirectoryError("LOGIN_CHALLENGE_COLLISION", "Could not create sign-in challenge");
+    this.loginChallenges.set(record.id, { ...record });
+  }
+
+  async getLoginChallenge(id: string): Promise<UserLoginChallenge | undefined> {
+    const challenge = this.loginChallenges.get(id);
+    return challenge ? { ...challenge } : undefined;
+  }
+
+  async recordLoginFailure(id: string): Promise<number> {
+    const challenge = this.loginChallenges.get(id);
+    if (!challenge) return 0;
+    challenge.failedAttempts += 1;
+    return challenge.failedAttempts;
+  }
+
+  async consumeLoginChallenge(id: string, now = Date.now()): Promise<void> {
+    const challenge = this.loginChallenges.get(id);
+    if (!challenge || challenge.usedAt !== null || now >= challenge.expiresAt) {
+      throw new UserDirectoryError("LOGIN_CODE_INVALID", "Sign-in code is invalid or expired");
+    }
+    challenge.usedAt = now;
+  }
+
+  async createLoginChallenge(record: UserLoginChallenge): Promise<void> {
+    try {
+      await this.pool.query(
+        `INSERT INTO user_login_challenges
+           (id, user_id, code_hash, expires_at, used_at, failed_attempts, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [
+          record.id,
+          record.userId,
+          record.codeHash,
+          new Date(record.expiresAt),
+          record.usedAt === null ? null : new Date(record.usedAt),
+          record.failedAttempts,
+          new Date(record.createdAt),
+        ]
+      );
+    } catch {
+      throw new UserDirectoryError("LOGIN_CHALLENGE_COLLISION", "Could not create sign-in challenge");
+    }
+  }
+
+  async getLoginChallenge(id: string): Promise<UserLoginChallenge | undefined> {
+    const result = await this.pool.query<UserLoginChallengeRow>(
+      "SELECT * FROM user_login_challenges WHERE id=$1",
+      [id]
+    );
+    return result.rows.length ? loginChallengeFromRow(result.rows[0]) : undefined;
+  }
+
+  async recordLoginFailure(id: string): Promise<number> {
+    const result = await this.pool.query<{ failed_attempts: number }>(
+      `UPDATE user_login_challenges
+       SET failed_attempts=failed_attempts+1
+       WHERE id=$1
+       RETURNING failed_attempts`,
+      [id]
+    );
+    return Number(result.rows[0]?.failed_attempts ?? 0);
+  }
+
+  async consumeLoginChallenge(id: string, now = Date.now()): Promise<void> {
+    const result = await this.pool.query<UserLoginChallengeRow>(
+      `UPDATE user_login_challenges
+       SET used_at=$2
+       WHERE id=$1 AND used_at IS NULL AND expires_at>$2
+       RETURNING *`,
+      [id, new Date(now)]
+    );
+    if (!result.rows.length) throw new UserDirectoryError("LOGIN_CODE_INVALID", "Sign-in code is invalid or expired");
   }
 
   async stats(): Promise<UserStats> {
@@ -211,6 +325,16 @@ interface UserWalletChallengeRow {
   created_at: Date;
 }
 
+interface UserLoginChallengeRow {
+  id: string;
+  user_id: string;
+  code_hash: string;
+  expires_at: Date;
+  used_at: Date | null;
+  failed_attempts: number;
+  created_at: Date;
+}
+
 function fromRow(row: UserRow): UserProfile {
   return {
     id: row.id,
@@ -238,6 +362,18 @@ function challengeFromRow(row: UserWalletChallengeRow): UserWalletChallenge {
   };
 }
 
+function loginChallengeFromRow(row: UserLoginChallengeRow): UserLoginChallenge {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    codeHash: row.code_hash,
+    expiresAt: row.expires_at.getTime(),
+    usedAt: row.used_at?.getTime() ?? null,
+    failedAttempts: Number(row.failed_attempts ?? 0),
+    createdAt: row.created_at.getTime(),
+  };
+}
+
 export class PgUserDirectory implements UserDirectory {
   constructor(private readonly pool: PgPoolLike) {}
 
@@ -257,7 +393,14 @@ export class PgUserDirectory implements UserDirectory {
          RETURNING *`,
         [randomUUID(), email, displayName, input.tokenHash, input.privacyNoticeVersion, privacyConsentAt, now]
       );
-      return fromRow(result.rows[0]);
+      const profile = fromRow(result.rows[0]);
+      await this.pool.query(
+        `INSERT INTO user_sessions (token_hash, user_id, created_at, last_seen_at)
+         VALUES ($1,$2,$3,$3)
+         ON CONFLICT (token_hash) DO NOTHING`,
+        [input.tokenHash, profile.id, now]
+      );
+      return profile;
     } catch (error) {
       const code = (error as { code?: string }).code;
       const detail = ((error as { detail?: string }).detail ?? (error as Error).message) || "";
@@ -272,8 +415,44 @@ export class PgUserDirectory implements UserDirectory {
   }
 
   async getByTokenHash(tokenHash: string): Promise<UserProfile | undefined> {
-    const result = await this.pool.query<UserRow>("SELECT * FROM users WHERE profile_token_hash=$1", [tokenHash]);
+    const result = await this.pool.query<UserRow>(
+      `SELECT u.*
+       FROM user_sessions s
+       JOIN users u ON u.id=s.user_id
+       WHERE s.token_hash=$1 AND s.revoked_at IS NULL`,
+      [tokenHash]
+    );
+    if (result.rows.length) return fromRow(result.rows[0]);
+    const legacy = await this.pool.query<UserRow>("SELECT * FROM users WHERE profile_token_hash=$1", [tokenHash]);
+    return legacy.rows.length ? fromRow(legacy.rows[0]) : undefined;
+  }
+
+  async getByEmail(email: string): Promise<UserProfile | undefined> {
+    const result = await this.pool.query<UserRow>("SELECT * FROM users WHERE email_normalized=$1", [normalizeEmail(email)]);
     return result.rows.length ? fromRow(result.rows[0]) : undefined;
+  }
+
+  async createSession(userId: string, tokenHash: string, now = Date.now()): Promise<void> {
+    try {
+      await this.pool.query(
+        `INSERT INTO user_sessions (token_hash, user_id, created_at, last_seen_at)
+         VALUES ($1,$2,$3,$3)`,
+        [tokenHash, userId, new Date(now)]
+      );
+    } catch (error) {
+      const code = (error as { code?: string }).code;
+      if (code === "23505") throw new UserDirectoryError("TOKEN_COLLISION", "Profile token collision");
+      throw new UserDirectoryError("USER_DB_ERROR", "Could not create NimCarry user session");
+    }
+  }
+
+  async markEmailVerified(userId: string, now = Date.now()): Promise<void> {
+    await this.pool.query(
+      `UPDATE users
+       SET email_verified_at=COALESCE(email_verified_at,$2), updated_at=$2
+       WHERE id=$1`,
+      [userId, new Date(now)]
+    );
   }
 
   async touch(userId: string, now = Date.now()): Promise<void> {
