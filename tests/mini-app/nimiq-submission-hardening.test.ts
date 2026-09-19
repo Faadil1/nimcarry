@@ -31,6 +31,13 @@ describe("Nimiq Pay ambiguous-submission hardening", () => {
     expect(guard).not.toContain("nimiq.sign");
   });
 
+  it("releases the browser hold only after the backend returns a terminal INVALID handoff", () => {
+    expect(guard).toContain('hopStatus === "INVALID"');
+    expect(guard).toContain("NO_BROADCAST_CONFIRMED");
+    expect(guard).toContain("clearMarker(id)");
+    expect(guard).toContain("previous handoff validity window ended");
+  });
+
   it("persists only a local safety hold, not wallet or transaction secrets", () => {
     expect(guard).toContain("first_seen_at");
     expect(guard).toContain("hold_until");
