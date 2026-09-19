@@ -1,8 +1,9 @@
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { PublicKey, Signature } from "@nimiq/core";
 import { normalizeNimiqAddress } from "../mission/target-wallet-crypto.js";
 import { nimiqSignedMessageDigest } from "../mission/wallet-auth.js";
+import type { UserEmailSender } from "./email-auth.js";
 import {
   PRIVACY_NOTICE_VERSION,
   UserDirectoryError,
@@ -14,6 +15,9 @@ import {
 
 const MAX_BODY_BYTES = 8 * 1024;
 const WALLET_CHALLENGE_TTL_MS = 5 * 60 * 1000;
+const LOGIN_CHALLENGE_TTL_MS = 10 * 60 * 1000;
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_CODE_RE = /^\d{6}$/;
 const TOKEN_RE = /^[A-Za-z0-9_-]{32,}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HEX_RE = /^[0-9a-fA-F]+$/;
@@ -76,6 +80,22 @@ function stringField(value: unknown, name: string, max: number): string {
   return text;
 }
 
+function loginCode(): string {
+  return randomInt(0, 1_000_000).toString().padStart(6, "0");
+}
+
+function loginCodeHash(challengeId: string, code: string): string {
+  return createHash("sha256")
+    .update(`nimcarry-login:v1:${challengeId}:${code}`, "utf8")
+    .digest("base64url");
+}
+
+function sameHash(left: string, right: string): boolean {
+  const a = Buffer.from(left, "utf8");
+  const b = Buffer.from(right, "utf8");
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 function userToken(req: IncomingMessage): string | null {
   const raw = req.headers["x-nimcarry-user-token"];
   const token = typeof raw === "string" ? raw : Array.isArray(raw) ? raw[0] : undefined;
@@ -117,14 +137,114 @@ async function handleUsers(
   req: IncomingMessage,
   res: ServerResponse,
   directory: UserDirectory,
-  canonicalOrigin: string
+  canonicalOrigin: string,
+  emailSender: UserEmailSender
 ): Promise<void> {
   const url = new URL(req.url ?? "/", "http://localhost");
   const path = url.pathname;
 
-  const rate = allow(`users:${ip(req)}`, path === "/users/register" ? 10 : 60);
+  const routeLimit = path === "/users/register" ? 10 : path === "/users/login/request" ? 8 : 60;
+  const rate = allow(`users:${ip(req)}`, routeLimit);
   if (!rate.allowed) {
     return send(res, 429, { error: "RATE_LIMITED", message: "Too many user requests" }, { "Retry-After": String(rate.retryAfter) });
+  }
+
+  if (req.method === "POST" && path === "/users/login/request") {
+    if (!emailSender.configured) {
+      throw new UserDirectoryError(
+        "EMAIL_SIGNIN_UNAVAILABLE",
+        "Returning-user email sign-in is not configured yet"
+      );
+    }
+    const body = await jsonBody(req);
+    const email = stringField(body.email, "email", 254).trim().toLowerCase();
+    const emailRate = allow(
+      `users-login-email:${createHash("sha256").update(email, "utf8").digest("base64url")}`,
+      3
+    );
+    if (!emailRate.allowed) {
+      return send(
+        res,
+        429,
+        { error: "RATE_LIMITED", message: "Too many sign-in code requests" },
+        { "Retry-After": String(emailRate.retryAfter) }
+      );
+    }
+
+    const requestId = randomUUID();
+    const profile = await directory.getByEmail(email);
+    if (profile) {
+      const code = loginCode();
+      const now = Date.now();
+      await directory.createLoginChallenge({
+        id: requestId,
+        userId: profile.id,
+        codeHash: loginCodeHash(requestId, code),
+        expiresAt: now + LOGIN_CHALLENGE_TTL_MS,
+        usedAt: null,
+        failedAttempts: 0,
+        createdAt: now,
+      });
+      try {
+        await emailSender.sendSignInCode({
+          to: profile.emailNormalized,
+          displayName: profile.displayName,
+          code,
+          expiresMinutes: LOGIN_CHALLENGE_TTL_MS / 60_000,
+          requestId,
+        });
+      } catch {
+        throw new UserDirectoryError(
+          "EMAIL_DELIVERY_UNAVAILABLE",
+          "NimCarry could not deliver a sign-in code right now"
+        );
+      }
+    }
+
+    return send(res, 202, {
+      status: "CODE_SENT_IF_ACCOUNT_EXISTS",
+      request_id: requestId,
+      expires_in_seconds: LOGIN_CHALLENGE_TTL_MS / 1000,
+    });
+  }
+
+  if (req.method === "POST" && path === "/users/login/verify") {
+    const body = await jsonBody(req);
+    const requestId = stringField(body.request_id, "request_id", 64);
+    const code = stringField(body.code, "code", 12);
+    if (!UUID_RE.test(requestId) || !LOGIN_CODE_RE.test(code)) {
+      throw new UserDirectoryError("LOGIN_CODE_INVALID", "Sign-in code is invalid or expired");
+    }
+
+    const challenge = await directory.getLoginChallenge(requestId);
+    const now = Date.now();
+    const valid =
+      challenge &&
+      challenge.usedAt === null &&
+      challenge.failedAttempts < LOGIN_MAX_ATTEMPTS &&
+      now < challenge.expiresAt &&
+      sameHash(challenge.codeHash, loginCodeHash(requestId, code));
+
+    if (!valid) {
+      if (challenge && challenge.usedAt === null && now < challenge.expiresAt) {
+        await directory.recordLoginFailure(requestId);
+      }
+      throw new UserDirectoryError("LOGIN_CODE_INVALID", "Sign-in code is invalid or expired");
+    }
+
+    await directory.consumeLoginChallenge(requestId, now);
+    await directory.markEmailVerified(challenge.userId, now);
+    const token = newProfileToken();
+    await directory.createSession(challenge.userId, profileTokenHash(token), now);
+    const profile = await directory.getById(challenge.userId);
+    if (!profile) throw new UserDirectoryError("USER_NOT_FOUND", "NimCarry user does not exist");
+    const wallets = await directory.walletsForUser(profile.id);
+    return send(res, 200, {
+      ...profilePayload(profile, wallets),
+      user_token: token,
+      user_status: "RETURNING_USER",
+      protocol_access: "NIMIQ_WALLET_REQUIRED_FOR_CUSTODY_ACTIONS",
+    });
   }
 
   if (req.method === "POST" && path === "/users/register") {
@@ -262,7 +382,8 @@ async function handleUsers(
 }
 
 function userErrorStatus(error: UserDirectoryError): number {
-  if (["USER_TOKEN_REQUIRED", "USER_TOKEN_INVALID", "USER_WALLET_SIGNATURE_INVALID"].includes(error.reason)) return 401;
+  if (["USER_TOKEN_REQUIRED", "USER_TOKEN_INVALID", "USER_WALLET_SIGNATURE_INVALID", "LOGIN_CODE_INVALID"].includes(error.reason)) return 401;
+  if (["EMAIL_SIGNIN_UNAVAILABLE", "EMAIL_DELIVERY_UNAVAILABLE"].includes(error.reason)) return 503;
   if (["USER_WALLET_MISMATCH", "WALLET_ALREADY_LINKED"].includes(error.reason)) return 403;
   if (error.reason === "EMAIL_ALREADY_REGISTERED") return 409;
   if (error.reason.endsWith("_NOT_FOUND")) return 404;
@@ -278,7 +399,8 @@ function userErrorStatus(error: UserDirectoryError): number {
 export function createNimCarryHttpServer(
   missionServer: Server,
   directory: UserDirectory,
-  canonicalOrigin: string
+  canonicalOrigin: string,
+  emailSender: UserEmailSender
 ): Server {
   return createServer((req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
@@ -286,7 +408,7 @@ export function createNimCarryHttpServer(
       missionServer.emit("request", req, res);
       return;
     }
-    handleUsers(req, res, directory, canonicalOrigin).catch((error) => {
+    handleUsers(req, res, directory, canonicalOrigin, emailSender).catch((error) => {
       if (error instanceof UserDirectoryError) {
         send(res, userErrorStatus(error), { error: error.reason, message: error.message });
         return;
