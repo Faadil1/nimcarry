@@ -126,6 +126,7 @@ function shouldReachBackend(request, url) {
 
   if (path === "/health" || path === "/usage") return true;
   if (path.startsWith("/auth/") || path.startsWith("/relay/")) return true;
+  if (path.startsWith("/users/")) return true;
 
   // `/mission/*` is always an SPA route; the canonical HTTP API is `/missions/*`.
   if (path === "/missions" || path.startsWith("/missions/")) {

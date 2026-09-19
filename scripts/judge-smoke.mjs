@@ -62,6 +62,31 @@ try {
     "same-origin independent TESTNET head must be live before a wallet write can be requested"
   );
 
+  let userStats = null;
+  let userStatsPayload = null;
+  for (let attempt = 1; attempt <= 12; attempt += 1) {
+    userStats = await get("/users/stats");
+    try { userStatsPayload = JSON.parse(userStats.text); } catch { userStatsPayload = null; }
+    if (
+      userStats.response.ok &&
+      Number.isInteger(Number(userStatsPayload?.registered_users)) &&
+      Number.isInteger(Number(userStatsPayload?.wallet_linked_users)) &&
+      Number.isInteger(Number(userStatsPayload?.protocol_participants))
+    ) break;
+    if (attempt < 12) {
+      console.log(`WAIT ${base}/users/stats — user API route not deployed yet (attempt ${attempt}/12)`);
+      await sleep(10000);
+    }
+  }
+  record("users-stats-http-200", Boolean(userStats?.response.ok), userStats ? `${userStats.response.status} in ${userStats.ms}ms` : "no response");
+  record(
+    "users-stats-json-contract",
+    Number.isInteger(Number(userStatsPayload?.registered_users)) &&
+      Number.isInteger(Number(userStatsPayload?.wallet_linked_users)) &&
+      Number.isInteger(Number(userStatsPayload?.protocol_participants)),
+    "Human-first user metrics must be routed to the container as JSON, never the SPA shell"
+  );
+
   for (const assetPath of [
     "/nimcarry-mark.svg",
     "/final-human-craft.css",
