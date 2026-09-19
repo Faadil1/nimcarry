@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { RelayStore } from "../../src/core/relay.js";
+import { opaqueHopCommitment } from "../../src/core/hop-commitment.js";
 
 describe("PassIntent payment-wallet snapshot", () => {
   it("defaults to the holder only and freezes a deduplicated explicit payment set", () => {
@@ -25,14 +26,21 @@ describe("PassIntent payment-wallet snapshot", () => {
   });
 
   it("binds different frozen payment sets to different opaque commitments", () => {
-    const a = new RelayStore().createIntent("mission-a", "NQ11 HOLDER", "NQ33 RECIPIENT", {
-      requireOpaqueTag: true,
+    const base = {
+      batonId: "mission-a",
+      sequence: 1,
+      currentHolder: "NQ11 HOLDER",
+      recipient: "NQ33 RECIPIENT",
+      nonce: "fixed-nonce",
+    };
+    const a = opaqueHopCommitment({
+      ...base,
       authorizedPaymentWallets: ["NQ11 HOLDER"],
     });
-    const b = new RelayStore().createIntent("mission-a", "NQ11 HOLDER", "NQ33 RECIPIENT", {
-      requireOpaqueTag: true,
+    const b = opaqueHopCommitment({
+      ...base,
       authorizedPaymentWallets: ["NQ11 HOLDER", "NQ22 PAYMENT"],
     });
-    expect(a.recipientData).not.toBe(b.recipientData);
+    expect(a).not.toBe(b);
   });
 });
