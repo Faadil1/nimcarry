@@ -43,6 +43,20 @@ describe("static Mini App skeleton", () => {
     expect(js).toContain('intent.expected_sender');
     expect(js).toContain('WRONG_WALLET_SELECTION');
   });
+  it("fails before a 1 NIM payment when Nimiq Pay exposes multiple possible payer accounts", () => {
+    expect(js).toContain("chooseUnambiguousPaymentWallet");
+    expect(js).toContain("PAYMENT_SOURCE_AMBIGUOUS");
+    expect(js).toContain("Mini App payment API cannot choose which account funds the transaction");
+    expect(js).toContain('action === "AUTHORIZE_PASS"');
+    const executeStart = js.indexOf("async function executePass");
+    const executeEnd = js.indexOf("\n  async function pollFinality", executeStart);
+    const executePass = js.slice(executeStart, executeEnd);
+    expect(executePass).toContain('signedAuth("AUTHORIZE_PASS"');
+    expect(executePass).toContain("walletKey(auth.wallet)");
+    expect(executePass).not.toContain("const selectedWallet = await chooseWallet()");
+    expect(html).toContain("it does not choose the payment source");
+  });
+
   it("traces pass provider phases without logging wallet or transaction secrets", () => {
     expect(js).toContain('passDiagnostic("account_sync_requested")');
     expect(js).toContain('passDiagnostic("wallet_approval_opened"');
