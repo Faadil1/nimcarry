@@ -7,7 +7,7 @@ vi.mock("@nimiq/mini-app-sdk", () => ({
   init: vi.fn(async () => ({ listAccounts, sendBasicTransactionWithData })),
 }));
 
-const { MiniAppSdkPayProvider, MockPayProvider, UserCancelledPaymentError, WrongWalletSelectionError } = await import(
+const { AmbiguousPaymentSourceError, MiniAppSdkPayProvider, MockPayProvider, UserCancelledPaymentError, WrongWalletSelectionError } = await import(
   "../../src/nimiq/pay-provider.js"
 );
 
@@ -43,6 +43,13 @@ describe("MiniAppSdkPayProvider", () => {
       data: DATA,
       validityStartHeight: undefined,
     });
+  });
+
+  it("fails before payment when more than one Nimiq account could fund the transaction", async () => {
+    listAccounts.mockResolvedValue([HOLDER, "NQ99 OTHER"]);
+    const provider = new MiniAppSdkPayProvider();
+    await expect(provider.sendPass(canonicalRequest)).rejects.toBeInstanceOf(AmbiguousPaymentSourceError);
+    expect(sendBasicTransactionWithData).not.toHaveBeenCalled();
   });
 
   it("fails before payment when the canonical holder wallet is not available in the session", async () => {

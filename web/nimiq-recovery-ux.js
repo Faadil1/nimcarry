@@ -148,6 +148,18 @@
       };
     }
 
+    if (/payment_source_ambiguous/.test(lower)) {
+      return {
+        kind: "account",
+        eyebrow: "Payment source needs one clear account",
+        title: "NimCarry stopped before requesting 1 NIM.",
+        body: "Nimiq Pay currently exposes more than one account, while the Mini App payment API cannot choose which account will fund the transaction. Keep only the current holder account available to this Mini App, then retry.",
+        primary: ["Retry account check", location.pathname],
+        secondary: ["Run provider check", providerCheckPath()],
+        rule: "One signed holder · one available payment account",
+      };
+    }
+
     if (/wrong_wallet_selection|no nimiq account|shared no accounts|choose a nimiq account/.test(lower)) {
       return {
         kind: "account",

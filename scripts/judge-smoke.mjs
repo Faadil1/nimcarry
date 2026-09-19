@@ -141,6 +141,30 @@ try {
     "browser fallback must show one clear Nimiq Pay instruction instead of raw repeated provider errors"
   );
 
+  let appAsset = null;
+  let appAssetAttempt = 0;
+  for (appAssetAttempt = 1; appAssetAttempt <= 12; appAssetAttempt += 1) {
+    appAsset = await get("/app.js");
+    if (
+      appAsset.response.ok &&
+      /chooseUnambiguousPaymentWallet/.test(appAsset.text) &&
+      /PAYMENT_SOURCE_AMBIGUOUS/.test(appAsset.text) &&
+      /Mini App payment API cannot choose which account funds the transaction/.test(appAsset.text)
+    ) break;
+    if (appAssetAttempt < 12) {
+      console.log(`WAIT ${base}/app.js — payment-source safety guard not promoted yet (attempt ${appAssetAttempt}/12)`);
+      await sleep(10000);
+    }
+  }
+  record(
+    "payment-source-ambiguity-guard",
+    Boolean(appAsset?.response.ok) &&
+      /chooseUnambiguousPaymentWallet/.test(appAsset?.text || "") &&
+      /PAYMENT_SOURCE_AMBIGUOUS/.test(appAsset?.text || "") &&
+      /Mini App payment API cannot choose which account funds the transaction/.test(appAsset?.text || ""),
+    appAsset ? `${appAsset.response.status} in ${appAsset.ms}ms (attempt ${appAssetAttempt}) — multi-account sessions must stop before any 1 NIM request` : "no response"
+  );
+
   const authRequestProbe = await postJson("/users/auth/request", { email: "nimcarry-smoke-missing@example.invalid" });
   const authRequestPass =
     authRequestProbe.response.status === 202 &&

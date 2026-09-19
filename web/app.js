@@ -171,8 +171,38 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     return selected;
   }
 
+  async function chooseUnambiguousPaymentWallet() {
+    const nimiq = await provider();
+    passDiagnostic("payment_source_preflight_requested");
+    const accounts = await nimiq.listAccounts();
+    if (!Array.isArray(accounts) || accounts.length === 0) {
+      throw new Error("PAYMENT_SOURCE_UNAVAILABLE: Nimiq Pay shared no account for this 1 NIM pass. No payment was requested.");
+    }
+
+    const uniqueAccounts = [];
+    const seen = new Set();
+    for (const account of accounts) {
+      const key = walletKey(account);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      uniqueAccounts.push(account);
+    }
+
+    passDiagnostic("payment_source_preflight_completed", { account_count: uniqueAccounts.length });
+    if (uniqueAccounts.length !== 1) {
+      throw new Error(
+        "PAYMENT_SOURCE_AMBIGUOUS: Nimiq Pay exposes multiple accounts, but the Mini App payment API cannot choose which account funds the transaction. NimCarry stopped before requesting 1 NIM. In Nimiq Pay, expose only the current holder account to this Mini App, then retry."
+      );
+    }
+
+    state.selectedWallet = uniqueAccounts[0];
+    return uniqueAccounts[0];
+  }
+
   async function signedAuth(action, bindings = {}) {
-    const wallet = await chooseWallet();
+    const wallet = action === "AUTHORIZE_PASS"
+      ? await chooseUnambiguousPaymentWallet()
+      : await chooseWallet();
     const challenge = await api("/auth/challenge", { method: "POST", body: { wallet, action, mission_id: bindings.missionId ?? null, invitation_id: bindings.invitationId ?? null, sequence: bindings.sequence ?? 0 } });
     const challengeId = challenge.challenge_id || challenge.id;
     const message = challenge.canonical_message || challenge.message;
@@ -506,17 +536,17 @@ import { getNimiqProvider } from "/nimiq-provider.js";
       handoffEvent("authorization-requested", { status: "AUTHORIZATION_REQUESTED" });
       notice("Authorizing canonical pass intent…");
        passPhase = "authorize"; passDiagnostic("authorize_started", { sequence });
+       passPhase = "payment_source_preflight";
        const auth = await signedAuth("AUTHORIZE_PASS", { missionId, invitationId: invitation.invitation_id, sequence });
        passPhase = "pass_intent";
       const intent = await api(`/missions/${encodeURIComponent(missionId)}/pass-intent`, { method: "POST", body: { invitation_id: invitation.invitation_id, auth } });
       if (!intent?.recipient || Number(intent.value_luna) !== ONE_NIM || !intent.recipient_data) throw new Error("PASS_INTENT_CONTRACT_MISMATCH: recipient/value/opaque data required.");
        if (!String(intent.recipient_data).startsWith("co:v1:")) throw new Error("OPAQUE_COMMITMENT_REQUIRED: refusing clear-text/legacy recipient data.");
+       if (!intent.expected_sender || walletKey(auth.wallet) !== walletKey(intent.expected_sender)) {
+         throw new Error("WRONG_WALLET_SELECTION: the signed Nimiq identity is not the canonical holder for this pass.");
+       }
        passDiagnostic("pass_intent_received", { value_luna: Number(intent.value_luna), fee_luna: Number(intent.fee_luna), recipient_present: true, opaque_commitment_present: true });
       handoffEvent("authorized", { status: "AUTHORIZED" });
-      const selectedWallet = await chooseWallet();
-      if (!intent.expected_sender || walletKey(selectedWallet) !== walletKey(intent.expected_sender)) {
-        throw new Error("WRONG_WALLET_SELECTION: the canonical holder wallet is not selected in this Nimiq Pay session.");
-      }
       const nimiq = await provider();
       handoffEvent("wallet-approval-opened", { status: "AWAITING_WALLET" });
       notice("Open Nimiq Pay and approve exactly 1 NIM…");
