@@ -2,23 +2,24 @@ import { createServer } from "node:http";
 import { PrivateKey, PublicKey, Signature } from "@nimiq/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { nimiqSignedMessageDigest } from "../../src/mission/wallet-auth.js";
+import { MemoryUserEmailSender } from "../../src/users/email-auth.js";
 import { createNimCarryHttpServer } from "../../src/users/http.js";
 import { MemoryUserDirectory } from "../../src/users/user-directory.js";
 
 const closers: Array<() => Promise<void>> = [];
 
-async function listen() {
+async function listen(emailSender = new MemoryUserEmailSender()) {
   const missionServer = createServer((_req, res) => {
     res.writeHead(404, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: "MISSION_FALLBACK" }));
   });
   const directory = new MemoryUserDirectory();
-  const server = createNimCarryHttpServer(missionServer, directory, "https://nimcarry.example");
+  const server = createNimCarryHttpServer(missionServer, directory, "https://nimcarry.example", emailSender);
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
   if (!address || typeof address === "string") throw new Error("test server address unavailable");
   closers.push(() => new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve())));
-  return { base: `http://127.0.0.1:${address.port}`, directory };
+  return { base: `http://127.0.0.1:${address.port}`, directory, emailSender };
 }
 
 async function json(base: string, path: string, init: RequestInit = {}) {
@@ -87,6 +88,92 @@ describe("human user HTTP API", () => {
       finalized_users: 0,
       protocol_participants: 0,
     });
+  });
+
+  it("restores an existing user with a one-time email code without replacing the old session", async () => {
+    const sender = new MemoryUserEmailSender();
+    const { base } = await listen(sender);
+    const registered = await json(base, "/users/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        display_name: "Yasmine",
+        email: "yasmine@example.com",
+        privacy_consent: true,
+        privacy_notice_version: "2026-09-19",
+      }),
+    });
+    const originalToken = registered.body.user_token as string;
+
+    const requested = await json(base, "/users/login/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "YASMINE@example.com" }),
+    });
+    expect(requested.status).toBe(202);
+    expect(requested.body.status).toBe("CODE_SENT_IF_ACCOUNT_EXISTS");
+    expect(sender.sent).toHaveLength(1);
+
+    const verified = await json(base, "/users/login/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        request_id: requested.body.request_id,
+        code: sender.sent[0].code,
+      }),
+    });
+    expect(verified.status).toBe(200);
+    expect(verified.body.user_id).toBe(registered.body.user_id);
+    expect(verified.body.user_status).toBe("RETURNING_USER");
+    expect(verified.body.email_verified).toBe(true);
+    expect(verified.body.user_token).not.toBe(originalToken);
+
+    const originalSession = await json(base, "/users/me", {
+      headers: { "X-NimCarry-User-Token": originalToken },
+    });
+    expect(originalSession.status).toBe(200);
+
+    const newSession = await json(base, "/users/me", {
+      headers: { "X-NimCarry-User-Token": verified.body.user_token },
+    });
+    expect(newSession.status).toBe(200);
+
+    const replay = await json(base, "/users/login/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        request_id: requested.body.request_id,
+        code: sender.sent[0].code,
+      }),
+    });
+    expect(replay.status).toBe(401);
+    expect(replay.body.error).toBe("LOGIN_CODE_INVALID");
+  });
+
+  it("does not reveal whether an unknown email has a profile", async () => {
+    const sender = new MemoryUserEmailSender();
+    const { base } = await listen(sender);
+    const requested = await json(base, "/users/login/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "unknown@example.com" }),
+    });
+
+    expect(requested.status).toBe(202);
+    expect(requested.body.status).toBe("CODE_SENT_IF_ACCOUNT_EXISTS");
+    expect(requested.body.request_id).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(sender.sent).toHaveLength(0);
+  });
+
+  it("fails closed when transactional email is not configured", async () => {
+    const { base } = await listen(new MemoryUserEmailSender(false));
+    const response = await json(base, "/users/login/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "yasmine@example.com" }),
+    });
+    expect(response.status).toBe(503);
+    expect(response.body.error).toBe("EMAIL_SIGNIN_UNAVAILABLE");
   });
 
   it("links a Nimiq wallet only after a valid wallet signature", async () => {
