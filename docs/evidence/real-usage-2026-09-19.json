@@ -1,0 +1,37 @@
+{
+  "schema": "nimcarry-real-usage-evidence/v1",
+  "captured_at_utc": "2026-09-19T11:57:03.692Z",
+  "environment": "production",
+  "runtime": "https://nimcarry.faadil-casecraft.workers.dev",
+  "source": {
+    "database": "Neon/PostgreSQL production aggregate query",
+    "live_user_endpoint": "https://nimcarry.faadil-casecraft.workers.dev/users/stats",
+    "live_protocol_endpoint": "https://nimcarry.faadil-casecraft.workers.dev/usage"
+  },
+  "human_usage": {
+    "registered_users": 27,
+    "consented_users": 27,
+    "wallet_linked_users": 0,
+    "registered_protocol_participants": 0
+  },
+  "excluded_test_state": {
+    "legacy_protocol_participation_rows": 7,
+    "legacy_distinct_protocol_wallets": 3,
+    "counted_as_registered_user_traction": false
+  },
+  "definitions": {
+    "registered_users": "Distinct voluntary human profiles. Registration requires name, email, and explicit current Privacy Notice consent; no Nimiq wallet is required.",
+    "consented_users": "Registered profiles with a stored privacy notice version and consent timestamp.",
+    "wallet_linked_users": "Registered profiles that proved control of a Nimiq wallet with a valid wallet signature.",
+    "registered_protocol_participants": "Registered users whose verified linked wallet appears in protocol participation records."
+  },
+  "privacy": {
+    "contains_names": false,
+    "contains_emails": false,
+    "contains_wallet_addresses": false,
+    "contains_invite_tokens": false,
+    "contains_target_wallets": false,
+    "aggregate_only": true
+  },
+  "evidence_boundary": "Registration != wallet linking != protocol participation. Pre-registry test participation is excluded from real-user traction."
+}
