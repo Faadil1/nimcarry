@@ -19,6 +19,19 @@ describe("human-first user onboarding surface", () => {
     expect(profile).toContain('"/users/wallet/link"');
   });
 
+  it("shows one human-readable Nimiq Pay notice instead of stacking provider errors", () => {
+    expect(profile).toContain('nimcarry-wallet-link-notice');
+    expect(profile).toContain("Open NimCarry inside Nimiq Pay to connect your wallet.");
+    expect(profile).toContain('host.querySelector("#nimcarry-wallet-link-notice")');
+    expect(profile).toContain('note.textContent = message');
+  });
+
+  it("lets provider injection recover after a failed browser attempt", () => {
+    const provider = readFileSync("web/nimiq-provider.js", "utf8");
+    expect(provider).toContain("providerPromise = undefined");
+    expect(provider).toContain(".catch((error) =>");
+  });
+
   it("persists users and wallet links separately from mission participants", () => {
     expect(migration).toContain("CREATE TABLE users");
     expect(migration).toContain("CREATE TABLE user_wallets");
