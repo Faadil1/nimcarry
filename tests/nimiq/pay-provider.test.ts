@@ -7,7 +7,7 @@ vi.mock("@nimiq/mini-app-sdk", () => ({
   init: vi.fn(async () => ({ listAccounts, sendBasicTransactionWithData })),
 }));
 
-const { AmbiguousPaymentSourceError, MiniAppSdkPayProvider, MockPayProvider, UserCancelledPaymentError, WrongWalletSelectionError } = await import(
+const { MiniAppSdkPayProvider, MockPayProvider, UnverifiedPaymentSourceError, UserCancelledPaymentError, WrongWalletSelectionError } = await import(
   "../../src/nimiq/pay-provider.js"
 );
 
@@ -45,10 +45,25 @@ describe("MiniAppSdkPayProvider", () => {
     });
   });
 
-  it("fails before payment when more than one Nimiq account could fund the transaction", async () => {
+  it("allows multiple exposed accounts when each is in the frozen verified payment snapshot", async () => {
+    const second = "NQ33 VERIFIED";
+    listAccounts.mockResolvedValue([HOLDER, second]);
+    sendBasicTransactionWithData.mockResolvedValue(VALID_HASH);
+    const provider = new MiniAppSdkPayProvider();
+    await expect(provider.sendPass({
+      ...canonicalRequest,
+      authorizedPaymentWallets: [HOLDER, second],
+    })).resolves.toEqual({ txHash: VALID_HASH });
+    expect(sendBasicTransactionWithData).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails before payment when an exposed account is not in the frozen verified snapshot", async () => {
     listAccounts.mockResolvedValue([HOLDER, "NQ99 OTHER"]);
     const provider = new MiniAppSdkPayProvider();
-    await expect(provider.sendPass(canonicalRequest)).rejects.toBeInstanceOf(AmbiguousPaymentSourceError);
+    await expect(provider.sendPass({
+      ...canonicalRequest,
+      authorizedPaymentWallets: [HOLDER],
+    })).rejects.toBeInstanceOf(UnverifiedPaymentSourceError);
     expect(sendBasicTransactionWithData).not.toHaveBeenCalled();
   });
 
