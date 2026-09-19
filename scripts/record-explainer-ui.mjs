@@ -83,13 +83,57 @@ try {
   await page.locator("#demo-tour-open-invite").click();
   await page.waitForURL(/\/i\//, { timeout: 8_000 });
   await page.locator("#accept").waitFor({ state: "visible", timeout: 8_000 });
-  mark("shot12_accept_ready");
-  await sleep(1_300);
+  await page.locator("#accept").evaluate((element) => {
+    element.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
+  });
+  await sleep(250);
+  mark("shot12_accept_ready_visible");
+  await sleep(1_350);
 
   await page.locator("#accept").click();
   await page.waitForURL(/\/mission\/[^/]+$/, { timeout: 8_000 });
   await page.locator("#pass-button").waitFor({ state: "visible", timeout: 8_000 });
   mark("shot12_accepted");
+  await sleep(900);
+
+  // Advance the first practice handoff so B becomes the simulated holder,
+  // then let the guided route prepare the destination invitation for C.
+  await page.locator("#pass-button").click();
+  await page.waitForURL(/\/mission\/[^/]+\/pass/, { timeout: 8_000 });
+  await page.locator("#send").waitFor({ state: "visible", timeout: 8_000 });
+  await page.locator("#send").evaluate((element) => {
+    element.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
+  });
+  await page.locator("#send").click();
+  await page.locator('.clv2-wax-scene[data-phase="verification-pending"]').waitFor({ state: "visible", timeout: 4_000 });
+  mark("shot16_first_handoff_warm_wax");
+  await page.locator('.clv2-wax-scene[data-phase="final"]').waitFor({ state: "visible", timeout: 6_000 });
+  await page.waitForURL(/\/mission\/[^/]+\/route/, { timeout: 8_000 });
+  await page.locator("#demo-tour-continue").waitFor({ state: "visible", timeout: 8_000 });
+  mark("shot17_first_practice_postmark");
+  await sleep(500);
+
+  await page.locator("#demo-tour-continue").click();
+  await page.locator("#invite-dialog").waitFor({ state: "visible", timeout: 8_000 });
+  await page.locator("#invite-confirm").click();
+  await page.locator("#demo-tour-open-invite").waitFor({ state: "visible", timeout: 8_000 });
+  mark("shot20_destination_invite_ready");
+  await sleep(700);
+
+  await page.locator("#demo-tour-open-invite").click();
+  await page.waitForURL(/\/i\//, { timeout: 8_000 });
+  await page.locator("#accept").waitFor({ state: "visible", timeout: 8_000 });
+  await page.locator("#accept").evaluate((element) => {
+    element.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
+  });
+  await sleep(250);
+  mark("shot20_accept_ready_visible");
+  await sleep(1_500);
+
+  await page.locator("#accept").click();
+  await page.waitForURL(/\/mission\/[^/]+$/, { timeout: 8_000 });
+  await page.locator("#pass-button").waitFor({ state: "visible", timeout: 8_000 });
+  mark("shot20_destination_accepted");
   await sleep(1_500);
 
   const state = await page.evaluate(() => ({
@@ -113,7 +157,7 @@ try {
       generated_at: new Date().toISOString(),
       source: `${baseUrl}/?demo=1&tour=1&reset=1`,
       mode: "LIVE_PRODUCTION_RUNTIME_GUIDED_PRACTICE",
-      truth_boundary: "Shots 09–12 are guided-practice UI capture; FINAL/ARRIVED proof must come from the real TESTNET run.",
+      truth_boundary: "Shots 09–20 are guided-practice UI capture. Practice postmarks are presentation only; FINAL/ARRIVED proof must come from the real TESTNET run.",
       viewport,
       marks,
       final_state: state,
@@ -125,7 +169,7 @@ try {
   throw error;
 }
 
-const webmPath = join(outputRoot, "shots-09-12-live-practice.webm");
+const webmPath = join(outputRoot, "shots-09-20-live-practice.webm");
 if (!video) throw new Error("Playwright video handle unavailable");
 
 // Playwright finalizes video when the page closes. Start saveAs before
