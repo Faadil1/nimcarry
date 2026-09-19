@@ -44,6 +44,18 @@ try {
   record("recovery-ux-runtime-wired", /nimiq-recovery-ux\.css/.test(root.text) && /nimiq-recovery-ux\.js/.test(root.text), "fail-closed recovery guidance must be wired after promotion");
   record("final-only-proof-copy", /Only FINAL changes custody/.test(root.text), "judge-facing custody law must remain visible");
   record("mature-positioning-copy", /Real people · one destination/.test(root.text) || /People move opportunity forward/.test(root.text), "human-route positioning must remain visible");
+  record("privacy-link-visible", /privacy\.html/.test(root.text), "public UI must disclose the Privacy Notice");
+
+  const privacy = await get("/privacy.html");
+  record("privacy-http-200", privacy.response.ok, `${privacy.response.status} in ${privacy.ms}ms`);
+  record(
+    "privacy-notice-contract",
+    /Privacy Notice/.test(privacy.text) &&
+      /name and email/i.test(privacy.text) &&
+      /delete your profile/i.test(privacy.text) &&
+      /public blockchain history/i.test(privacy.text),
+    "privacy disclosure must cover profile data, deletion, and immutable protocol evidence"
+  );
 
   const demo = await get("/?demo=1");
   record("guided-demo-http-200", demo.response.ok, `${demo.response.status} in ${demo.ms}ms`);
