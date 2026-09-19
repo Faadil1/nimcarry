@@ -30,6 +30,14 @@ const USER_SCHEMA_FOR_PG_MEM = `
     last_seen_at timestamptz NOT NULL
   );
 
+  CREATE TABLE user_sessions (
+    token_hash text PRIMARY KEY,
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at timestamptz NOT NULL,
+    last_seen_at timestamptz NOT NULL,
+    revoked_at timestamptz
+  );
+
   CREATE TABLE user_wallets (
     user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     wallet_normalized text NOT NULL UNIQUE,
