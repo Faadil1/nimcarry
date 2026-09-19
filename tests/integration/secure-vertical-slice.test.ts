@@ -77,6 +77,9 @@ describe("secure shared vertical slice", () => {
 
     const pool = new PgMemPool();
     await pool.exec(FOUNDATION_SQL);
+    // pg-mem fixture: production migration 006 adds constraints using
+    // cardinality(text[]), which pg-mem does not implement.
+    await pool.exec("ALTER TABLE pass_intents ADD COLUMN authorized_payment_wallets text[]");
     const stores = await createRepositoryStores(
       { CARRY_ONE_REPOSITORY: "postgres", CARRY_ONE_DATABASE_URL: "test://vertical" },
       () => pool
