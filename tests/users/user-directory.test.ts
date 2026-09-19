@@ -2,6 +2,7 @@ import { PrivateKey, PublicKey } from "@nimiq/core";
 import { describe, expect, it } from "vitest";
 import {
   MemoryUserDirectory,
+  PRIVACY_NOTICE_VERSION,
   UserDirectoryError,
   newProfileToken,
   normalizeDisplayName,
@@ -21,11 +22,15 @@ describe("human user directory", () => {
       email: "  PERSON@Example.com ",
       displayName: "  Person  Example ",
       tokenHash: profileTokenHash(token),
+      privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
+      privacyConsentAt: 900,
       now: 1_000,
     });
 
     expect(profile.emailNormalized).toBe("person@example.com");
     expect(profile.displayName).toBe("Person Example");
+    expect(profile.privacyNoticeVersion).toBe(PRIVACY_NOTICE_VERSION);
+    expect(profile.privacyConsentAt).toBe(900);
     expect(await directory.walletsForUser(profile.id)).toEqual([]);
     expect(await directory.stats()).toEqual({
       registeredUsers: 1,
@@ -40,6 +45,8 @@ describe("human user directory", () => {
       email: "person@example.com",
       displayName: "Person",
       tokenHash: profileTokenHash(newProfileToken()),
+      privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
+      privacyConsentAt: Date.now(),
     });
 
     await expect(directory.register({
@@ -55,6 +62,8 @@ describe("human user directory", () => {
       email: "person@example.com",
       displayName: "Person",
       tokenHash: profileTokenHash(newProfileToken()),
+      privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
+      privacyConsentAt: Date.now(),
     });
 
     await directory.linkVerifiedWallet(profile.id, wallet());
@@ -68,6 +77,8 @@ describe("human user directory", () => {
       email: "person@example.com",
       displayName: "Person",
       tokenHash: profileTokenHash(newProfileToken()),
+      privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
+      privacyConsentAt: Date.now(),
     });
     const challenge = {
       id: "1c4a0b58-d667-44b7-b637-b8522480136a",
