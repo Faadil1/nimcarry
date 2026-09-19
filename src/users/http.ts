@@ -143,7 +143,7 @@ async function handleUsers(
   const path = url.pathname;
 
   const perMinute = path === "/users/auth/request" ? 8 : path === "/users/auth/verify" ? 20 : path === "/users/register" ? 10 : 60;
-  const rate = allow(`users:${ip(req)}`, perMinute);
+  const rate = allow(`users:${path}:${ip(req)}`, perMinute);
   if (!rate.allowed) {
     return send(res, 429, { error: "RATE_LIMITED", message: "Too many user requests" }, { "Retry-After": String(rate.retryAfter) });
   }
