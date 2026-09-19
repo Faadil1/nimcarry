@@ -15,6 +15,7 @@ import { MemoryIdempotencyStore } from "./service/idempotency.js";
 import { createMissionHttpServer } from "./service/mission-http-server.js";
 import { MemoryRateLimiter } from "./service/rate-limiter.js";
 import { createHttpServer } from "./service/http-server.js";
+import { createUserEmailSender } from "./users/email-auth.js";
 import { createNimCarryHttpServer } from "./users/http.js";
 import type { UserDirectory } from "./users/user-directory.js";
 
@@ -62,6 +63,7 @@ function createApplicationServer(
   userDirectory: UserDirectory
 ): Application {
   const missionStateFile = process.env.CARRY_ONE_MISSION_STATE_FILE;
+  const emailSender = createUserEmailSender();
   const encryptionKey = process.env.CARRY_ONE_TARGET_ENCRYPTION_KEY_B64URL;
   const hmacKey = process.env.CARRY_ONE_TARGET_HMAC_KEY_B64URL;
   const repository = postgresRepository ?? (missionStateFile ? new FileMissionRepository(missionStateFile) : null);
@@ -89,7 +91,7 @@ function createApplicationServer(
 
   console.log(`Reach Mission HTTP bindings enabled (${postgresRepository ? "PostgreSQL" : `state: ${missionStateFile}`}, canonical origin: ${canonicalOrigin})`);
   return {
-    server: createNimCarryHttpServer(missionServer, userDirectory, canonicalOrigin),
+    server: createNimCarryHttpServer(missionServer, userDirectory, canonicalOrigin, emailSender),
     sweep: () => repository.expireDueInvitations(Date.now()),
   };
 }
