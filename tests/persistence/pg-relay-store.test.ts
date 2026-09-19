@@ -38,7 +38,6 @@ function missionRecord(overrides: Partial<MissionRecord> = {}): MissionRecord {
 }
 
 const MIGRATION_PATH = join(import.meta.dirname!, "../../migrations/001_reach_mission_foundation.sql");
-const MULTIWALLET_MIGRATION_PATH = join(import.meta.dirname!, "../../migrations/006_verified_multiwallet_payment.sql");
 
 let pool: PgMemPool;
 let missionRepo: PgMissionRepository;
@@ -47,7 +46,9 @@ beforeAll(async () => {
   pool = new PgMemPool();
   const sql = readFileSync(MIGRATION_PATH, "utf8");
   await pool.exec(sql);
-  await pool.exec(readFileSync(MULTIWALLET_MIGRATION_PATH, "utf8"));
+  // pg-mem lacks PostgreSQL's cardinality(text[]) function used by migration 006.
+  // Add only the column here; production applies the full constraints in migration 006.
+  await pool.exec("ALTER TABLE pass_intents ADD COLUMN authorized_payment_wallets text[]");
   missionRepo = new PgMissionRepository(pool);
 });
 
