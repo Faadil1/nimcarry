@@ -83,8 +83,12 @@ try {
   await page.locator("#demo-tour-open-invite").click();
   await page.waitForURL(/\/i\//, { timeout: 8_000 });
   await page.locator("#accept").waitFor({ state: "visible", timeout: 8_000 });
-  mark("shot12_accept_ready");
-  await sleep(1_300);
+  await page.locator("#accept").evaluate((element) => {
+    element.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
+  });
+  await sleep(250);
+  mark("shot12_accept_ready_visible");
+  await sleep(1_350);
 
   await page.locator("#accept").click();
   await page.waitForURL(/\/mission\/[^/]+$/, { timeout: 8_000 });
