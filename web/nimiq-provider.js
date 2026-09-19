@@ -132,6 +132,15 @@ function wrapProvider(raw) {
 }
 
 export function getNimiqProvider() {
-  if (!providerPromise) providerPromise = init({ timeout: 6000 }).then(wrapProvider);
+  if (!providerPromise) {
+    providerPromise = init({ timeout: 6000 })
+      .then(wrapProvider)
+      .catch((error) => {
+        // A failed browser/webview injection attempt must not poison every
+        // later retry in the same page session.
+        providerPromise = undefined;
+        throw error;
+      });
+  }
   return providerPromise;
 }
