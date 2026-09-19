@@ -21,6 +21,7 @@ export interface PassIntentResponse {
   fee_luna: number;
   recipient_data: string | null;
   expected_sender: string;
+  authorized_payment_wallets: string[];
   expires_at: string;
   broadcast_capability: string;
   broadcast_capability_expires_at: string;
