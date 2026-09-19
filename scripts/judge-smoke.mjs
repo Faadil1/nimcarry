@@ -29,6 +29,22 @@ async function get(path, { attempts = 1, delayMs = 0 } = {}) {
   throw lastError || new Error(`Failed to fetch ${url}`);
 }
 
+async function postJson(path, body) {
+  const url = `${base}${path}`;
+  const started = Date.now();
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { accept: "application/json", "content-type": "application/json" },
+    body: JSON.stringify(body),
+    redirect: "follow",
+    signal: AbortSignal.timeout(10000),
+  });
+  const text = await response.text();
+  let payload = null;
+  try { payload = text ? JSON.parse(text) : null; } catch {}
+  return { url, response, text, payload, ms: Date.now() - started };
+}
+
 function record(name, pass, detail) {
   checks.push({ name, pass, detail });
   const mark = pass ? "PASS" : "FAIL";
@@ -64,6 +80,8 @@ try {
     /Privacy Notice/.test(privacy.text) &&
       /name and email/i.test(privacy.text) &&
       /delete your profile/i.test(privacy.text) &&
+      /one-time code/i.test(privacy.text) &&
+      /profile sessions/i.test(privacy.text) &&
       /public blockchain history/i.test(privacy.text),
     "privacy disclosure must cover profile data, deletion, and immutable protocol evidence"
   );
@@ -82,16 +100,62 @@ try {
     "judge-facing usage page must preserve metric boundaries and privacy"
   );
 
-  const userProfileAsset = await get("/user-profile.js");
-  record("user-profile-http-200", userProfileAsset.response.ok, `${userProfileAsset.response.status} in ${userProfileAsset.ms}ms`);
+  let userProfileAsset = null;
+  let profileAssetAttempt = 0;
+  for (profileAssetAttempt = 1; profileAssetAttempt <= 12; profileAssetAttempt += 1) {
+    userProfileAsset = await get("/user-profile.js");
+    if (
+      userProfileAsset.response.ok &&
+      /Returning user/.test(userProfileAsset.text) &&
+      /\/users\/auth\/request/.test(userProfileAsset.text) &&
+      /\/users\/auth\/verify/.test(userProfileAsset.text)
+    ) break;
+    if (profileAssetAttempt < 12) {
+      console.log(`WAIT ${base}/user-profile.js — returning-user asset not promoted yet (attempt ${profileAssetAttempt}/12)`);
+      await sleep(10000);
+    }
+  }
+  record("user-profile-http-200", Boolean(userProfileAsset?.response.ok), userProfileAsset ? `${userProfileAsset.response.status} in ${userProfileAsset.ms}ms (attempt ${profileAssetAttempt})` : "no response");
+  record(
+    "returning-user-auth-ui-contract",
+    /Returning user/.test(userProfileAsset?.text || "") &&
+      /Send sign-in code/.test(userProfileAsset?.text || "") &&
+      /Sign in to my profile/.test(userProfileAsset?.text || "") &&
+      /\/users\/auth\/request/.test(userProfileAsset?.text || "") &&
+      /\/users\/auth\/verify/.test(userProfileAsset?.text || ""),
+    "existing profiles must have a real returning-user path rather than forcing duplicate signup"
+  );
   record(
     "wallet-provider-guidance-contract",
-    /nimcarry-wallet-link-notice/.test(userProfileAsset.text) &&
-      /Open NimCarry inside Nimiq Pay to connect your wallet/.test(userProfileAsset.text),
+    /nimcarry-wallet-link-notice/.test(userProfileAsset?.text || "") &&
+      /Open NimCarry inside Nimiq Pay to connect your wallet/.test(userProfileAsset?.text || ""),
     "browser fallback must show one clear Nimiq Pay instruction instead of raw repeated provider errors"
   );
 
-    const demo = await get("/?demo=1");
+  const authRequestProbe = await postJson("/users/auth/request", { email: "nimcarry-smoke-missing@example.invalid" });
+  const authRequestPass =
+    (authRequestProbe.response.status === 202 &&
+      authRequestProbe.payload?.accepted === true &&
+      /^[0-9a-f-]{36}$/i.test(String(authRequestProbe.payload?.challenge_id || ""))) ||
+    (authRequestProbe.response.status === 503 &&
+      authRequestProbe.payload?.error === "EMAIL_DELIVERY_NOT_CONFIGURED");
+  record(
+    "returning-auth-request-contract",
+    authRequestPass,
+    `${authRequestProbe.response.status} in ${authRequestProbe.ms}ms — unknown emails must not disclose account existence; unconfigured delivery must fail closed`
+  );
+
+  const authVerifyProbe = await postJson("/users/auth/verify", {
+    challenge_id: "00000000-0000-4000-8000-000000000000",
+    code: "000000",
+  });
+  record(
+    "returning-auth-verify-contract",
+    authVerifyProbe.response.status === 401 && authVerifyProbe.payload?.error === "LOGIN_CODE_INVALID",
+    `${authVerifyProbe.response.status} in ${authVerifyProbe.ms}ms — invalid challenges must fail without creating sessions`
+  );
+
+  const demo = await get("/?demo=1");
   record("guided-demo-http-200", demo.response.ok, `${demo.response.status} in ${demo.ms}ms`);
   record("guided-demo-same-runtime", /final-human-craft\.css/.test(demo.text), "guided demo must use the same approved product runtime");
 
