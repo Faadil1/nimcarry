@@ -191,6 +191,30 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     });
   }
 
+  function walletLinkMessage(error) {
+    const message = String(error?.message || "");
+    if (/provider was not injected|running inside a Nimiq app|injected provider is unavailable/i.test(message)) {
+      return "Open NimCarry inside Nimiq Pay to connect your wallet. This browser tab can keep your profile, but Safari or Chrome cannot provide the Nimiq Pay wallet connection.";
+    }
+    return message || "Wallet link failed.";
+  }
+
+  function showWalletLinkNotice(message) {
+    const host = document.querySelector(`#${PROFILE_ID}`);
+    if (!host) return;
+    let note = host.querySelector("#nimcarry-wallet-link-notice");
+    if (!note) {
+      note = document.createElement("div");
+      note.id = "nimcarry-wallet-link-notice";
+      note.className = "warning";
+      note.setAttribute("role", "status");
+      note.setAttribute("aria-live", "polite");
+      note.style.marginTop = "12px";
+      host.appendChild(note);
+    }
+    note.textContent = message;
+  }
+
   async function linkWallet() {
     if (loading) return;
     loading = true;
@@ -216,16 +240,10 @@ import { getNimiqProvider } from "/nimiq-provider.js";
           signature: signed.signature,
         },
       });
+      document.querySelector("#nimcarry-wallet-link-notice")?.remove();
       refresh(true);
     } catch (error) {
-      const host = document.querySelector(`#${PROFILE_ID}`);
-      if (host) {
-        const note = document.createElement("div");
-        note.className = "warning";
-        note.style.marginTop = "12px";
-        note.textContent = error.message || "Wallet link failed.";
-        host.appendChild(note);
-      }
+      showWalletLinkNotice(walletLinkMessage(error));
       if (button) button.disabled = false;
     } finally {
       loading = false;
