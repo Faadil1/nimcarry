@@ -12,6 +12,17 @@ export interface UserProfile {
   lastSeenAt: number;
 }
 
+export interface UserWalletChallenge {
+  id: string;
+  userId: string;
+  walletNormalized: string;
+  nonceHash: string;
+  canonicalMessage: string;
+  expiresAt: number;
+  usedAt: number | null;
+  createdAt: number;
+}
+
 export interface UserStats {
   registeredUsers: number;
   walletLinkedUsers: number;
@@ -24,6 +35,9 @@ export interface UserDirectory {
   touch(userId: string, now?: number): Promise<void>;
   linkVerifiedWallet(userId: string, wallet: string, now?: number): Promise<void>;
   walletsForUser(userId: string): Promise<string[]>;
+  createWalletChallenge(record: UserWalletChallenge): Promise<void>;
+  getWalletChallenge(id: string): Promise<UserWalletChallenge | undefined>;
+  consumeWalletChallenge(id: string, now?: number): Promise<void>;
   stats(): Promise<UserStats>;
 }
 
@@ -63,6 +77,7 @@ export class MemoryUserDirectory implements UserDirectory {
   private readonly emailToId = new Map<string, string>();
   private readonly tokenToId = new Map<string, string>();
   private readonly walletToId = new Map<string, string>();
+  private readonly walletChallenges = new Map<string, UserWalletChallenge>();
 
   async register(input: { email: string; displayName: string; tokenHash: string; now?: number }): Promise<UserProfile> {
     const email = normalizeEmail(input.email);
@@ -109,6 +124,24 @@ export class MemoryUserDirectory implements UserDirectory {
     return [...this.walletToId.entries()].filter(([, id]) => id === userId).map(([wallet]) => wallet);
   }
 
+  async createWalletChallenge(record: UserWalletChallenge): Promise<void> {
+    if (this.walletChallenges.has(record.id)) throw new UserDirectoryError("CHALLENGE_COLLISION", "Wallet-link challenge collision");
+    this.walletChallenges.set(record.id, { ...record });
+  }
+
+  async getWalletChallenge(id: string): Promise<UserWalletChallenge | undefined> {
+    const challenge = this.walletChallenges.get(id);
+    return challenge ? { ...challenge } : undefined;
+  }
+
+  async consumeWalletChallenge(id: string, now = Date.now()): Promise<void> {
+    const challenge = this.walletChallenges.get(id);
+    if (!challenge) throw new UserDirectoryError("USER_CHALLENGE_NOT_FOUND", "Wallet-link challenge does not exist");
+    if (challenge.usedAt !== null) throw new UserDirectoryError("USER_CHALLENGE_REPLAY", "Wallet-link challenge was already used");
+    if (now >= challenge.expiresAt) throw new UserDirectoryError("USER_CHALLENGE_EXPIRED", "Wallet-link challenge has expired");
+    challenge.usedAt = now;
+  }
+
   async stats(): Promise<UserStats> {
     return {
       registeredUsers: this.users.size,
@@ -128,6 +161,17 @@ interface UserRow {
   last_seen_at: Date;
 }
 
+interface UserWalletChallengeRow {
+  id: string;
+  user_id: string;
+  wallet_normalized: string;
+  nonce_hash: string;
+  canonical_message: string;
+  expires_at: Date;
+  used_at: Date | null;
+  created_at: Date;
+}
+
 function fromRow(row: UserRow): UserProfile {
   return {
     id: row.id,
@@ -137,6 +181,19 @@ function fromRow(row: UserRow): UserProfile {
     createdAt: row.created_at.getTime(),
     updatedAt: row.updated_at.getTime(),
     lastSeenAt: row.last_seen_at.getTime(),
+  };
+}
+
+function challengeFromRow(row: UserWalletChallengeRow): UserWalletChallenge {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    walletNormalized: row.wallet_normalized,
+    nonceHash: row.nonce_hash,
+    canonicalMessage: row.canonical_message,
+    expiresAt: row.expires_at.getTime(),
+    usedAt: row.used_at?.getTime() ?? null,
+    createdAt: row.created_at.getTime(),
   };
 }
 
@@ -201,6 +258,51 @@ export class PgUserDirectory implements UserDirectory {
       [userId]
     );
     return result.rows.map((row) => row.wallet_normalized);
+  }
+
+  async createWalletChallenge(record: UserWalletChallenge): Promise<void> {
+    try {
+      await this.pool.query(
+        `INSERT INTO user_wallet_challenges
+           (id, user_id, wallet_normalized, nonce_hash, canonical_message, expires_at, used_at, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [
+          record.id,
+          record.userId,
+          record.walletNormalized,
+          record.nonceHash,
+          record.canonicalMessage,
+          new Date(record.expiresAt),
+          record.usedAt === null ? null : new Date(record.usedAt),
+          new Date(record.createdAt),
+        ]
+      );
+    } catch {
+      throw new UserDirectoryError("CHALLENGE_COLLISION", "Could not create wallet-link challenge");
+    }
+  }
+
+  async getWalletChallenge(id: string): Promise<UserWalletChallenge | undefined> {
+    const result = await this.pool.query<UserWalletChallengeRow>(
+      "SELECT * FROM user_wallet_challenges WHERE id=$1",
+      [id]
+    );
+    return result.rows.length ? challengeFromRow(result.rows[0]) : undefined;
+  }
+
+  async consumeWalletChallenge(id: string, now = Date.now()): Promise<void> {
+    const result = await this.pool.query<UserWalletChallengeRow>(
+      `UPDATE user_wallet_challenges
+       SET used_at=$2
+       WHERE id=$1 AND used_at IS NULL AND expires_at>$2
+       RETURNING *`,
+      [id, new Date(now)]
+    );
+    if (result.rows.length > 0) return;
+    const existing = await this.getWalletChallenge(id);
+    if (!existing) throw new UserDirectoryError("USER_CHALLENGE_NOT_FOUND", "Wallet-link challenge does not exist");
+    if (existing.usedAt !== null) throw new UserDirectoryError("USER_CHALLENGE_REPLAY", "Wallet-link challenge was already used");
+    throw new UserDirectoryError("USER_CHALLENGE_EXPIRED", "Wallet-link challenge has expired");
   }
 
   async stats(): Promise<UserStats> {
