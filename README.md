@@ -99,7 +99,8 @@ flowchart TB
 - **NimCarry frontend** provides the five-screen mission experience and scoped route navigation.
 - **TypeScript / Node mission service** enforces invitation, authorization, pass-intent, retry, reconciliation, and finality rules.
 - **Cloudflare Worker + Container** provides the production frontend and backend through one origin.
-- **Neon / PostgreSQL** stores missions, invitations, pass intents, audit data, participants, and finalized hops.
+- **Neon / PostgreSQL** stores missions, invitations, pass intents, audit data, participants, finalized hops, human profiles, recovery sessions, and short-lived login challenges.
+- **Returning-user recovery** restores the same existing profile with a 6-digit email code; successful recovery verifies the email and creates a new session without invalidating other devices. Email never authorizes custody.
 - **Independent Nimiq chain reads** verify transaction and finality evidence instead of trusting wallet callbacks.
 - **Cryptographic target protection** keeps the destination encrypted and uses an opaque `co:v1:` commitment rather than clear-text mission identifiers.
 
@@ -216,6 +217,9 @@ NimCarry does not claim that Nimiq has officially confirmed the cause.
 ## Security model
 
 - Nimiq wallet signatures authorize holder-sensitive actions.
+- Returning-user email codes expire after 10 minutes, are stored only as keyed hashes, lock after repeated failed attempts, and are single-use.
+- Email verification restores profile access only; it is never protocol or custody authority.
+- New recovery sessions coexist with earlier valid sessions instead of silently logging other devices out.
 - Target wallets are encrypted with AES-256-GCM and matched at arrival with a separate keyed HMAC-SHA256.
 - Pass intents require opaque `co:v1:<commitment>` recipient data.
 - The client requests exactly `100000` Luna with requested fee `0`; the backend independently verifies sender and finalized chain evidence.
@@ -251,6 +255,8 @@ npm run typecheck
 npm test
 npm run build
 ```
+
+For production returning-user email recovery, configure `RESEND_API_KEY` as a deployment secret and `NIMCARRY_EMAIL_FROM` with a verified sender identity. If either is absent, the recovery endpoint fails closed rather than pretending that a code was delivered.
 
 ## Team
 
