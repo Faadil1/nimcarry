@@ -15,13 +15,21 @@ export function opaqueHopCommitment(input: {
   currentHolder: string;
   recipient: string;
   nonce: string;
+  authorizedPaymentWallets?: string[];
 }): string {
+  const paymentWallets = (input.authorizedPaymentWallets?.length
+    ? input.authorizedPaymentWallets
+    : [input.currentHolder])
+    .map((wallet) => String(wallet).replace(/\s+/g, "").toUpperCase())
+    .filter((wallet, index, all) => wallet && all.indexOf(wallet) === index)
+    .sort();
   const material = [
     "carry-one-hop:v1",
     input.batonId,
     String(input.sequence),
     input.currentHolder,
     input.recipient,
+    `payment_wallets=${paymentWallets.join(",")}`,
     input.nonce,
   ].join("\n");
   const digest = createHash("sha256").update(material, "utf8").digest("base64url");
