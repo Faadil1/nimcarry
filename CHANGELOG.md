@@ -1,3 +1,11 @@
+## 2026-09-20 — Single-presence bridge UX
+
+- Stop repeating a finalized bridge as both the standalone current-holder summary and the verified-path entry.
+- Before the first FINAL handoff, the standalone current-holder surface remains because no verified route row exists yet.
+- After a FINAL handoff, the latest verified route row carries a compact “Current holder” marker and becomes the only place that person is shown in the mission summary.
+- The final human-craft layer no longer adds a second current-holder → destination diagram once the verified path exists.
+- Protocol state, custody, invitations, and route history are unchanged; this is presentation-only deduplication for long routes.
+
 ## 2026-09-20 — FINAL verification retry / reconcile contract hotfix
 
 - Return the independently reconciled hop in `POST /missions/:id/reconcile`, so browser polling can observe `INCLUDED → FINAL` even when the mission itself remains `ACTIVE` after a non-terminal bridge handoff.
