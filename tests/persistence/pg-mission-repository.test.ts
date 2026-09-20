@@ -165,6 +165,26 @@ describe("PgMissionRepository", () => {
         .rejects.toMatchObject({ reason: expect.any(String) });
     });
 
+    it("retrieves an invitation by mission and sequence before and after completion", async () => {
+      const { mission, acceptedInv, candidate } = await acceptedMission();
+      const before = await repo.getInvitationForSequence(mission.id, 1);
+      expect(before?.id).toBe(acceptedInv.id);
+      expect(before?.status).toBe("ACCEPTED");
+
+      await repo.completeFinalHop({
+        missionId: mission.id,
+        invitationId: acceptedInv.id,
+        sequence: 1,
+        recipientWallet: candidate,
+        recipientHmac: mission.targetWalletHmac,
+        now: 5_000,
+      });
+
+      const after = await repo.getInvitationForSequence(mission.id, 1);
+      expect(after?.id).toBe(acceptedInv.id);
+      expect(after?.status).toBe("COMPLETED");
+    });
+
     it("acceptInvitation binds to the accepting wallet and sets pass deadline", async () => {
       const { invitationId, candidate } = await acceptedMission();
       const inv = (await repo.getInvitation(invitationId))!;
