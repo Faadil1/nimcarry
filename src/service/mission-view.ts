@@ -146,7 +146,8 @@ function deriveViewerRole(
   route: PublicHop[],
   finalizedBridgeMarks: Readonly<Record<number, { label: string | null; wallet: string | null }>>,
   protector: TargetWalletProtector,
-  viewer: string | null
+  viewer: string | null,
+  authenticatedParticipantFallback = false
 ): ViewerRole {
   if (viewer === null) return "UNLISTED_VIEWER";
   if (viewer === mission.creatorWalletNormalized) return "CREATOR";
@@ -166,6 +167,7 @@ function deriveViewerRole(
   ) {
     return "PARTICIPANT";
   }
+  if (authenticatedParticipantFallback) return "PARTICIPANT";
   return "UNLISTED_VIEWER";
 }
 
@@ -209,12 +211,21 @@ export function composeMissionView(input: {
   activeIntentStale?: boolean;
   activeIntentHasBroadcast?: boolean;
   finalizedBridgeMarks?: Readonly<Record<number, { label: string | null; wallet: string | null }>>;
+  authenticatedParticipantFallback?: boolean;
   now?: number;
 }): MissionView {
   const now = input.now ?? Date.now();
   const activity = missionActivity(input.mission, now);
   const finalizedBridgeMarks = input.finalizedBridgeMarks ?? {};
-  const viewerRole = deriveViewerRole(input.mission, input.invitation, input.route, finalizedBridgeMarks, input.protector, input.viewer);
+  const viewerRole = deriveViewerRole(
+    input.mission,
+    input.invitation,
+    input.route,
+    finalizedBridgeMarks,
+    input.protector,
+    input.viewer,
+    input.authenticatedParticipantFallback ?? false
+  );
   const revealBridgeMarks = viewerRole !== "UNLISTED_VIEWER";
   const invitation = input.invitation === null
     ? null
