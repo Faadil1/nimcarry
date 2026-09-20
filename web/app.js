@@ -661,7 +661,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     els.screen.innerHTML = `<section class="hero-card destination-claim-card">
       <div class="kicker">Private delivery for ${esc(claim.target_label || "you")}</div>
       <h1 class="target-title">Connect where this should arrive.</h1>
-      <p class="lede">${esc(claim.mission_note || "A sender created a private delivery for you.")}</p>
+      <p class="lede">${claim.sender_label ? `<strong>${esc(claim.sender_label)}</strong> created this private delivery for you. ` : ""}${esc(claim.mission_note || "A sender created a private delivery for you.")}</p>
       <div class="promise-strip">
         <div class="promise green"><span>Your control</span><strong>Your wallet</strong><span>You bind it yourself</span></div>
         <div class="promise violet"><span>Money</span><strong>Not sent yet</strong><span>Binding cannot move funds</span></div>
