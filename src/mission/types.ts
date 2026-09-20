@@ -108,6 +108,8 @@ export interface PublicMission {
   creator_wallet: string;
   current_holder: string;
   target_label: string;
+  /** True once a destination wallet has been resolved for payment. */
+  target_resolved: boolean;
   /** Boolean disclosure only; the target wallet itself remains private. */
   target_consent_confirmed: boolean;
   mission_note: string;
