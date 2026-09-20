@@ -111,6 +111,8 @@ describe("static Mini App skeleton", () => {
     expect(js).toContain('from "/nimiq-provider.js"');
     expect(js).toContain("getNimiqProvider");
     expect(js).toContain("classifyNimiqAccounts");
+expect(js).toContain("You already accepted this handoff.");
+    expect(js).toContain("Opening this link again never creates a second acceptance");
 expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(js).toContain("isHtlcNimiqAccountType");
     expect(compat).toContain('import { getNimiqProvider } from "/nimiq-provider.js"');
