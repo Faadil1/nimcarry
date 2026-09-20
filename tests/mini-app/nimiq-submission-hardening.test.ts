@@ -53,6 +53,13 @@ describe("Nimiq Pay ambiguous-submission hardening", () => {
     expect(guard).toContain("previous handoff validity window ended");
   });
 
+  it("surfaces only a sanitized provider result shape for live-device diagnosis", () => {
+    expect(guard).toContain("safeProviderResultDetail");
+    expect(guard).toContain("Provider result shape:");
+    expect(guard).toContain("undefined|null|array|string|number|boolean|object|function|symbol|bigint");
+    expect(guard).not.toContain("JSON.stringify(result)");
+  });
+
   it("persists only a local safety hold, not wallet or transaction secrets", () => {
     expect(guard).toContain("first_seen_at");
     expect(guard).toContain("hold_until");

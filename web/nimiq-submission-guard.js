@@ -54,6 +54,11 @@
     return /nimiq_pay_send|send_unexpected_result|syncing your account|bad request|submission|broadcast|transport|network|timeout|provider|sync|transaction.*failed|failed.*transaction/i.test(message);
   }
 
+  function safeProviderResultDetail(message) {
+    const match = /result shape:\s*(undefined|null|array|string|number|boolean|object|function|symbol|bigint)/i.exec(String(message || ""));
+    return match ? ` Provider result shape: ${match[1].toLowerCase()}.` : "";
+  }
+
   async function reconcile(id) {
     const response = await fetch(`/missions/${encodeURIComponent(id)}/reconcile`, {
       method: "POST",
@@ -67,11 +72,11 @@
     return payload;
   }
 
-  async function recoverUntilFinal(id, { quiet = false } = {}) {
+  async function recoverUntilFinal(id, { quiet = false, providerDetail = "" } = {}) {
     if (!id || recovering) return false;
     recovering = true;
     const started = Date.now();
-    if (!quiet) setNotice("NIMIQ_PAY_SUBMISSION_UNPROVEN: wallet approval returned no provable transaction hash. NimCarry is checking the Nimiq chain independently. Do not resend the baton yet.", true);
+    if (!quiet) setNotice(`NIMIQ_PAY_SUBMISSION_UNPROVEN: wallet approval returned no provable transaction hash. NimCarry is checking the Nimiq chain independently. Do not resend the baton yet.${providerDetail}`, true);
     try {
       while (Date.now() - started < POLL_LIMIT_MS) {
         const result = await reconcile(id);
@@ -112,7 +117,7 @@
     const id = missionId();
     if (!id) return;
     writeMarker(id);
-    void recoverUntilFinal(id);
+    void recoverUntilFinal(id, { providerDetail: safeProviderResultDetail(message) });
   }
 
   document.addEventListener("click", (event) => {

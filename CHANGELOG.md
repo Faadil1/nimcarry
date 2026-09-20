@@ -1,3 +1,9 @@
+## 2026-09-20 — Provider result-shape diagnostic
+
+- Preserve a privacy-safe provider diagnostic when Nimiq Pay approval returns no canonical transaction hash.
+- The ambiguous-submission recovery UI may now show only the coarse JavaScript result shape (for example `undefined`, `object`, or `array`), never raw provider payloads, wallet secrets, or transaction data.
+- Chain recovery, duplicate-send protection, and FINAL-only custody remain unchanged.
+
 ## 2026-09-20 — Durable unproven-submission recovery
 
 - Harden Postgres relay durability so a failed snapshot write cannot be forgotten by a later `AUTHORIZE_PASS`; serialized flushes retry the latest snapshot and never acknowledge a process-local-only pass intent.
