@@ -75,12 +75,19 @@ export class ReachMissionCoordinator {
       throw new MissionValidationError("ROUTE_WALLET_REUSE", "A finalized route participant cannot re-enter the same mission");
     }
 
+    // The bridge is a social/consent intermediary, not a second custody
+    // destination. Once Grace (or any bridge) accepts, the creator's single
+    // 1 NIM pass is addressed directly to the mission target. This keeps the
+    // human route Creator → Bridge → Target while avoiding a second bridge-side
+    // payment/selection step.
+    const targetWallet = normalizeNimiqAddress(this.protector.decrypt(mission.targetWalletCiphertext));
+
     const existing = this.relay.getActiveIntent(mission.id);
     if (existing) {
       if (
         existing.sequence === invitation.sequence &&
         existing.currentHolder === signer &&
-        existing.recipient === invitation.candidateWalletNormalized &&
+        existing.recipient === targetWallet &&
         existing.recipientData !== null
       ) {
         if (isIntentStale(existing, now)) {
@@ -88,7 +95,7 @@ export class ReachMissionCoordinator {
             throw new MissionValidationError("STALE_BROADCASTED_INTENT", "A stale pass intent has broadcast evidence and cannot be replaced");
           }
           this.relay.cancelPass(mission.id);
-          const renewed = this.relay.initiatePass(mission.id, signer, invitation.candidateWalletNormalized, {
+          const renewed = this.relay.initiatePass(mission.id, signer, targetWallet, {
             requireOpaqueTag: true,
             authorizedPaymentWallets: input.authorizedPaymentWallets,
           });
@@ -104,7 +111,7 @@ export class ReachMissionCoordinator {
       throw new MissionValidationError("RELAY_INTENT_CONFLICT", "A different relay intent is already active for this mission");
     }
 
-    const intent = this.relay.initiatePass(mission.id, signer, invitation.candidateWalletNormalized, {
+    const intent = this.relay.initiatePass(mission.id, signer, targetWallet, {
       requireOpaqueTag: true,
       authorizedPaymentWallets: input.authorizedPaymentWallets,
     });
