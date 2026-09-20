@@ -2,15 +2,47 @@
 
 Status vocabulary: **EXPLORE / TEST / PROMOTE / HOLD / KILL**.
 
+The 2026-09-20 live test and blind six-model product review invalidated the old assumption that a useful NimCarry mission should normally require sender + bridge + destination.
+
 | Hypothesis | Status | Why it matters | Smallest useful test | Primary signal |
 |---|---|---|---|---|
-| H1. People need verifiable multi-person handoffs, not just messaging | TEST | This is the core reason NimCarry should exist | Interview recent registrants about a real handoff they struggled with | % who can name a recent real scenario |
-| H2. Trusted circles create repeat use | EXPLORE | Re-entering the same trusted people may reduce friction | Prototype “People I trust / used before” | second mission within 30 days |
-| H3. A custody passport makes the route memorable and understandable | TEST | Current route state is technically strong but can feel procedural | Replace generic route history with stamped custody moments in a prototype | comprehension + recall |
-| H4. Fallback/rerouting is more valuable than extra dashboard features | EXPLORE | Real handoffs fail when a bridge becomes unavailable | Test “can’t continue → reroute” concept | recovery completion |
-| H5. Nimiq verification should be framed as trust proof, not crypto setup | TEST | Wallet friction can block activation | Rewrite wallet step around “prove this handoff is yours” | verified / registered |
-| H6. Teams have a clearer willingness-to-pay than casual individuals | EXPLORE | Repeated operational handoffs create measurable cost | 10 discovery conversations with event/property/community operators | pain frequency + willingness to pay |
-| H7. A fee on successful verified handoffs is understandable only after value is proven | HOLD | Premature fees can kill network formation | Do not charge yet; test pricing interviews first | stated + behavioral WTP |
-| H8. Bridge discovery could unlock network effects but creates the largest safety problem | HOLD | Strong upside, strong trust/regulatory risk | Research-only until trusted-circle behavior is understood | safety feasibility |
-| H9. Repeat routes/templates can convert one-off use into habit | EXPLORE | Many operational handoffs recur | Prototype “Run this route again” | repeat mission creation |
-| H10. Public real-usage assurance increases trust with users/partners, not only judges | EXPLORE | Transparency can become product differentiation | User/partner interviews using the live evidence page | trust/comprehension |
+| H1. A new sender can get first value without coordinating two additional NimCarry users | PROMOTE | Three-person activation is a structural barrier | Keep Direct and build Destination Claim so one sender can start alone | successful mission starts from one existing user |
+| H2. “Human known, wallet unknown” is a real job worth solving | TEST | This may be the strongest two-person wedge | Sender creates private claim for a real contact who has no known wallet | claim open → wallet bind → completed payment |
+| H3. Optional human introduction adds measurable value beyond Claim alone | TEST | This decides whether social-route proof is core or a trust layer | Compare Claim vs Introduced Claim on similar real missions | completion, trust, comprehension, repeat use |
+| H4. Bridge consent should be one action and never imply custody | PROMOTE | Live testing validated the corrected social/financial separation | Keep one-tap acceptance and direct sender → destination payment | bridge completion without duplicate steps/payments |
+| H5. Automatic durable reconciliation is required for a trustworthy product | PROMOTE | Manual Recheck exposed backend state as user work and risks resend confusion | Background reconcile attached tx through FINAL across app close/reopen | zero manual recheck; zero duplicate payment |
+| H6. Recipient onboarding is part of the product, not an external prerequisite | TEST | Claim fails if David must understand wallets before receiving | Prototype recipient-first bind with minimal crypto terminology | time-to-bind, abandonment, support need |
+| H7. A sealed receipt / social-route proof creates value users can actually perceive | TEST | This is the strongest remaining differentiation candidate versus ordinary payment links | Show Direct vs Introduced receipts after real missions | recall, trust, reason-for-use, repeat intent |
+| H8. Public bridge discovery creates more abuse than value at current scale | KILL | Spam, fake bridges, privacy leakage, and sybil incentives dominate before demand is proven | Do not build public discovery; observe whether users organically ask for it | unsolicited demand evidence only |
+| H9. Recipient-controlled reachability could become a future network primitive | EXPLORE | A private consent-gated reachability layer may be stronger than outbound routing | Research-only until Claim and Introduced Claim produce repeat behavior | repeat destinations + repeated trusted introducers |
+| H10. Repeat use will come from meaningful recurring delivery contexts, not gamification | EXPLORE | One successful demo is not retention | Observe genuine second mission creation without prompts/rewards | second mission within 30 days |
+| H11. Human acknowledgement and financial FINAL are distinct product states | TEST | “ARRIVED” may overclaim what the system knows | Prototype receipt language: Delivered to wallet vs Acknowledged by recipient | comprehension of what has actually been proven |
+| H12. Every interaction model must work as a first-class desktop experience as well as mobile | PROMOTE | NimCarry must not become a mobile-only layout stretched onto desktop | Run responsive acceptance at mobile/tablet/desktop on every UI PR | zero responsive regressions at required viewports |
+
+## Current working architecture
+
+**Human-Resolved Delivery** is the leading architecture under test:
+
+1. user states who the value is for and what is being sent;
+2. NimCarry resolves the destination through the minimum necessary mechanism;
+3. an optional bridge may consent once when a human introduction is genuinely needed;
+4. the sender pays the resolved destination directly;
+5. NimCarry independently verifies FINAL in the background;
+6. the product preserves a human-readable receipt of what was authorized and what was actually proven.
+
+This is a testable architecture, not a claim that the final market positioning has been decided.
+
+## Current product boundaries
+
+Promoted out of the current scope unless explicitly reopened:
+
+- bridge custody;
+- bridge wallet binding or payment redirection;
+- mandatory three-person activation;
+- client-only/manual reconciliation as the happy path;
+- public bridge marketplaces;
+- browsable trust graphs;
+- multi-hop requirements;
+- bridge reputation leaderboards;
+- on-chain escrow as a dependency for the first Destination Claim experiment;
+- in-app chat as a prerequisite to delivery.
