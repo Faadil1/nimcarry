@@ -31,7 +31,7 @@ import { getNimiqProvider } from "/nimiq-provider.js";
   function removeEmptyOptionalFields(body) {
     if (!body || typeof body !== "object") return body;
     const next = { ...body };
-    for (const key of ["creator_display_label", "candidate_display_label", "candidate_label", "candidate_wallet", "why_you"]) {
+    for (const key of ["creator_display_label", "candidate_display_label", "candidate_label", "candidate_wallet", "why_you", "target_wallet"]) {
       if (next[key] === "" || next[key] === null) delete next[key];
     }
     return next;
@@ -110,6 +110,14 @@ import { getNimiqProvider } from "/nimiq-provider.js";
         web_invite_url: payload.web_invite_url,
         nimiq_pay_custom_scheme: payload.nimiq_pay_custom_scheme,
       };
+    }
+
+    if (method === "GET" && /^\/c\/[^/]+$/.test(path) && payload.claim) {
+      return payload.claim;
+    }
+
+    if (method === "POST" && /^\/c\/[^/]+\/bind$/.test(path) && payload.claim) {
+      return payload;
     }
 
     if (method === "GET" && /^\/i\/[^/]+$/.test(path) && payload.invitation) {
@@ -208,17 +216,17 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     // The visible shell still calls its historical intent-specific URL. Adapt it
     // to the canonical invitation-bound endpoint and attach the one-time
     // capability that AUTHORIZE_PASS returned. A missing capability fails closed.
-    const legacyBroadcast = path.match(/^\/missions\/([^/]+)\/pass-intent\/[^/]+\/broadcast$/);
+    const legacyBroadcast = path.match(/^\/missions\/([^/]+)\/(?:pass-intent|delivery-intent)\/[^/]+\/broadcast$/);
     if (legacyBroadcast) {
       const missionId = decodeURIComponent(legacyBroadcast[1]);
       const pass = passByMission.get(missionId);
-      if (!pass?.invitationId || !pass?.broadcastCapability) {
-        throw new Error("BROADCAST_CAPABILITY_MISSING: authorize the pass again before claiming a transaction.");
+      if (!pass?.broadcastCapability) {
+        throw new Error("BROADCAST_CAPABILITY_MISSING: authorize delivery again before claiming a transaction.");
       }
       path = `/missions/${encodeURIComponent(missionId)}/broadcast`;
       requestUrl.pathname = path;
       body = {
-        invitation_id: pass.invitationId,
+        invitation_id: pass.invitationId ?? null,
         tx_hash: body?.tx_hash,
         broadcast_capability: pass.broadcastCapability,
       };
@@ -260,12 +268,17 @@ import { getNimiqProvider } from "/nimiq-provider.js";
       storeViewToken(payload.mission_id, payload.view_token);
     }
 
+    const claimBind = path.match(/^\/c\/[^/]+\/bind$/);
+    if (response.ok && method === "POST" && claimBind && payload?.mission_id && payload?.view_token) {
+      storeViewToken(payload.mission_id, payload.view_token);
+    }
+
     const viewMatch = path.match(/^\/missions\/([^/]+)\/view$/);
     if (response.ok && method === "POST" && viewMatch && payload?.view_token) {
       storeViewToken(decodeURIComponent(viewMatch[1]), payload.view_token);
     }
 
-    const passMatch = path.match(/^\/missions\/([^/]+)\/pass-intent$/);
+    const passMatch = path.match(/^\/missions\/([^/]+)\/(pass-intent|delivery-intent)$/);
     if (response.ok && method === "POST" && passMatch && payload) {
       const missionId = decodeURIComponent(passMatch[1]);
       const plannedData = typeof payload.recipient_data === "string" ? payload.recipient_data : "";
@@ -277,7 +290,7 @@ import { getNimiqProvider } from "/nimiq-provider.js";
         opaque_commitment_present: plannedData.startsWith("co:v1:"),
       }));
       passByMission.set(missionId, {
-        invitationId: body?.invitation_id,
+        invitationId: passMatch[2] === "delivery-intent" ? null : body?.invitation_id,
         sequence: payload.sequence,
         intentId: payload.intent_id,
         broadcastCapability: payload.broadcast_capability,
