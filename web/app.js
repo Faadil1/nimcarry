@@ -541,10 +541,29 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
   }
 
   async function renderPass() {
-    const missionId = missionIdFromPath(); try { await loadMission(missionId); } catch (error) { notice(error.message, true); }
-    const m = state.mission; const inv = m?.invitation || state.invitation;
-    els.screen.innerHTML = `<button class="back-link" id="back">← Mission Home</button><section class="hero-card"><div class="kicker">Screen 4 / 5 · Pass 1 NIM</div><h1 class="target-title">One verified handoff.</h1><p class="lede">Accepted bridge: <strong>${esc(inv?.candidate_label || inv?.accepted_wallet_fingerprint || "Accepted bridge")}</strong></p><div class="promise-strip"><div class="promise orange"><span>Value</span><strong>1 NIM</strong><span>100,000 Luna</span></div><div class="promise green"><span>Requested fee</span><strong>0</strong><span>Wallet/network may still refuse</span></div><div class="promise violet"><span>Custody</span><strong>FINAL</strong><span>Never mempool-only</span></div></div><div class="warning" style="margin-top:16px">After a transaction hash is recorded, Carry One will not offer reroute/cancel. The backend must reconcile the claim independently.</div><div class="button-row"><button data-busy-lock="1" id="send" class="button primary">Authorize + Pass 1 NIM</button></div></section>`;
-    document.querySelector("#back").addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}`)); document.querySelector("#send").addEventListener("click", () => executePass(missionId, inv)); els.screen.focus();
+    const missionId = missionIdFromPath();
+    try { await loadMission(missionId); } catch (error) { notice(error.message, true); }
+    const m = state.mission;
+    const inv = m?.invitation || state.invitation;
+    const passDeadline = inv?.pass_deadline_at ? Date.parse(inv.pass_deadline_at) : NaN;
+    const passWindowExpired = Number.isFinite(passDeadline) && Date.now() >= passDeadline;
+    const passReady = inv?.status === "ACCEPTED" && !passWindowExpired;
+
+    if (!passReady) {
+      const bridge = inv?.candidate_label || inv?.candidate_display_label || "This bridge";
+      const expired = inv?.status === "EXPIRED" || passWindowExpired;
+      els.screen.innerHTML = `<button class="back-link" id="back">← Mission Home</button><section class="hero-card"><div class="kicker">Handoff window closed</div><h1 class="target-title">${expired ? "This pass can’t be reused." : "This bridge isn’t ready to receive."}</h1><p class="lede">${expired ? `${esc(bridge)} accepted earlier, but that authorization window has expired.` : "The next bridge must accept before a 1 NIM pass can be authorized."}</p><div class="warning" style="margin-top:16px">No new payment should be requested from this screen. Custody stays with the last verified holder until a fresh supported handoff reaches FINAL.</div><div class="button-row"><button id="mission-return" class="button primary">Return to mission</button><button id="route-return" class="button ghost">Check verified route</button></div></section>`;
+      document.querySelector("#back")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}`));
+      document.querySelector("#mission-return")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}`));
+      document.querySelector("#route-return")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}/route`));
+      els.screen.focus();
+      return;
+    }
+
+    els.screen.innerHTML = `<button class="back-link" id="back">← Mission Home</button><section class="hero-card"><div class="kicker">Screen 4 / 5 · Pass 1 NIM</div><h1 class="target-title">One verified handoff.</h1><p class="lede">Accepted bridge: <strong>${esc(inv?.candidate_label || inv?.candidate_display_label || inv?.accepted_wallet_fingerprint || "Accepted bridge")}</strong></p><div class="promise-strip"><div class="promise orange"><span>Value</span><strong>1 NIM</strong><span>100,000 Luna</span></div><div class="promise green"><span>Requested fee</span><strong>0</strong><span>Wallet/network may still refuse</span></div><div class="promise violet"><span>Custody</span><strong>FINAL</strong><span>Never mempool-only</span></div></div><div class="warning" style="margin-top:16px">After a transaction hash is recorded, Carry One will not offer reroute/cancel. The backend must reconcile the claim independently.</div><div class="button-row"><button data-busy-lock="1" id="send" class="button primary">Authorize + Pass 1 NIM</button></div></section>`;
+    document.querySelector("#back").addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}`));
+    document.querySelector("#send").addEventListener("click", () => executePass(missionId, inv));
+    els.screen.focus();
   }
 
   async function executePass(missionId, invitation) {
