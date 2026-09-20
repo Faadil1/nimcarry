@@ -29,6 +29,66 @@ export class ReachMissionCoordinator {
     );
   }
 
+  async authorizeDelivery(input: {
+    missionId: string;
+    auth: VerifiedWalletAction;
+    authorizedPaymentWallets?: string[];
+    now?: number;
+  }): Promise<PassIntent> {
+    const mission = await this.missions.getMissionRecord(input.missionId);
+    const now = input.now ?? Date.now();
+    if (input.auth.action !== "AUTHORIZE_DELIVERY") {
+      throw new MissionValidationError("WRONG_AUTH_ACTION", "AUTHORIZE_DELIVERY wallet authorization is required");
+    }
+    if (input.auth.missionId !== mission.id) {
+      throw new MissionValidationError("AUTH_BINDING_MISMATCH", "Delivery authorization is bound to different mission state");
+    }
+    if (mission.status !== "ACTIVE") throw new MissionValidationError("MISSION_NOT_ACTIVE", `Mission is ${mission.status}`);
+    const signer = normalizeNimiqAddress(input.auth.wallet);
+    if (signer !== mission.currentHolderWalletNormalized || signer !== mission.creatorWalletNormalized) {
+      throw new MissionValidationError("WRONG_CURRENT_HOLDER", "Only the mission creator/current holder can authorize direct delivery");
+    }
+    if (!mission.targetWalletCiphertext || !mission.targetWalletHmac || !mission.targetConsentConfirmed) {
+      throw new MissionValidationError("DESTINATION_UNRESOLVED", "Destination must bind a wallet before delivery can be authorized");
+    }
+    const invitation = await this.repository.getOpenInvitation(mission.id);
+    if (invitation) {
+      throw new MissionValidationError("INTRODUCTION_IN_PROGRESS", "Finish or close the active introduction before direct delivery");
+    }
+    const targetWallet = normalizeNimiqAddress(this.protector.decrypt(mission.targetWalletCiphertext));
+    const existing = this.relay.getActiveIntent(mission.id);
+    if (existing) {
+      if (
+        existing.invitationId === null &&
+        existing.currentHolder === signer &&
+        existing.recipient === targetWallet &&
+        existing.recipientData !== null
+      ) {
+        if (isIntentStale(existing, now)) {
+          if (this.relay.hasRecordedBroadcast(mission.id)) {
+            throw new MissionValidationError("STALE_BROADCASTED_INTENT", "A stale delivery intent has broadcast evidence and cannot be replaced");
+          }
+          this.relay.cancelPass(mission.id);
+        } else {
+          await this.relay.flushDurability();
+          return existing;
+        }
+      } else {
+        throw new MissionValidationError("RELAY_INTENT_CONFLICT", "A different relay intent is already active for this mission");
+      }
+    }
+    const intent = this.relay.initiatePass(mission.id, signer, targetWallet, {
+      requireOpaqueTag: true,
+      authorizedPaymentWallets: input.authorizedPaymentWallets,
+      invitationId: null,
+    });
+    if (!intent.recipientData) {
+      throw new MissionValidationError("MISSING_HOP_COMMITMENT", "Direct delivery authorization must include an opaque on-chain commitment");
+    }
+    await this.relay.flushDurability();
+    return intent;
+  }
+
   async authorizePass(input: {
     missionId: string;
     invitationId: string;
@@ -124,6 +184,18 @@ export class ReachMissionCoordinator {
     return intent;
   }
 
+  async recordDeliveryBroadcast(input: { missionId: string; txHash: string }): Promise<Hop> {
+    const active = this.relay.getActiveIntent(input.missionId);
+    if (!active) throw new MissionValidationError("NO_ACTIVE_PASS", "No authorized delivery exists for this mission");
+    if (active.invitationId !== null) throw new MissionValidationError("DELIVERY_INTENT_KIND_MISMATCH", "This delivery requires its accepted bridge provenance");
+    if (!active.recipientData) throw new MissionValidationError("MISSING_HOP_COMMITMENT", "Authorized delivery has no opaque commitment");
+    try {
+      return this.relay.recordBroadcast(input.missionId, input.txHash);
+    } finally {
+      await this.relay.flushDurability();
+    }
+  }
+
   async recordBroadcast(input: { missionId: string; invitationId: string; txHash: string }): Promise<Hop> {
     const invitation = await this.missions.getInvitationRecord(input.invitationId);
     const active = this.relay.getActiveIntent(input.missionId);
@@ -190,6 +262,21 @@ export class ReachMissionCoordinator {
       .getHistory(missionId)
       .find((hop) => hop.sequence === nextSequence && hop.status === "CONFIRMED");
     if (!finalHop) return null;
+
+    if (!finalHop.invitation_id) {
+      const recipient = normalizeNimiqAddress(finalHop.recipient);
+      if (!mission.targetWalletHmac) {
+        throw new MissionValidationError("DESTINATION_UNRESOLVED", "Final direct delivery has no resolved destination binding");
+      }
+      await this.repository.completeFinalDelivery({
+        missionId,
+        sequence: nextSequence,
+        recipientWallet: recipient,
+        recipientHmac: this.protector.hmac(recipient),
+        now: finalHop.confirmed_at ? Date.parse(finalHop.confirmed_at) : Date.now(),
+      });
+      return finalHop;
+    }
 
     const invitation = await this.repository.getOpenInvitation(missionId);
     if (!invitation || invitation.status !== "ACCEPTED" || invitation.sequence !== nextSequence) {
