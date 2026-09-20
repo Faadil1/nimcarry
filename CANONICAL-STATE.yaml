@@ -1,11 +1,11 @@
 project: NimCarry
-updated_at: "2026-09-20T16:00:00-04:00"
-phase: POST_LIVE_TEST_PRODUCT_REFRAME
+updated_at: "2026-09-20"
+phase: AUTOMATIC_FINALITY_RECONCILIATION
 source_of_truth: true
 
 repository:
   full_name: Faadil1/nimcarry
-  baseline_main_sha: 7eddc47a8033927a85970c93f7b4edfd837c4ae6
+  baseline_main_sha: 35695fd0dbf67fae5eb28da01e446de878054a66
   baseline_summary: "One-time bridge; sender pays the target directly after bridge acceptance."
 
 latest_live_validation:
@@ -107,9 +107,26 @@ candidate_flows:
     status: OUT_OF_SCOPE
     description: "Do not build a public discovery/marketplace flow until real demand and abuse controls are proven."
 
+implementation_state:
+  automatic_finality_reconciliation:
+    status: IMPLEMENTED_AWAITING_LIVE_VALIDATION
+    behavior:
+      - "Server maintenance enumerates active relay intents that remain unresolved."
+      - "Background reconciliation uses the same canonical coordinator.reconcile path as the HTTP endpoint."
+      - "FINAL projection remains idempotent and independently verified."
+      - "The sender no longer waits through a 90-second foreground polling loop."
+      - "Manual 'Recheck existing handoff' is removed from the current happy path."
+      - "Mission Home watches both the accepted bridge and the sender while an existing payment finalizes."
+      - "Closing the page does not create a resend path; background reconciliation continues server-side while the runtime is active."
+    live_validation_required:
+      - "Broadcast one real TESTNET payment, close the client while pending, and confirm mission reaches ARRIVED without manual recheck."
+      - "Reopen before FINAL and verify no second payment control is offered."
+      - "Verify the same behavior on mobile and desktop."
+    evidence_doc: "docs/evidence/AUTOMATIC-FINALITY-RECONCILIATION-2026-09-20.md"
+
 next_workstream:
   priority:
-    - "Replace manual recheck with durable automatic server/worker reconciliation."
+    - "Live-validate automatic reconciliation across client close/reopen."
     - "Design and implement a non-custodial Destination Claim experiment."
     - "Compare Claim vs Introduced Claim with real users before deciding whether social-route proof is core or a trust layer."
     - "Update user-facing mental model away from Create -> Invite -> Accept -> Pass -> Arrive."

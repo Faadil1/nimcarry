@@ -23,7 +23,7 @@ describe("NimCarry 1→5 journey health contract", () => {
 
   it("uses the bridge once and completes at the destination after FINAL", () => {
     expect(app).toContain('mission.viewer_role === "INVITEE" && invitationStatus === "ACCEPTED"');
-    expect(app).toContain("Accepted — waiting for FINAL");
+    expect(app).toContain("Accepted — finalizing delivery");
     expect(app).toContain("received the 1 NIM. Your bridge step is complete.");
     expect(app).not.toContain("You now carry this letter — choose the next bridge.");
   });

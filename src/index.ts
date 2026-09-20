@@ -28,6 +28,7 @@ const repositoryMode = resolveRepositoryMode();
 interface Application {
   server: Server;
   sweep?: () => Promise<number>;
+  reconcile?: () => Promise<{ checked: number; arrived: number; errors: number }>;
 }
 
 async function main(): Promise<void> {
@@ -99,20 +100,48 @@ function createApplicationServer(
       process.env.CARRY_ONE_TARGET_HMAC_KEY_B64URL ?? ""
     ),
     sweep: () => repository.expireDueInvitations(Date.now()),
+    reconcile: () => coordinator.reconcilePending(),
   };
 }
 
 function registerMaintenance(app: Application): void {
-  if (!app.sweep) return;
-  const intervalMs = Number(process.env.CARRY_ONE_INVITATION_SWEEP_INTERVAL_MS ?? 60_000);
-  const timer = setInterval(() => {
-    app.sweep!().then(
-      (count) => { if (count > 0) console.log(`Carry One invitation sweep expired ${count} invitation${count === 1 ? "" : "s"}`); },
-      (err) => console.error("Carry One invitation sweep failed:", err)
-    );
-  }, intervalMs);
-  timer.unref();
-  app.server.once("close", () => clearInterval(timer));
+  const timers: NodeJS.Timeout[] = [];
+
+  if (app.sweep) {
+    const intervalMs = Number(process.env.CARRY_ONE_INVITATION_SWEEP_INTERVAL_MS ?? 60_000);
+    const timer = setInterval(() => {
+      app.sweep!().then(
+        (count) => { if (count > 0) console.log(`Carry One invitation sweep expired ${count} invitation${count === 1 ? "" : "s"}`); },
+        (err) => console.error("Carry One invitation sweep failed:", err)
+      );
+    }, intervalMs);
+    timer.unref();
+    timers.push(timer);
+  }
+
+  if (app.reconcile) {
+    const intervalMs = Number(process.env.CARRY_ONE_RECONCILE_INTERVAL_MS ?? 15_000);
+    const run = () => {
+      app.reconcile!().then(
+        ({ checked, arrived, errors }) => {
+          if (arrived > 0 || errors > 0) {
+            console.log(`NimCarry reconciliation sweep checked ${checked}, arrived ${arrived}, errors ${errors}`);
+          }
+        },
+        (err) => console.error("NimCarry reconciliation sweep failed:", err)
+      );
+    };
+    const firstRun = setTimeout(run, 1_000);
+    firstRun.unref();
+    timers.push(firstRun);
+    const timer = setInterval(run, intervalMs);
+    timer.unref();
+    timers.push(timer);
+  }
+
+  if (timers.length > 0) {
+    app.server.once("close", () => timers.forEach((timer) => clearTimeout(timer)));
+  }
 }
 
 void main().catch((error) => {

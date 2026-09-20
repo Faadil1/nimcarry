@@ -278,4 +278,47 @@ describe("CanonicalRelayService: full W0 -> W5 relay through intent/broadcast/re
     expect(store.getActiveIntent(baton2)).toBeDefined();
     expect(store.getHops(baton2)).toHaveLength(0);
   });
+  it("exposes only active intents that still need background reconciliation", async () => {
+    const rpc = new FakeRpcClient();
+    const service = new CanonicalRelayService(new RelayStore(), rpc);
+    const noHashBaton = "background-no-hash";
+    const pendingBaton = "background-pending";
+    const invalidBaton = "background-invalid";
+
+    service.initiatePass(noHashBaton, "W0", "W1");
+    service.initiatePass(pendingBaton, "W2", "W3");
+    const pendingHash = randomHash();
+    service.recordBroadcast(pendingBaton, pendingHash);
+
+    service.initiatePass(invalidBaton, "W4", "W5");
+    const invalidHash = randomHash();
+    service.recordBroadcast(invalidBaton, invalidHash);
+    rpc.seeTx({
+      hash: invalidHash,
+      from: "W4",
+      to: "WRONG",
+      value: ONE_NIM_IN_LUNA,
+      blockNumber: NIMIQ_POLICY.genesisBlockNumber + 1,
+      confirmations: 1,
+    });
+    rpc.setHeadBlockNumber(NIMIQ_POLICY.genesisBlockNumber + NIMIQ_POLICY.blocksPerBatch + 1);
+    await expect(service.reconcile(invalidBaton)).rejects.toThrow(RelayValidationError);
+
+    expect(service.getPendingReconciliationBatonIds().sort()).toEqual(
+      [noHashBaton, pendingBaton].sort()
+    );
+
+    rpc.seeTx({
+      hash: pendingHash,
+      from: "W2",
+      to: "W3",
+      value: ONE_NIM_IN_LUNA,
+      blockNumber: NIMIQ_POLICY.genesisBlockNumber + 1,
+      confirmations: 1,
+    });
+    await expect(service.reconcile(pendingBaton)).resolves.toMatchObject({ status: "FINAL" });
+
+    expect(service.getPendingReconciliationBatonIds()).toEqual([noHashBaton]);
+  });
+
 });
