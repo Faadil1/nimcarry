@@ -12,9 +12,9 @@ describe("mission bridge single-presence UX", () => {
     expect(app).toContain('Current holder');
   });
 
-  it("marks only the latest FINAL route row as the current holder while active", () => {
-    expect(app).toContain("const lastSequence = Number(ordered.at(-1)?.sequence)");
-    expect(app).toContain("options.markCurrentHolder === true");
+  it("represents a completed bridge as the single via mark, not the holder", () => {
+    expect(app).toContain("entry.via?.display_label");
+    expect(app).toContain("Bridge · delivered to");
     expect(app).toContain('markCurrentHolder: m.status === "ACTIVE"');
   });
 
