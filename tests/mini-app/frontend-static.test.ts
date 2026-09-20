@@ -197,14 +197,14 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(js).not.toContain("async function recheckExistingHandoff");
     expect(js).toContain("Payment sent — finalizing");
     expect(js).toContain("finalizing in the background");
-    expect(js).toContain("You can safely close this page. Do not send again.");
+    expect(js).toContain("You can safely close this page. Do not resend 1 NIM.");
     expect(js).toContain("/reconcile");
     expect(js).not.toContain("VERIFICATION_STILL_PENDING");
     expect(js).not.toContain("Date.now() + 90000");
   });
   it("keeps the accepted bridge in one continuous session until FINAL", () => {
     expect(js).toContain('mission.viewer_role === "INVITEE" && invitationStatus === "ACCEPTED"');
-    expect(js).toContain("Accepted — waiting for FINAL");
+    expect(js).toContain("Accepted — finalizing delivery");
     expect(js).toContain("received the 1 NIM. Your bridge step is complete.");
     expect(js).toContain("Your bridge step is complete once FINAL lands.");
     expect(js).not.toContain("You now carry this letter — choose the next bridge.");
