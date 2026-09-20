@@ -207,8 +207,9 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
   it("keeps the accepted bridge in one continuous session until FINAL", () => {
     expect(js).toContain('mission.viewer_role === "INVITEE" && invitationStatus === "ACCEPTED"');
     expect(js).toContain("Accepted — waiting for FINAL");
-    expect(js).toContain("FINAL verified. You now carry this letter — choose the next bridge.");
-    expect(js).toContain("Stay here — NimCarry will continue automatically when the handoff reaches FINAL.");
+    expect(js).toContain("received the 1 NIM. Your bridge step is complete.");
+    expect(js).toContain("Your bridge step is complete once FINAL lands.");
+    expect(js).not.toContain("You now carry this letter — choose the next bridge.");
     expect(compat).toContain("activateBridgeContinuationAfterAcceptance");
     expect(compat).toContain("acceptedInvitation?.view_token");
     const helperStart = compat.indexOf("async function activateBridgeContinuationAfterAcceptance");
@@ -280,9 +281,10 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
   });
   it("propagates only server-authorized finalized carrier marks into route and receipt UI", () => {
     expect(compat).toContain("entry.current_holder?.display_label || null");
+    expect(compat).toContain("entry.bridge?.display_label || null");
     expect(compat).toContain("entry.recipient?.display_label || null");
-    expect(js).toContain('data-carrier-mark="${esc(carrierMark || "")}"');
-    expect(js).toContain('class="${carrierMark ? "carrier-mark" : ""}"');
+    expect(js).toContain('data-carrier-mark="${esc(bridgeMark || "")}"');
+    expect(js).toContain('class="${bridgeMark ? "carrier-mark" : ""}"');
     expect(winning).toContain("const carrierMark = step.dataset.carrierMark ||");
     expect(winning).toContain('carrierMark ? "wi-carrier-mark" : ""');
   });
