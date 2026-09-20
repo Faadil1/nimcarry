@@ -271,8 +271,8 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
   });
   it("keeps route progress and finality truthful in the final product language", () => {
     expect(winning).toContain('node("div", "wi-flow")');
-    expect(winning).toContain("Only FINAL handoffs count.");
-    expect(winning).toContain("A pending transaction never changes the current holder or the verified route.");
+    expect(winning).toContain("Only FINAL delivery counts.");
+    expect(winning).toContain("A pending transaction never proves that the destination received the 1 NIM.");
     expect(finalHuman).toContain("A finite human route in progress.");
     expect(finalHuman).toContain("Pending activity never rewrites the verified path.");
     expect(finalHuman).not.toContain("sendBasicTransactionWithData");
@@ -290,8 +290,8 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
   });
 
   it("makes ARRIVED a human outcome plus privacy-safe proof rather than a transaction toast", () => {
-    expect(winning).toContain("Each displayed handoff was independently finalized before custody moved.");
-    expect(winning).toContain("Private destination and full participant wallet data stay hidden from this receipt.");
+    expect(winning).toContain("Each displayed bridge assisted a direct destination delivery that reached independent FINAL.");
+    expect(winning).toContain("Private destination wallet data stays hidden from this receipt.");
     expect(finalHuman).toContain("It arrived because people carried it.");
     expect(finalHuman).toContain("craft-arrival.svg");
     expect(finalHumanCss).toContain("hc-arrived-moment");
