@@ -14,6 +14,13 @@ describe("Nimiq Pay ambiguous-submission hardening", () => {
     expect(provider).toContain("looksLikeTxHash");
   });
 
+  it("normalizes only one provable canonical hash from known provider wrapper fields", () => {
+    expect(provider).toContain("extractProviderTxHash");
+    expect(provider).toContain('"transactionHash"');
+    expect(provider).toContain("NIMIQ_PAY_SEND_AMBIGUOUS_RESULT");
+    expect(provider).toContain("result shape:");
+  });
+
   it("adds a current validityStartHeight when the caller omitted one", () => {
     expect(provider).toContain('property === "sendBasicTransactionWithData"');
     expect(provider).toContain("await target.getBlockNumber()");
