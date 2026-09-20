@@ -77,7 +77,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
   els.demoBanner.hidden = !state.demo;
   els.network.textContent = state.demo ? "LOCAL DEMO" : "NIMIQ PAY / TESTNET";
 
-  const walletKey = (value) => String(value ?? "").replace(/\\s+/g, "").toUpperCase();
+  const walletKey = (value) => String(value ?? "").replace(/\s+/g, "").toUpperCase();
   const esc = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
   const short = (value) => {
     const text = String(value ?? "");
