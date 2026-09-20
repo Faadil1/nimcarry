@@ -174,6 +174,12 @@ describe("secure shared vertical slice", () => {
     expect(invited.status).toBe(201);
     const token = invited.body.invite_token as string;
     const invitationId = invited.body.invitation.id as string;
+    console.log("DIRECT_IDS_DEBUG", JSON.stringify({
+      missionId,
+      responseMissionId: invited.body.mission_id,
+      invitationMissionId: invited.body.invitation.mission_id,
+      invitationSequence: invited.body.invitation.sequence,
+    }));
 
     const acceptChallenge = await challenge(bridge, "ACCEPT_INVITATION", {
       mission_id: missionId,
@@ -241,11 +247,12 @@ describe("secure shared vertical slice", () => {
     expect(reconciled.body.mission.finalized_hop_count).toBe(1);
     expect(reconciled.body.mission.sequence).toBe(1);
 
-    const finalizedInvitation = await pool.query<{ status: string; candidate_label: string | null; candidate_display_label: string | null; candidate_wallet_normalized: string | null; sequence: number }>(
-      "SELECT status, candidate_label, candidate_display_label, candidate_wallet_normalized, sequence FROM invitations WHERE id = $1",
+    const finalizedInvitation = await pool.query<{ mission_id: string; status: string; candidate_label: string | null; candidate_display_label: string | null; candidate_wallet_normalized: string | null; sequence: number }>(
+      "SELECT mission_id, status, candidate_label, candidate_display_label, candidate_wallet_normalized, sequence FROM invitations WHERE id = $1",
       [invitationId]
     );
     expect(finalizedInvitation.rows).toHaveLength(1);
+    console.log("DIRECT_FINAL_INVITE_DEBUG", JSON.stringify(finalizedInvitation.rows[0]));
     expect(finalizedInvitation.rows[0]).toMatchObject({
       status: "COMPLETED",
       candidate_label: "Bridge B",
