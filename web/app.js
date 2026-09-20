@@ -223,7 +223,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     const unsafeAccounts = [...unauthorizedBasic, ...unauthorizedHtlc, ...unknownAccounts];
     if (unsafeAccounts.length > 0) {
       throw new Error(
-        `PAYMENT_SOURCE_UNVERIFIED: Nimiq Pay exposes ${unsafeAccounts.map((account) => `${short(account.address)} (${account.type})`).join(", ")} that is not a verified basic wallet or a verified wallet's HTLC rail in this pass snapshot. NimCarry stopped before requesting 1 NIM. Link the basic wallet to your profile, then authorize a fresh pass.`
+        `PAYMENT_SOURCE_UNVERIFIED: Nimiq Pay exposes ${unsafeAccounts.map((account) => `${short(account.address)} (${account.type}${account.type === "htlc" ? `, sender=${account.sender ? short(account.sender) : "unresolved"}` : ""})`).join(", ")} that is not a verified basic wallet or a verified wallet's HTLC rail in this pass snapshot. NimCarry stopped before requesting 1 NIM. Link the basic wallet to your profile, then authorize a fresh pass.`
       );
     }
 
