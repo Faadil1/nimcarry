@@ -422,7 +422,9 @@ async function reconcileMission(deps: MissionHttpDeps, req: IncomingMessage, mis
     status: 200,
     body: {
       mission: await viewMission(deps, req, missionId),
-      hop: reconciled.hop ? toHopResponse(reconciled.hop as Hop) : null,
+      hop: reconciled.hop
+        ? ("baton_id" in reconciled.hop ? reconciled.hop : toHopResponse(reconciled.hop))
+        : null,
     },
   };
 }
