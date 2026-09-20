@@ -507,6 +507,24 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     try { if (state.demo) invitation = demoLoad()?.invitation || { mission_id: "demo", invitation_id: "demo-invite", sequence: 1, status: "INVITED", target_label: state.mission?.target_label || "Destination", mission_note: state.mission?.mission_note || "Move this closer.", why_you: "You know someone closer to the destination.", finalized_hop_count: 0 }; else invitation = await api(`/i/${encodeURIComponent(token)}`); state.invitation = invitation; }
     catch (error) { notice(error.message, true); }
     if (!invitation) { els.screen.innerHTML = `<section class="card"><h2>Invitation unavailable</h2><p>This private invite is invalid, expired, or not yet served by the backend.</p></section>`; return; }
+
+    if (invitation.status === "ACCEPTED") {
+      const missionId = invitation.mission_id;
+      const deadline = invitation.pass_deadline_at ? new Date(invitation.pass_deadline_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null;
+      els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Bridge accepted</div><h1 class="target-title">You already accepted this handoff.</h1><p class="lede">There is nothing else to approve on this invitation link. The current holder can now authorize the 1 NIM pass${deadline ? ` before ${esc(deadline)}` : ""}.</p><div class="warning" style="margin-top:14px">Opening this link again never creates a second acceptance and never moves custody.</div><div class="button-row">${missionId ? `<button id="accepted-follow" class="button primary">Follow this mission</button>` : ""}<button id="accepted-home" class="button ghost">NimCarry home</button></div></section>`;
+      document.querySelector("#accepted-follow")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}`));
+      document.querySelector("#accepted-home")?.addEventListener("click", () => navigate("/"));
+      els.screen.focus();
+      return;
+    }
+
+    if (["DECLINED", "EXPIRED", "WITHDRAWN", "COMPLETED"].includes(invitation.status)) {
+      els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Invitation closed</div><h1 class="target-title">This bridge invitation is no longer actionable.</h1><p class="lede">Status: <strong>${esc(invitation.status)}</strong>. Reopening this private link cannot create another handoff.</p><div class="button-row"><button id="closed-home" class="button primary">NimCarry home</button></div></section>`;
+      document.querySelector("#closed-home")?.addEventListener("click", () => navigate("/"));
+      els.screen.focus();
+      return;
+    }
+
     const deeplink = `nimiqpay://miniapp?url=${encodeURIComponent(location.href)}`;
     els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Screen 3 / 5 · Bridge Invitation</div><h1 class="target-title">You were chosen as the next bridge.</h1><p class="lede">Target: <strong>${esc(invitation.target_label || state.mission?.target_label || "Private destination")}</strong></p><div class="card" style="margin-top:16px"><div class="kicker">Why you</div><p>${esc(invitation.why_you || "The current holder thinks you can move this one person closer.")}</p></div><label class="acceptance-display-field">How should this letter remember you? <span>(optional)</span><input id="candidate-display-label" maxlength="60" autocomplete="name" placeholder="Your name or initials" /><small>Shown only inside authorized mission context. The Nimiq authorization — not this name — is the consent proof.</small></label><div class="warning" style="margin-top:14px">Accepting does not move funds. The current holder sends exactly 1 NIM only after you accept.</div><div class="button-row"><button data-busy-lock="1" id="accept" class="button primary">Accept as bridge</button><button data-busy-lock="1" id="decline" class="button ghost">Decline</button><a class="button green" href="${esc(deeplink)}">Open in Nimiq Pay</a></div></section>`;
     document.querySelector("#accept").addEventListener("click", () => acceptInvitation(invitation, token)); document.querySelector("#decline").addEventListener("click", () => declineInvitation(invitation, token)); els.screen.focus();
