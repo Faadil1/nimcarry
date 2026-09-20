@@ -1,3 +1,9 @@
+## 2026-09-20 — Payment wallet key normalization hotfix
+
+- Fix the browser payment guard's wallet-key normalizer so it removes Nimiq address whitespace instead of looking for a literal backslash-s sequence.
+- This specifically fixes verified Basic-account ↔ HTLC-sender comparisons: profile/pass snapshots use spaced user-friendly addresses, while independently classified HTLC senders are compact NQ addresses.
+- Security posture is unchanged: unverified Basic accounts and HTLCs whose normalized sender is outside the frozen verified-wallet snapshot still fail closed before payment.
+
 ## 2026-09-20 — HTLC sender-linkage normalization
 
 - Harden Nimiq RPC account parsing for public-node response variants where HTLC metadata is nested.
