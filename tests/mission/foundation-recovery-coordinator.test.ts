@@ -48,7 +48,7 @@ async function acceptedMission(dir: string, targetWallet = wallet()) {
   const relay = new CanonicalRelayService(new FileRelayStore(relayPath), rpc);
   const coordinator = new ReachMissionCoordinator(service, repo, relay, protector);
   const creator = wallet();
-  const candidate = targetWallet;
+  const candidate = wallet();
   const mission = await service.createMission({
     auth: auth(creator, "CREATE_MISSION"),
     targetLabel: "Destination",
@@ -73,7 +73,7 @@ async function acceptedMission(dir: string, targetWallet = wallet()) {
   state.invitations[0].passDeadlineAt = 10_000_000_000_000;
   writeFileSync(missionPath, JSON.stringify(state));
   Object.assign((repo as unknown as { state: typeof state }).state.invitations[0], { passDeadlineAt: 10_000_000_000_000 });
-  return { missionPath, relayPath, repo, protector, service, rpc, relay, coordinator, creator, candidate, mission, invitationId: created.invitation.id };
+  return { missionPath, relayPath, repo, protector, service, rpc, relay, coordinator, creator, candidate, target: targetWallet, mission, invitationId: created.invitation.id };
 }
 
 describe("durable foundation recovery", () => {
@@ -96,6 +96,23 @@ describe("durable foundation recovery", () => {
       auth: auth(f.creator, "AUTHORIZE_PASS", f.mission.id, f.invitationId, 1),
       now: 4_000,
     })).rejects.toMatchObject({ reason: "PASS_DEADLINE_EXPIRED" });
+  });
+
+  it("uses the accepted bridge as consent but sends the pass directly to the target", async () => {
+    const target = wallet();
+    const f = await acceptedMission(tempDir(), target);
+    expect(normalizeNimiqAddress(f.candidate)).not.toBe(normalizeNimiqAddress(target));
+
+    const intent = await f.coordinator.authorizePass({
+      missionId: f.mission.id,
+      invitationId: f.invitationId,
+      auth: auth(f.creator, "AUTHORIZE_PASS", f.mission.id, f.invitationId, 1),
+      now: 4_000,
+    });
+
+    expect(intent.currentHolder).toBe(normalizeNimiqAddress(f.creator));
+    expect(intent.recipient).toBe(normalizeNimiqAddress(target));
+    expect(intent.recipient).not.toBe(normalizeNimiqAddress(f.candidate));
   });
 
   it("reuses a still-valid matching pass intent", async () => {
@@ -187,7 +204,7 @@ describe("durable foundation recovery", () => {
     f.rpc.tx = {
       hash: txHash,
       from: normalizeNimiqAddress(f.creator),
-      to: normalizeNimiqAddress(f.candidate),
+      to: normalizeNimiqAddress(f.target),
       value: 100_000,
       blockNumber: 3_032_020,
       confirmations: 999,
