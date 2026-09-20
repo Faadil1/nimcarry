@@ -212,33 +212,29 @@ async function run(viewport) {
     await page.locator('.clv2-wax-scene[data-phase="final"]').waitFor({ state: "visible", timeout: 5000 });
     const postmark = await page.locator(".clv2-postmark").textContent();
     if (!/PRACTICE/i.test(postmark || "")) throw new Error(`Expected practice postmark, got ${postmark || "empty"}`);
-    activeStep = "route-after-first-final";
-    steps.push(await expectPath(page, /^\/mission\/[^/]+\/route$/, "route-after-first-final"));
+    activeStep = "arrived-route-after-bridge";
+    steps.push(await expectPath(page, /^\/mission\/[^/]+\/route$/, "arrived-route-after-bridge"));
     await page.locator(".clv2-route-ledger-head").waitFor({ state: "visible" });
     await page.locator(".clv2-hop-stamp").first().waitFor({ state: "visible" });
-    await page.locator("#demo-tour-continue").waitFor({ state: "visible" });
-    captures.push(await captureState(page, viewport, "07-route", "route"));
 
-    // Regression guard for the real-device issue: after FINAL the bridge must
-    // appear once, not once as a route row plus again as a separate holder card
-    // or decorative holder→destination diagram.
-    activeStep = "mission-after-first-final-single-presence";
-    await page.locator("#back").click();
-    steps.push(await expectPath(page, /^\/mission\/[^/]+$/, "mission-after-first-final-single-presence"));
-    const holderCards = await page.locator(".holder-chip").count();
-    const routeSteps = await page.locator(".route-step").count();
-    const currentHolderRows = await page.locator('.route-step[data-current-holder="true"]').count();
-    const duplicateHolderDiagrams = await page.locator(".hc-mission-route").count();
-    if (holderCards !== 0) throw new Error(`Expected no duplicate standalone current-holder card after FINAL, got ${holderCards}`);
-    if (routeSteps !== 1) throw new Error(`Expected exactly one verified bridge row after first FINAL, got ${routeSteps}`);
-    if (currentHolderRows !== 1) throw new Error(`Expected exactly one current-holder marker on the verified bridge row, got ${currentHolderRows}`);
-    if (duplicateHolderDiagrams !== 0) throw new Error(`Expected no duplicate holder→destination diagram after FINAL, got ${duplicateHolderDiagrams}`);
-    captures.push(await captureState(page, viewport, "07b-mission-single-presence", "mission"));
-    await page.locator("#route-button").click();
-    steps.push(await expectPath(page, /^\/mission\/[^/]+\/route$/, "route-after-single-presence-check"));
-    await page.locator(".clv2-route-ledger-head").waitFor({ state: "visible" });
+    const arrived = await page.locator(".status-pill").textContent();
+    if (!/ARRIVED/i.test(arrived || "")) throw new Error(`Expected ARRIVED after the first bridge-assisted payment, got ${arrived || "empty status"}`);
+    await page.locator(".hc-arrived-moment").waitFor({ state: "visible" });
+    await page.locator('#demo-tour-guide[data-step="5"]').waitFor({ state: "visible" });
+    await page.locator(".demo-tour-complete").waitFor({ state: "visible" });
 
-    activeStep = "refresh-route-after-first-final";
+    const postmarks = await page.locator(".clv2-hop-stamp").count();
+    if (postmarks !== 1) throw new Error(`Expected exactly 1 verified delivery postmark, got ${postmarks}`);
+    const bridgeRows = await page.locator(".route-step").count();
+    if (bridgeRows !== 1) throw new Error(`Expected exactly 1 bridge entry in the completed route, got ${bridgeRows}`);
+    const routeText = await page.locator(".route-step").first().textContent();
+    if (!/Bridge B/i.test(routeText || "")) throw new Error(`Expected Bridge B to appear once in the completed route, got ${routeText || "empty"}`);
+    if (!/Nimiq Community Lead/i.test(routeText || "")) throw new Error(`Expected direct delivery to the destination, got ${routeText || "empty"}`);
+    captures.push(await captureState(page, viewport, "07-arrived-direct", "route"));
+
+    // Recovery/reload must preserve the same one-bridge completed route. The
+    // bridge is not promoted to a new holder and there is no second invite.
+    activeStep = "refresh-arrived-direct-route";
     const beforeRefresh = new URL(page.url());
     if (beforeRefresh.searchParams.get("demo") !== "1" || beforeRefresh.searchParams.get("tour") !== "1") {
       throw new Error(`Practice context missing before refresh: ${beforeRefresh.search}`);
@@ -249,45 +245,14 @@ async function run(viewport) {
       throw new Error(`Practice context missing after refresh: ${afterRefresh.search}`);
     }
     await page.locator("#demo-banner").waitFor({ state: "visible" });
-    await page.locator("#demo-tour-continue").waitFor({ state: "visible" });
-    steps.push({ label: "refresh-preserved-practice-context", path: afterRefresh.pathname, search: afterRefresh.search });
-
-    activeStep = "invite-destination";
-    await page.locator("#demo-tour-continue").click();
-    await page.locator("#invite-dialog").waitFor({ state: "visible" });
-    await page.locator("#invite-confirm").click();
-    await page.locator("#demo-tour-open-invite").waitFor({ state: "visible" });
-
-    activeStep = "invitation-destination";
-    await page.locator("#demo-tour-open-invite").click();
-    await page.waitForURL(/\/i\//, { timeout: 8000 });
-    await page.locator("#accept").waitFor({ state: "visible" });
-    steps.push({ label: "invitation-destination", path: new URL(page.url()).pathname });
-    await page.locator("#accept").click();
-    steps.push(await expectPath(page, /^\/mission\/[^/]+$/, "mission-after-destination-accept"));
-    await page.locator("#pass-button").waitFor({ state: "visible" });
-
-    activeStep = "pass-destination";
-    await page.locator("#pass-button").click();
-    steps.push(await expectPath(page, /^\/mission\/[^/]+\/pass$/, "pass-destination"));
-    await page.locator(".clv2-handoff-manifest").waitFor({ state: "visible" });
-    await page.locator("#send").click();
-    await page.locator('.clv2-wax-scene[data-phase="verification-pending"]').waitFor({ state: "visible", timeout: 3000 });
-    await page.locator('.clv2-wax-scene[data-phase="final"]').waitFor({ state: "visible", timeout: 5000 });
-    activeStep = "arrived-route";
-    steps.push(await expectPath(page, /^\/mission\/[^/]+\/route$/, "arrived-route"));
-
-    const arrived = await page.locator(".status-pill").textContent();
-    if (!/ARRIVED/i.test(arrived || "")) throw new Error(`Expected ARRIVED, got ${arrived || "empty status"}`);
-    await page.locator(".hc-arrived-moment").waitFor({ state: "visible" });
-    await page.locator('#demo-tour-guide[data-step="5"]').waitFor({ state: "visible" });
-    await page.locator(".demo-tour-complete").waitFor({ state: "visible" });
-    await page.locator(".clv2-route-ledger-head").waitFor({ state: "visible" });
-    const postmarks = await page.locator(".clv2-hop-stamp").count();
-    if (postmarks < 2) throw new Error(`Expected at least 2 verified letter-back postmarks, got ${postmarks}`);
+    const postmarksAfterRefresh = await page.locator(".clv2-hop-stamp").count();
+    if (postmarksAfterRefresh !== 1) throw new Error(`Expected one bridge after refresh, got ${postmarksAfterRefresh}`);
+    if (await page.locator("#demo-tour-continue").count()) {
+      throw new Error("A completed direct route must not ask the bridge to choose another bridge.");
+    }
     const legacyRouteMottos = await page.locator(".hc-max-route-motto").count();
     if (legacyRouteMottos !== 0) throw new Error(`Expected zero legacy route mottos on V2 route, got ${legacyRouteMottos}`);
-    captures.push(await captureState(page, viewport, "08-arrived", "route"));
+    steps.push({ label: "refresh-preserved-direct-arrival", path: afterRefresh.pathname, search: afterRefresh.search });
 
     if (pageErrors.length) {
       const compact = pageErrors.map((entry) => `${entry.step}: ${entry.message}`).join(" | ");
