@@ -192,7 +192,11 @@ function derivePrimaryAction(
     return ["CREATOR", "HOLDER", "PARTICIPANT"].includes(viewerRole) ? "REROUTE" : "VIEW_ROUTE";
   }
   if (viewerIsCurrentHolder) {
-    if (!invitation) return targetResolved ? "DELIVER_1_NIM" : "WAIT";
+    if (!invitation) {
+      if (!targetResolved) return "WAIT";
+      if (hasActiveIntent && !(activeIntentStale && !activeIntentHasBroadcast)) return "WAIT";
+      return "DELIVER_1_NIM";
+    }
     if (invitation.status === "EXPIRED" && invitation.sequence === currentSequence + 1) return "CREATE_INVITATION";
     if (invitation.status === "ACCEPTED" && (!hasActiveIntent || (activeIntentStale && !activeIntentHasBroadcast))) return "PASS_1_NIM";
     return "WAIT";
