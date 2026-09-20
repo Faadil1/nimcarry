@@ -21,10 +21,11 @@ describe("NimCarry 1→5 journey health contract", () => {
     expect(helper).not.toContain('action: "VIEW_ROUTE"');
   });
 
-  it("keeps the accepted bridge on one screen until FINAL makes them holder", () => {
+  it("uses the bridge once and completes at the destination after FINAL", () => {
     expect(app).toContain('mission.viewer_role === "INVITEE" && invitationStatus === "ACCEPTED"');
     expect(app).toContain("Accepted — waiting for FINAL");
-    expect(app).toContain("FINAL verified. You now carry this letter — choose the next bridge.");
+    expect(app).toContain("received the 1 NIM. Your bridge step is complete.");
+    expect(app).not.toContain("You now carry this letter — choose the next bridge.");
   });
 
   it("never offers another payment from an expired pass window", () => {
@@ -33,10 +34,10 @@ describe("NimCarry 1→5 journey health contract", () => {
     expect(app).toContain("No new payment should be requested from this screen.");
   });
 
-  it("renders a finalized bridge once even after mission recovery", () => {
+  it("renders the bridge once as via, never as a new holder after recovery", () => {
     expect(app).toContain("const hasVerifiedPath = Array.isArray(m.route) && m.route.length > 0");
-    expect(app).toContain('const holderSummary = hasVerifiedPath');
-    expect(app).toContain('data-current-holder=');
+    expect(app).toContain("entry.via?.display_label");
+    expect(app).toContain("Bridge · delivered to");
     expect(craft).toContain('const verifiedSteps = [...screen.querySelectorAll(".route-card .route-step")]');
     expect(craft).toContain("if (verifiedSteps.length > 0) return");
   });
