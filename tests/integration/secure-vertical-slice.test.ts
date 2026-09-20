@@ -241,6 +241,19 @@ describe("secure shared vertical slice", () => {
     expect(reconciled.body.mission.finalized_hop_count).toBe(1);
     expect(reconciled.body.mission.sequence).toBe(1);
 
+    const finalizedInvitation = await pool.query<{ status: string; candidate_label: string | null; candidate_display_label: string | null; candidate_wallet_normalized: string | null; sequence: number }>(
+      "SELECT status, candidate_label, candidate_display_label, candidate_wallet_normalized, sequence FROM invitations WHERE id = $1",
+      [invitationId]
+    );
+    expect(finalizedInvitation.rows).toHaveLength(1);
+    expect(finalizedInvitation.rows[0]).toMatchObject({
+      status: "COMPLETED",
+      candidate_label: "Bridge B",
+      candidate_display_label: "Bridge B",
+      candidate_wallet_normalized: normalizeNimiqAddress(bridge.address),
+      sequence: 1,
+    });
+
     const bridgeView = await request("GET", `/missions/${missionId}`, undefined, {
       Authorization: `Bearer ${accepted.body.view_token}`,
     });
