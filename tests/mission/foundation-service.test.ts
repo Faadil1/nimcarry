@@ -127,6 +127,36 @@ describe("Reach Mission foundation service", () => {
     expect(accepted.candidate_wallet_fingerprint).not.toBeNull();
   });
 
+  it("treats repeated acceptance from the same bridge wallet as idempotent", async () => {
+    const { service } = fixture();
+    const creator = wallet();
+    const candidate = wallet();
+    const mission = await service.createMission(consentedMissionInput(creator, 24_100));
+    const invitation = await service.createInvitation({
+      missionId: mission.id,
+      auth: auth(creator, "CREATE_INVITATION", mission.id, undefined, 1),
+      candidateWallet: candidate,
+      now: 24_200,
+    });
+
+    const first = await service.acceptInvitation({
+      token: invitation.inviteToken,
+      auth: auth(candidate, "ACCEPT_INVITATION", mission.id, invitation.invitation.id, 1),
+      candidateDisplayLabel: "Grace",
+      now: 24_300,
+    });
+    const replay = await service.acceptInvitation({
+      token: invitation.inviteToken,
+      auth: auth(candidate, "ACCEPT_INVITATION", mission.id, invitation.invitation.id, 1),
+      candidateDisplayLabel: "Ignored replay label",
+      now: 24_400,
+    });
+
+    expect(replay.status).toBe("ACCEPTED");
+    expect(replay.id).toBe(first.id);
+    expect(replay.candidate_wallet_fingerprint).toBe(first.candidate_wallet_fingerprint);
+  });
+
   it("persists an optional carrier display label only after signed acceptance", async () => {
     const { repo, service } = fixture();
     const creator = wallet();
