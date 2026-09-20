@@ -143,10 +143,18 @@
     const hero = screen.querySelector(".hero-card");
     if (!hero || hero.dataset.hcMission === "1") return;
     hero.dataset.hcMission = "1";
+
+    // Once a FINAL path exists, the latest verified route row is the canonical
+    // current-holder surface. Do not repeat that same person in a second hero
+    // diagram; long routes must stay scannable as one sequence, not a summary
+    // plus a duplicate sequence.
+    const verifiedSteps = [...screen.querySelectorAll(".route-card .route-step")];
+    if (verifiedSteps.length > 0) return;
+
     const target = clean(hero.querySelector(".target-title")?.textContent) || "Destination";
     const holder = clean(hero.querySelector(".holder-chip strong")?.textContent) || "Current holder";
     const route = el("section", "hc-mission-route");
-    const from = el("div", "from"); from.append(el("strong", "", holder), el("small", "", "last verified holder"));
+    const from = el("div", "from"); from.append(el("strong", "", holder), el("small", "", "current holder"));
     const to = el("div", "to"); to.append(el("strong", "", target), el("small", "", "one intended destination"));
     route.append(from, el("span", "hc-route-dash"), to);
     const chip = hero.querySelector(".holder-chip");
