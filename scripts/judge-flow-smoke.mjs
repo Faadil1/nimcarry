@@ -70,8 +70,9 @@ const outputRoot = process.env.JUDGE_FLOW_OUTPUT || "judge-flow-smoke";
 await mkdir(outputRoot, { recursive: true });
 
 const viewports = [
-  { name: "mobile-375", width: 375, height: 812 },
-  { name: "desktop-1280", width: 1280, height: 900 },
+  { name: "mobile-390", width: 390, height: 844 },
+  { name: "tablet-768", width: 768, height: 1024 },
+  { name: "desktop-1440", width: 1440, height: 900 },
 ];
 
 const report = {
@@ -162,8 +163,9 @@ async function run(viewport) {
     await page.locator("#create-form").waitFor({ state: "visible" });
 
     await page.locator('input[name="target_label"]').fill("Nimiq Community Lead");
-    await page.locator('input[name="target_wallet"]').fill("NQDEMO_TARGET_0001");
     await page.locator('textarea[name="mission_note"]').fill("I need a warm introduction to one specific person I cannot reach directly.");
+    await page.locator('details.advanced-field summary').click();
+    await page.locator('input[name="target_wallet"]').fill("NQDEMO_TARGET_0001");
     await page.locator('input[name="creator_display_label"]').fill("Creator");
     await page.locator('input[name="target_consent_confirmed"]').check();
     captures.push(await captureState(page, viewport, "02-write", "create"));

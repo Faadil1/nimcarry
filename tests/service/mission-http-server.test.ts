@@ -761,4 +761,110 @@ describe("Reach Mission HTTP rate limiting", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("runs a non-custodial destination claim -> bind -> direct delivery -> FINAL flow", async () => {
+    const creator = wallet();
+    const destination = wallet();
+
+    const createCh = await challenge(creator.address, "CREATE_MISSION");
+    const createRes = await request("POST", "/missions", {
+      ...envelope(createCh, creator),
+      target_label: "David",
+      mission_note: "A private delivery for David.",
+      visibility: "UNLISTED",
+      creator_display_label: "Faadil",
+    }, { "Idempotency-Key": "claim-create-e2e" });
+
+    expect(createRes.status).toBe(201);
+    expect(createRes.body.target_resolved).toBe(false);
+    expect(createRes.body.destination_claim).toMatchObject({ status: "PENDING", bound: false });
+    expect(createRes.body.claim_url).toMatch(/^https:\/\/carry\.one\/c\/[A-Za-z0-9_-]+$/);
+    const missionId = createRes.body.mission_id;
+    const claimToken = String(createRes.body.claim_url).split("/c/")[1];
+
+    const claimView = await request("GET", `/c/${claimToken}`);
+    expect(claimView.status).toBe(200);
+    expect(claimView.body.claim).toMatchObject({
+      mission_id: missionId,
+      sender_label: "Faadil",
+      target_label: "David",
+      status: "PENDING",
+      bound: false,
+    });
+    expect(JSON.stringify(claimView.body)).not.toContain(creator.address.replaceAll(" ", ""));
+
+    const bindCh = await challenge(destination.address, "BIND_DESTINATION", { mission_id: missionId });
+    const bindRes = await request("POST", `/c/${claimToken}/bind`, {
+      ...envelope(bindCh, destination),
+    }, { "Idempotency-Key": "claim-bind-e2e" });
+
+    expect(bindRes.status).toBe(200);
+    expect(bindRes.body.claim).toMatchObject({ status: "BOUND", bound: true });
+    expect(bindRes.body.mission_id).toBe(missionId);
+    expect(bindRes.body.view_token).toMatch(/^[A-Za-z0-9_-]{32,}$/);
+
+    const creatorView = await request("GET", `/missions/${missionId}`, undefined, {
+      Authorization: `Bearer ${createRes.body.view_token}`,
+    });
+    expect(creatorView.status).toBe(200);
+    expect(creatorView.body.target_resolved).toBe(true);
+    expect(creatorView.body.primary_action).toBe("DELIVER_1_NIM");
+
+    const deliveryCh = await challenge(creator.address, "AUTHORIZE_DELIVERY", {
+      mission_id: missionId,
+      sequence: 1,
+    });
+    const intentRes = await request("POST", `/missions/${missionId}/delivery-intent`, {
+      ...envelope(deliveryCh, creator),
+    }, { "Idempotency-Key": "claim-delivery-intent-e2e" });
+
+    expect(intentRes.status).toBe(200);
+    expect(intentRes.body.recipient).toBe(destination.address);
+    expect(intentRes.body.expected_sender).toBe(creator.address);
+    expect(intentRes.body.value_luna).toBe(ONE_NIM_IN_LUNA);
+    expect(intentRes.body.recipient_data).toMatch(/^co:v1:/);
+
+    const txHash = randomBytes(32).toString("hex");
+    const broadcastRes = await request("POST", `/missions/${missionId}/broadcast`, {
+      invitation_id: null,
+      tx_hash: txHash,
+      broadcast_capability: intentRes.body.broadcast_capability,
+    }, { "Idempotency-Key": "claim-direct-broadcast-e2e" });
+
+    expect(broadcastRes.status).toBe(201);
+    expect(broadcastRes.body.invitation_id ?? null).toBeNull();
+
+    const pendingView = await request("GET", `/missions/${missionId}`, undefined, {
+      Authorization: `Bearer ${createRes.body.view_token}`,
+    });
+    expect(pendingView.status).toBe(200);
+    expect(pendingView.body.primary_action).toBe("WAIT");
+
+    rpc.tx = {
+      hash: txHash,
+      from: creator.address,
+      to: destination.address,
+      value: ONE_NIM_IN_LUNA,
+      blockNumber: 3_032_020,
+      confirmations: 999,
+      recipientData: intentRes.body.recipient_data,
+    };
+
+    const reconcileRes = await request("POST", `/missions/${missionId}/reconcile`, undefined, {
+      Authorization: `Bearer ${createRes.body.view_token}`,
+    });
+    expect(reconcileRes.status).toBe(200);
+    expect(reconcileRes.body.mission.status).toBe("ARRIVED");
+    expect(reconcileRes.body.mission.finalized_hop_count).toBe(1);
+
+    const routeRes = await request("GET", `/missions/${missionId}/route`, undefined, {
+      Authorization: `Bearer ${createRes.body.view_token}`,
+    });
+    expect(routeRes.status).toBe(200);
+    expect(routeRes.body).toHaveLength(1);
+    expect(routeRes.body[0].invitation_id ?? null).toBeNull();
+    expect(routeRes.body[0].recipient.wallet_fingerprint).toBeTruthy();
+    expect(routeRes.body[0].bridge).toBeNull();
+  });
+
 });

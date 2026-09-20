@@ -2,6 +2,8 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { MissionRepository } from "./repository.js";
 import {
   MissionValidationError,
+  type DestinationClaimRecord,
+  type PublicDestinationClaim,
   type InvitationRecord,
   type MissionAction,
   type MissionActivity,
@@ -14,6 +16,7 @@ import {
 import { normalizeNimiqAddress, TargetWalletProtector, walletFingerprint } from "./target-wallet-crypto.js";
 
 export const INVITATION_TTL_MS = 12 * 60 * 60 * 1000;
+export const DESTINATION_CLAIM_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const ACCEPTED_PASS_DEADLINE_MS = 60 * 60 * 1000;
 export const MISSION_STALL_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 
@@ -58,6 +61,7 @@ export function toPublicMission(record: MissionRecord, now = Date.now()): Public
     creator_wallet: walletFingerprint(record.creatorWalletNormalized),
     current_holder: walletFingerprint(record.currentHolderWalletNormalized),
     target_label: record.targetLabel,
+    target_resolved: record.targetWalletHmac !== null && record.targetWalletCiphertext !== null,
     target_consent_confirmed: record.targetConsentConfirmed,
     mission_note: record.missionNote,
     status: record.status,
@@ -150,6 +154,106 @@ export class ReachMissionService {
       updatedAt: now,
     };
     return toPublicMission(await this.repository.createMission(record), now);
+  }
+
+  async createClaimMission(input: {
+    auth: VerifiedWalletAction;
+    targetLabel: string;
+    missionNote: string;
+    creatorDisplayLabel?: string;
+    visibility?: MissionVisibility;
+    now?: number;
+  }): Promise<{ mission: PublicMission; claim: PublicDestinationClaim; claimToken: string }> {
+    assertAction(input.auth, "CREATE_MISSION");
+    const now = input.now ?? Date.now();
+    const creator = normalizeNimiqAddress(input.auth.wallet);
+    const missionRecord: MissionRecord = {
+      id: randomUUID(),
+      creatorWalletNormalized: creator,
+      creatorDisplayLabel: input.creatorDisplayLabel?.trim() || null,
+      currentHolderWalletNormalized: creator,
+      targetLabel: boundedText(input.targetLabel, 1, 60, "targetLabel"),
+      targetWalletCiphertext: null,
+      targetWalletHmac: null,
+      targetConsentConfirmed: false,
+      missionNote: boundedText(input.missionNote, 1, 180, "missionNote"),
+      status: "ACTIVE",
+      visibility: input.visibility ?? "UNLISTED",
+      finalizedHopCount: 0,
+      currentSequence: 0,
+      createdAt: now,
+      arrivedAt: null,
+      cancelledAt: null,
+      updatedAt: now,
+    };
+    const claimToken = randomBytes(32).toString("base64url");
+    const claimRecord: DestinationClaimRecord = {
+      id: randomUUID(),
+      missionId: missionRecord.id,
+      claimTokenHash: hashToken(claimToken),
+      status: "PENDING",
+      createdAt: now,
+      expiresAt: now + DESTINATION_CLAIM_TTL_MS,
+      boundWalletNormalized: null,
+      boundAt: null,
+    };
+    const created = await this.repository.createMissionWithDestinationClaim(missionRecord, claimRecord);
+    return {
+      mission: toPublicMission(created.mission, now),
+      claim: this.toPublicDestinationClaim(created.mission, created.claim),
+      claimToken,
+    };
+  }
+
+  async getDestinationClaimByToken(token: string, now = Date.now()): Promise<{ mission: MissionRecord; claim: DestinationClaimRecord; publicClaim: PublicDestinationClaim }> {
+    const claim = await this.repository.getDestinationClaimByTokenHash(hashToken(token));
+    if (!claim) throw new MissionValidationError("DESTINATION_CLAIM_NOT_FOUND", "Destination claim is invalid or no longer recognized");
+    if (claim.status === "PENDING" && now >= claim.expiresAt) {
+      await this.repository.expireDueDestinationClaims(now);
+      throw new MissionValidationError("DESTINATION_CLAIM_EXPIRED", "Destination claim has expired");
+    }
+    const mission = await this.requireMission(claim.missionId);
+    return { mission, claim, publicClaim: this.toPublicDestinationClaim(mission, claim) };
+  }
+
+  async bindDestinationClaim(input: {
+    token: string;
+    auth: VerifiedWalletAction;
+    now?: number;
+  }): Promise<{ mission: PublicMission; claim: PublicDestinationClaim }> {
+    const { mission, claim } = await this.getDestinationClaimByToken(input.token, input.now ?? Date.now());
+    assertAction(input.auth, "BIND_DESTINATION", { missionId: mission.id });
+    const wallet = normalizeNimiqAddress(input.auth.wallet);
+    const protectedWallet = this.protector.protect(wallet);
+    const now = input.now ?? Date.now();
+    const bound = await this.repository.bindDestinationClaim({
+      missionId: mission.id,
+      claimId: claim.id,
+      walletNormalized: wallet,
+      targetWalletCiphertext: protectedWallet.ciphertext,
+      targetWalletHmac: protectedWallet.hmac,
+      now,
+    });
+    return {
+      mission: toPublicMission(bound.mission, now),
+      claim: this.toPublicDestinationClaim(bound.mission, bound.claim),
+    };
+  }
+
+  async expireDueDestinationClaims(now = Date.now()): Promise<number> {
+    return this.repository.expireDueDestinationClaims(now);
+  }
+
+  private toPublicDestinationClaim(mission: MissionRecord, claim: DestinationClaimRecord): PublicDestinationClaim {
+    return {
+      mission_id: mission.id,
+      sender_label: mission.creatorDisplayLabel,
+      target_label: mission.targetLabel,
+      mission_note: mission.missionNote,
+      status: claim.status,
+      expires_at: new Date(claim.expiresAt).toISOString(),
+      bound: claim.status === "BOUND" && claim.boundWalletNormalized !== null,
+    };
   }
 
   async getMission(id: string, now = Date.now()): Promise<PublicMission> {

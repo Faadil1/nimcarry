@@ -51,6 +51,8 @@ const MISSION_ACTIONS = [
   "ACCEPT_INVITATION",
   "WITHDRAW_INVITATION",
   "AUTHORIZE_PASS",
+  "AUTHORIZE_DELIVERY",
+  "BIND_DESTINATION",
   "CANCEL_MISSION",
   "VIEW_ROUTE",
 ] as const;
@@ -189,6 +191,9 @@ async function handleRequest(deps: MissionHttpDeps, req: IncomingMessage, res: S
   if (segments[0] === "i") {
     return handleInvitation(deps, req, res, url, segments);
   }
+  if (segments[0] === "c") {
+    return handleDestinationClaim(deps, req, res, url, segments);
+  }
   return notFound(req, res, url);
 }
 
@@ -224,6 +229,9 @@ async function handleMission(deps: MissionHttpDeps, req: IncomingMessage, res: S
   if (req.method === "POST" && tail.length === 1 && tail[0] === "pass-intent") {
     return sendMutation(deps, req, res, () => authorizePass(deps, req, missionId));
   }
+  if (req.method === "POST" && tail.length === 1 && tail[0] === "delivery-intent") {
+    return sendMutation(deps, req, res, () => authorizeDelivery(deps, req, missionId));
+  }
   if (req.method === "POST" && tail.length === 1 && tail[0] === "broadcast") {
     return sendMutation(deps, req, res, () => broadcast(deps, req, missionId));
   }
@@ -245,8 +253,12 @@ async function createMission(deps: MissionHttpDeps, req: IncomingMessage): Promi
   const obj = await jsonBody(req);
   const envelope = parseSignedEnvelope(obj);
   const targetLabel = boundedText(obj.target_label, "target_label", 1, 60);
-  const targetWallet = asAddress(obj.target_wallet, "target_wallet");
-  const targetConsentConfirmed = asBoolean(obj.target_consent_confirmed, "target_consent_confirmed");
+  const targetWallet = obj.target_wallet === undefined || obj.target_wallet === null || obj.target_wallet === ""
+    ? undefined
+    : asAddress(obj.target_wallet, "target_wallet");
+  const targetConsentConfirmed = obj.target_consent_confirmed === undefined || obj.target_consent_confirmed === null
+    ? false
+    : asBoolean(obj.target_consent_confirmed, "target_consent_confirmed");
   const missionNote = boundedText(obj.mission_note, "mission_note", 1, 180);
   const visibility = asOptionalEnum(obj.visibility, ["UNLISTED", "PRIVATE", "PUBLIC"], "visibility") ?? "UNLISTED";
   const creatorDisplayLabel =
@@ -266,6 +278,29 @@ async function createMission(deps: MissionHttpDeps, req: IncomingMessage): Promi
   ]);
 
   const auth = await verifyEnvelope(deps, envelope);
+  const creatorWallet = normalizeNimiqAddress(auth.wallet);
+
+  if (!targetWallet) {
+    const created = await deps.missions.createClaimMission({
+      auth,
+      targetLabel,
+      missionNote,
+      creatorDisplayLabel,
+      visibility,
+    });
+    const viewCapability = routeViewCapabilityStore(deps).issue({ missionId: created.mission.id, holderWallet: creatorWallet });
+    return {
+      status: 201,
+      body: {
+        ...(await viewMission(deps, req, created.mission.id, creatorWallet)),
+        destination_claim: created.claim,
+        claim_url: `${deps.canonicalOrigin.replace(/\/$/, "")}/c/${encodeURIComponent(created.claimToken)}`,
+        view_token: viewCapability.token,
+        view_token_expires_at: new Date(viewCapability.expiresAt).toISOString(),
+      },
+    };
+  }
+
   const mission = await deps.missions.createMission({
     auth,
     targetLabel,
@@ -275,7 +310,6 @@ async function createMission(deps: MissionHttpDeps, req: IncomingMessage): Promi
     creatorDisplayLabel,
     visibility,
   });
-  const creatorWallet = normalizeNimiqAddress(auth.wallet);
   const viewCapability = routeViewCapabilityStore(deps).issue({ missionId: mission.id, holderWallet: creatorWallet });
   return {
     status: 201,
@@ -358,6 +392,37 @@ async function reissueInvitation(deps: MissionHttpDeps, req: IncomingMessage, mi
   return { status: 200, body: { mission_id: missionId, invitation, invite_token: inviteToken, web_invite_url: links.webInviteUrl, nimiq_pay_custom_scheme: links.nimiqPayCustomScheme } };
 }
 
+async function authorizeDelivery(deps: MissionHttpDeps, req: IncomingMessage, missionId: string) {
+  const obj = await jsonBody(req);
+  const envelope = parseSignedEnvelope(obj);
+  rejectUnknownKeys(obj, ["challenge_id", "public_key", "signature"]);
+  const auth = await verifyEnvelope(deps, envelope);
+  const now = Date.now();
+  const authorizedPaymentWallets = await authorizedPaymentWalletSnapshot(deps, req, auth.wallet);
+  const intent = await deps.coordinator.authorizeDelivery({
+    missionId,
+    auth,
+    authorizedPaymentWallets,
+    now,
+  });
+  const intentExpiresAt = intent.createdAt + INTENT_VALIDITY_WINDOW_MS;
+  const ttlMs = Math.min(BROADCAST_CAPABILITY_TTL_MS, intentExpiresAt - now);
+  if (ttlMs <= 0) {
+    throw new MissionValidationError("PASS_INTENT_EXPIRED", "Authorized delivery intent has expired; authorize delivery again");
+  }
+  const issued = capabilityStore(deps).issue(
+    {
+      missionId,
+      invitationId: null,
+      sequence: intent.sequence,
+      intentNonce: intent.nonce,
+      holderWallet: normalizeNimiqAddress(auth.wallet),
+    },
+    { now, ttlMs }
+  );
+  return { status: 200, body: toPassIntentPayload(intent, issued) };
+}
+
 async function authorizePass(deps: MissionHttpDeps, req: IncomingMessage, missionId: string) {
   const obj = await jsonBody(req);
   const envelope = parseSignedEnvelope(obj);
@@ -394,13 +459,18 @@ async function authorizePass(deps: MissionHttpDeps, req: IncomingMessage, missio
 
 async function broadcast(deps: MissionHttpDeps, req: IncomingMessage, missionId: string) {
   const obj = await jsonBody(req);
-  const invitationId = asUuid(obj.invitation_id, "invitation_id");
+  const invitationId = obj.invitation_id === undefined || obj.invitation_id === null
+    ? null
+    : asUuid(obj.invitation_id, "invitation_id");
   const txHash = asTxHash(obj.tx_hash, "tx_hash");
   const capability = asOpaqueToken(obj.broadcast_capability, "broadcast_capability");
   rejectUnknownKeys(obj, ["invitation_id", "tx_hash", "broadcast_capability"]);
 
   const active = deps.relay.getActiveIntent(missionId);
-  if (!active) throw new MissionValidationError("NO_ACTIVE_PASS", "No authorized pass exists for this mission");
+  if (!active) throw new MissionValidationError("NO_ACTIVE_PASS", "No authorized delivery exists for this mission");
+  if ((active.invitationId ?? null) !== invitationId) {
+    throw new MissionValidationError("DELIVERY_INTENT_KIND_MISMATCH", "Broadcast provenance does not match the authorized delivery");
+  }
 
   capabilityStore(deps).consume(capability, {
     missionId,
@@ -410,7 +480,9 @@ async function broadcast(deps: MissionHttpDeps, req: IncomingMessage, missionId:
     holderWallet: normalizeNimiqAddress(active.currentHolder),
   });
 
-  const hop = await deps.coordinator.recordBroadcast({ missionId, invitationId, txHash });
+  const hop = invitationId === null
+    ? await deps.coordinator.recordDeliveryBroadcast({ missionId, txHash })
+    : await deps.coordinator.recordBroadcast({ missionId, invitationId, txHash });
   return { status: 201, body: toHopResponse(hop) };
 }
 
@@ -437,6 +509,42 @@ async function withdrawInvitation(deps: MissionHttpDeps, req: IncomingMessage, m
   const auth = await verifyEnvelope(deps, envelope);
   const invitation = await deps.missions.withdrawInvitation(invitationId, auth);
   return { status: 200, body: invitation };
+}
+
+// ---- Destination claims ----
+
+async function handleDestinationClaim(deps: MissionHttpDeps, req: IncomingMessage, res: ServerResponse, url: URL, segments: string[]) {
+  if (segments.length < 2) return notFound(req, res, url);
+  const token = asOpaqueToken(decodeURIComponent(segments[1]), "token");
+  const tail = segments[2];
+
+  if (req.method === "GET" && !tail) {
+    if (!checkReadLimit(deps, req, res)) return;
+    const resolved = await deps.missions.getDestinationClaimByToken(token);
+    return send(res, 200, { claim: resolved.publicClaim });
+  }
+  if (req.method === "POST" && tail === "bind") {
+    return sendMutation(deps, req, res, () => bindDestinationClaim(deps, req, token));
+  }
+  return notFound(req, res, url);
+}
+
+async function bindDestinationClaim(deps: MissionHttpDeps, req: IncomingMessage, token: string) {
+  const obj = await jsonBody(req);
+  const envelope = parseSignedEnvelope(obj);
+  rejectUnknownKeys(obj, ["challenge_id", "public_key", "signature"]);
+  const auth = await verifyEnvelope(deps, envelope);
+  const result = await deps.missions.bindDestinationClaim({ token, auth });
+  const issued = routeViewCapabilityStore(deps).issue({ missionId: result.mission.id, holderWallet: normalizeNimiqAddress(auth.wallet) });
+  return {
+    status: 200,
+    body: {
+      claim: result.claim,
+      mission_id: result.mission.id,
+      view_token: issued.token,
+      view_token_expires_at: new Date(issued.expiresAt).toISOString(),
+    },
+  };
 }
 
 // ---- Invitations ----

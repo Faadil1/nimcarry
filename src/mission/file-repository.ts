@@ -10,6 +10,7 @@ import type { MissionRepository } from "./repository.js";
 import {
   MissionValidationError,
   type AuthChallengeRecord,
+  type DestinationClaimRecord,
   type InvitationRecord,
   type InvitationStatus,
   type MissionRecord,
@@ -19,7 +20,7 @@ import {
 const OPEN_INVITATION_STATES = new Set<InvitationStatus>(["INVITED", "ACCEPTED"]);
 
 function emptySnapshot(): MissionStoreSnapshot {
-  return { missions: [], invitations: [], challenges: [], auditEvents: [] };
+  return { missions: [], invitations: [], destinationClaims: [], challenges: [], auditEvents: [] };
 }
 
 function clone<T>(value: T): T {
@@ -45,6 +46,7 @@ export class FileMissionRepository implements MissionRepository {
         targetConsentConfirmed: mission.targetConsentConfirmed ?? false,
       })),
       invitations: parsed.invitations ?? [],
+      destinationClaims: parsed.destinationClaims ?? [],
       challenges: parsed.challenges ?? [],
       auditEvents: parsed.auditEvents ?? [],
     };
@@ -73,6 +75,12 @@ export class FileMissionRepository implements MissionRepository {
     const mission = this.state.missions.find((item) => item.id === id);
     if (!mission) throw new MissionValidationError("MISSION_NOT_FOUND", `Mission ${id} does not exist`);
     return mission;
+  }
+
+  private destinationClaim(id: string): DestinationClaimRecord {
+    const claim = (this.state.destinationClaims ?? []).find((item) => item.id === id);
+    if (!claim) throw new MissionValidationError("DESTINATION_CLAIM_NOT_FOUND", `Destination claim ${id} does not exist`);
+    return claim;
   }
 
   private invitation(id: string): InvitationRecord {
@@ -114,8 +122,116 @@ export class FileMissionRepository implements MissionRepository {
       mission.status = "CANCELLED";
       mission.cancelledAt = now;
       mission.updatedAt = now;
+      const claim = (this.state.destinationClaims ?? []).find((item) => item.missionId === id && item.status === "PENDING");
+      if (claim) claim.status = "CANCELLED";
       this.persist();
       return clone(mission);
+    });
+  }
+
+  async createMissionWithDestinationClaim(mission: MissionRecord, claim: DestinationClaimRecord): Promise<{ mission: MissionRecord; claim: DestinationClaimRecord }> {
+    return this.exclusive(() => {
+      this.state.destinationClaims ??= [];
+      if (this.state.missions.some((item) => item.id === mission.id)) {
+        throw new MissionValidationError("MISSION_EXISTS", `Mission ${mission.id} already exists`);
+      }
+      if (claim.missionId !== mission.id) {
+        throw new MissionValidationError("DESTINATION_CLAIM_MISMATCH", "Destination claim must belong to the mission being created");
+      }
+      if (this.state.destinationClaims.some((item) => item.id === claim.id || item.missionId === mission.id)) {
+        throw new MissionValidationError("DESTINATION_CLAIM_EXISTS", "Mission already has a destination claim");
+      }
+      if (this.state.destinationClaims.some((item) => item.claimTokenHash === claim.claimTokenHash)) {
+        throw new MissionValidationError("DESTINATION_CLAIM_TOKEN_COLLISION", "Destination claim token already exists");
+      }
+      this.state.missions.push(clone(mission));
+      this.state.destinationClaims.push(clone(claim));
+      this.persist();
+      return { mission: clone(mission), claim: clone(claim) };
+    });
+  }
+
+  async createDestinationClaim(record: DestinationClaimRecord): Promise<DestinationClaimRecord> {
+    return this.exclusive(() => {
+      this.state.destinationClaims ??= [];
+      if (this.state.destinationClaims.some((item) => item.id === record.id || item.missionId === record.missionId)) {
+        throw new MissionValidationError("DESTINATION_CLAIM_EXISTS", "Mission already has a destination claim");
+      }
+      if (this.state.destinationClaims.some((item) => item.claimTokenHash === record.claimTokenHash)) {
+        throw new MissionValidationError("DESTINATION_CLAIM_TOKEN_COLLISION", "Destination claim token already exists");
+      }
+      this.state.destinationClaims.push(clone(record));
+      this.persist();
+      return clone(record);
+    });
+  }
+
+  async getDestinationClaimByTokenHash(tokenHash: string): Promise<DestinationClaimRecord | undefined> {
+    await this.queue;
+    const record = (this.state.destinationClaims ?? []).find((item) => item.claimTokenHash === tokenHash);
+    return record ? clone(record) : undefined;
+  }
+
+  async getDestinationClaimForMission(missionId: string): Promise<DestinationClaimRecord | undefined> {
+    await this.queue;
+    const record = (this.state.destinationClaims ?? []).find((item) => item.missionId === missionId);
+    return record ? clone(record) : undefined;
+  }
+
+  async bindDestinationClaim(input: {
+    missionId: string;
+    claimId: string;
+    walletNormalized: string;
+    targetWalletCiphertext: string;
+    targetWalletHmac: string;
+    now: number;
+  }): Promise<{ mission: MissionRecord; claim: DestinationClaimRecord }> {
+    return this.exclusive(() => {
+      const mission = this.mission(input.missionId);
+      const claim = this.destinationClaim(input.claimId);
+      if (claim.missionId !== mission.id) throw new MissionValidationError("DESTINATION_CLAIM_MISMATCH", "Destination claim belongs to another mission");
+      if (claim.status === "BOUND") {
+        if (claim.boundWalletNormalized !== input.walletNormalized) {
+          throw new MissionValidationError("DESTINATION_ALREADY_BOUND", "Destination claim is already bound to a different wallet");
+        }
+        return { mission: clone(mission), claim: clone(claim) };
+      }
+      if (claim.status !== "PENDING") throw new MissionValidationError("DESTINATION_CLAIM_CLOSED", `Destination claim is ${claim.status}`);
+      if (input.now >= claim.expiresAt) {
+        claim.status = "EXPIRED";
+        this.persist();
+        throw new MissionValidationError("DESTINATION_CLAIM_EXPIRED", "Destination claim has expired");
+      }
+      if (mission.status !== "ACTIVE") throw new MissionValidationError("MISSION_NOT_ACTIVE", `Mission ${mission.id} is ${mission.status}`);
+      if (mission.targetWalletHmac !== null || mission.targetWalletCiphertext !== null) {
+        throw new MissionValidationError("DESTINATION_ALREADY_BOUND", "Mission destination wallet is already resolved");
+      }
+      if (mission.creatorWalletNormalized === input.walletNormalized) {
+        throw new MissionValidationError("TARGET_IS_CREATOR", "A mission destination must differ from its creator");
+      }
+      claim.status = "BOUND";
+      claim.boundWalletNormalized = input.walletNormalized;
+      claim.boundAt = input.now;
+      mission.targetWalletCiphertext = input.targetWalletCiphertext;
+      mission.targetWalletHmac = input.targetWalletHmac;
+      mission.targetConsentConfirmed = true;
+      mission.updatedAt = input.now;
+      this.persist();
+      return { mission: clone(mission), claim: clone(claim) };
+    });
+  }
+
+  async expireDueDestinationClaims(now: number): Promise<number> {
+    return this.exclusive(() => {
+      let count = 0;
+      for (const claim of this.state.destinationClaims ?? []) {
+        if (claim.status === "PENDING" && now >= claim.expiresAt) {
+          claim.status = "EXPIRED";
+          count += 1;
+        }
+      }
+      if (count > 0) this.persist();
+      return count;
     });
   }
 
@@ -281,6 +397,34 @@ export class FileMissionRepository implements MissionRepository {
       for (const missionId of touched) this.mission(missionId).updatedAt = now;
       if (count > 0) this.persist();
       return count;
+    });
+  }
+
+  async completeFinalDelivery(input: {
+    missionId: string;
+    sequence: number;
+    recipientWallet: string;
+    recipientHmac: string;
+    now: number;
+  }): Promise<MissionRecord> {
+    return this.exclusive(() => {
+      const mission = this.mission(input.missionId);
+      if (mission.status === "ARRIVED" && mission.currentSequence >= input.sequence) return clone(mission);
+      if (mission.status !== "ACTIVE") throw new MissionValidationError("MISSION_NOT_ACTIVE", `Mission ${mission.id} is ${mission.status}`);
+      if (mission.targetWalletHmac === null || input.recipientHmac !== mission.targetWalletHmac) {
+        throw new MissionValidationError("WRONG_FINAL_RECIPIENT", "Final recipient must be the resolved mission destination");
+      }
+      if (mission.currentSequence + 1 !== input.sequence) {
+        throw new MissionValidationError("FINALIZATION_SEQUENCE_RACE", "Mission sequence changed before finalization");
+      }
+      mission.currentSequence = input.sequence;
+      mission.finalizedHopCount += 1;
+      mission.currentHolderWalletNormalized = input.recipientWallet;
+      mission.status = "ARRIVED";
+      mission.arrivedAt = input.now;
+      mission.updatedAt = input.now;
+      this.persist();
+      return clone(mission);
     });
   }
 

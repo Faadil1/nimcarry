@@ -4,7 +4,7 @@ export const BROADCAST_CAPABILITY_TTL_MS = 15 * 60 * 1000;
 
 export interface BroadcastCapabilityBinding {
   missionId: string;
-  invitationId: string;
+  invitationId: string | null;
   sequence: number;
   intentNonce: string;
   holderWallet: string;
@@ -34,7 +34,7 @@ export interface BroadcastCapabilityStore {
 }
 
 /**
- * Short-lived bearer capability issued only after a signed AUTHORIZE_PASS.
+ * Short-lived bearer capability issued only after a signed payment authorization.
  *
  * The capability is intentionally process-local. A server restart invalidates
  * outstanding tokens; the canonical pass intent remains durable, so the holder

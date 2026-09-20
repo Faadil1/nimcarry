@@ -4,7 +4,7 @@ import { TargetWalletProtector, normalizeNimiqAddress, walletFingerprint } from 
 import type { InvitationRecord, InvitationStatus, MissionActivity, MissionRecord, MissionStatus } from "../mission/types.js";
 
 export type ViewerRole = "CREATOR" | "HOLDER" | "PARTICIPANT" | "INVITEE" | "TARGET" | "UNLISTED_VIEWER";
-export type PrimaryAction = "CREATE_INVITATION" | "WAIT" | "PASS_1_NIM" | "REROUTE" | "VIEW_ROUTE" | "START_NEW_ROUTE";
+export type PrimaryAction = "CREATE_INVITATION" | "WAIT" | "PASS_1_NIM" | "DELIVER_1_NIM" | "REROUTE" | "VIEW_ROUTE" | "START_NEW_ROUTE";
 
 export interface RouteEntry {
   sequence: number;
@@ -33,6 +33,7 @@ export interface MissionView {
   status: MissionStatus;
   activity: MissionActivity;
   target_label: string;
+  target_resolved: boolean;
   target_consent_confirmed: boolean;
   mission_note: string;
   sequence: number;
@@ -151,7 +152,7 @@ function deriveViewerRole(
 ): ViewerRole {
   if (viewer === null) return "UNLISTED_VIEWER";
   if (viewer === mission.creatorWalletNormalized) return "CREATOR";
-  if (protector.matchesHmac(viewer, mission.targetWalletHmac)) return "TARGET";
+  if (mission.targetWalletHmac !== null && protector.matchesHmac(viewer, mission.targetWalletHmac)) return "TARGET";
   if (mission.status === "ACTIVE" && viewer === mission.currentHolderWalletNormalized) return "HOLDER";
   if (
     invitation &&
@@ -180,7 +181,8 @@ function derivePrimaryAction(
   viewerIsCurrentHolder: boolean,
   hasActiveIntent: boolean,
   activeIntentStale: boolean,
-  activeIntentHasBroadcast: boolean
+  activeIntentHasBroadcast: boolean,
+  targetResolved: boolean
 ): PrimaryAction | null {
   if (status === "CANCELLED") return null;
   if (status === "ARRIVED") {
@@ -190,7 +192,11 @@ function derivePrimaryAction(
     return ["CREATOR", "HOLDER", "PARTICIPANT"].includes(viewerRole) ? "REROUTE" : "VIEW_ROUTE";
   }
   if (viewerIsCurrentHolder) {
-    if (!invitation) return "CREATE_INVITATION";
+    if (!invitation) {
+      if (!targetResolved) return "WAIT";
+      if (hasActiveIntent && !(activeIntentStale && !activeIntentHasBroadcast)) return "WAIT";
+      return "DELIVER_1_NIM";
+    }
     if (invitation.status === "EXPIRED" && invitation.sequence === currentSequence + 1) return "CREATE_INVITATION";
     if (invitation.status === "ACCEPTED" && (!hasActiveIntent || (activeIntentStale && !activeIntentHasBroadcast))) return "PASS_1_NIM";
     return "WAIT";
@@ -240,7 +246,8 @@ export function composeMissionView(input: {
     viewerIsCurrentHolder,
     input.hasActiveIntent,
     input.activeIntentStale ?? false,
-    input.activeIntentHasBroadcast ?? false
+    input.activeIntentHasBroadcast ?? false,
+    input.mission.targetWalletHmac !== null && input.mission.targetWalletCiphertext !== null
   );
 
   return {
@@ -248,6 +255,7 @@ export function composeMissionView(input: {
     status: input.mission.status,
     activity,
     target_label: input.mission.targetLabel,
+    target_resolved: input.mission.targetWalletHmac !== null && input.mission.targetWalletCiphertext !== null,
     target_consent_confirmed: input.mission.targetConsentConfirmed,
     mission_note: input.mission.missionNote,
     sequence: input.mission.currentSequence,

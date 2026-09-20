@@ -1,5 +1,6 @@
 import type {
   AuthChallengeRecord,
+  DestinationClaimRecord,
   InvitationRecord,
   InvitationStatus,
   MissionRecord,
@@ -10,6 +11,20 @@ export interface MissionRepository {
   createMission(record: MissionRecord): Promise<MissionRecord>;
   getMission(id: string): Promise<MissionRecord | undefined>;
   cancelMissionPristine(id: string, signerWallet: string, now: number): Promise<MissionRecord>;
+
+  createMissionWithDestinationClaim(mission: MissionRecord, claim: DestinationClaimRecord): Promise<{ mission: MissionRecord; claim: DestinationClaimRecord }>;
+  createDestinationClaim(record: DestinationClaimRecord): Promise<DestinationClaimRecord>;
+  getDestinationClaimByTokenHash(tokenHash: string): Promise<DestinationClaimRecord | undefined>;
+  getDestinationClaimForMission(missionId: string): Promise<DestinationClaimRecord | undefined>;
+  bindDestinationClaim(input: {
+    missionId: string;
+    claimId: string;
+    walletNormalized: string;
+    targetWalletCiphertext: string;
+    targetWalletHmac: string;
+    now: number;
+  }): Promise<{ mission: MissionRecord; claim: DestinationClaimRecord }>;
+  expireDueDestinationClaims(now: number): Promise<number>;
 
   createInvitation(record: InvitationRecord): Promise<InvitationRecord>;
   reissueInvitation(input: {
@@ -28,6 +43,14 @@ export interface MissionRepository {
   acceptInvitation(id: string, wallet: string, now: number, passDeadlineAt: number, candidateDisplayLabel?: string | null): Promise<InvitationRecord>;
   closeInvitation(id: string, status: Extract<InvitationStatus, "DECLINED" | "EXPIRED" | "WITHDRAWN">, now: number): Promise<InvitationRecord>;
   expireDueInvitations(now: number): Promise<number>;
+
+  completeFinalDelivery(input: {
+    missionId: string;
+    sequence: number;
+    recipientWallet: string;
+    recipientHmac: string;
+    now: number;
+  }): Promise<MissionRecord>;
 
   completeFinalHop(input: {
     missionId: string;
