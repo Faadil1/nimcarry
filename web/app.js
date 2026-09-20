@@ -459,22 +459,121 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
   }
 
   async function renderCreate() {
-    els.screen.innerHTML = `<button class="back-link" id="back">← Back</button><section class="form-card"><div class="kicker">Screen 2 / 5 · Create Mission</div><h2>Who should this reach?</h2><p class="lede">For Cycle II, use a known, consenting Nimiq destination. The destination wallet is stored privately and never shown in normal route views.</p><form id="create-form" class="form-grid"><label>Target label<input name="target_label" maxlength="60" required placeholder="Nimiq builder" /></label><label>Private target wallet<input name="target_wallet" required autocomplete="off" placeholder="NQ…" /></label><label>Why should this reach them?<textarea name="mission_note" maxlength="180" required placeholder="I want this idea to reach someone who can connect it to…"></textarea></label><label>Creator display label (optional)<input name="creator_display_label" maxlength="60" placeholder="Faadil" /></label><label class="checkline"><input name="target_consent_confirmed" type="checkbox" required /><span>I confirm this target is known to me and has consented to be the destination for this Cycle II mission.</span></label><button data-busy-lock="1" class="button primary" type="submit">Create mission</button></form></section>`;
-    document.querySelector("#back").addEventListener("click", () => history.back()); document.querySelector("#create-form").addEventListener("submit", createMission); els.screen.focus();
+    els.screen.innerHTML = `<button class="back-link" id="back">← Back</button>
+      <section class="form-card destination-compose">
+        <div class="kicker">New delivery</div>
+        <h2>Who should this reach?</h2>
+        <p class="lede">Start with the person, not the route. If you already know their Nimiq wallet you can add it now. Otherwise NimCarry creates a private claim link so they can connect their own wallet.</p>
+        <form id="create-form" class="form-grid">
+          <label>Recipient
+            <input name="target_label" maxlength="60" required placeholder="David" autocomplete="name" />
+          </label>
+          <label>What are you sending this for?
+            <textarea name="mission_note" maxlength="180" required placeholder="A short note that helps them understand why this is for them."></textarea>
+          </label>
+          <details class="advanced-field">
+            <summary>I already know their Nimiq wallet</summary>
+            <label>Private destination wallet
+              <input name="target_wallet" autocomplete="off" inputmode="text" placeholder="NQ…" />
+            </label>
+            <label class="checkline"><input name="target_consent_confirmed" type="checkbox" /><span>I know this wallet belongs to the intended recipient and I have their consent to send to it.</span></label>
+          </details>
+          <label>How should this remember you? <span>(optional)</span>
+            <input name="creator_display_label" maxlength="60" placeholder="Faadil" autocomplete="name" />
+          </label>
+          <button data-busy-lock="1" class="button primary" type="submit">Continue</button>
+        </form>
+      </section>`;
+    document.querySelector("#back").addEventListener("click", () => history.back());
+    document.querySelector("#create-form").addEventListener("submit", createMission);
+    els.screen.focus();
   }
 
   async function createMission(event) {
-    event.preventDefault(); if (state.busy) return; setBusy(true); notice("Creating mission…");
-    const form = new FormData(event.currentTarget); const input = Object.fromEntries(form.entries());
+    event.preventDefault();
+    if (state.busy) return;
+    setBusy(true);
+    notice("Creating delivery…");
+    const form = new FormData(event.currentTarget);
+    const input = Object.fromEntries(form.entries());
+    const targetWallet = String(input.target_wallet || "").trim();
+    const consentConfirmed = input.target_consent_confirmed === "on";
+
     try {
-      if (state.demo) {
-        const mission = { mission_id: `demo-${Date.now()}`, status: "ACTIVE", activity: "ACTIVE", target_label: input.target_label, mission_note: input.mission_note, sequence: 0, finalized_hop_count: 0, current_holder: { display_label: input.creator_display_label || "You", wallet_fingerprint: "NQ…DEMO", is_viewer: true }, invitation: null, route: [], viewer_role: "HOLDER", primary_action: "CREATE_INVITATION" };
-        demoSave({ mission, invitation: null }); state.mission = mission; navigate(`/mission/${mission.mission_id}`); return;
+      if (targetWallet && !consentConfirmed) {
+        throw new Error("DESTINATION_CONSENT_REQUIRED: confirm that the known wallet belongs to the intended recipient.");
       }
+
+      if (state.demo) {
+        const mission = {
+          mission_id: `demo-${Date.now()}`,
+          status: "ACTIVE",
+          activity: "ACTIVE",
+          target_label: input.target_label,
+          target_resolved: Boolean(targetWallet),
+          target_consent_confirmed: Boolean(targetWallet),
+          mission_note: input.mission_note,
+          sequence: 0,
+          finalized_hop_count: 0,
+          current_holder: { display_label: input.creator_display_label || "You", wallet_fingerprint: "NQ…DEMO", is_viewer: true },
+          invitation: null,
+          route: [],
+          viewer_role: "HOLDER",
+          primary_action: targetWallet ? "DELIVER_1_NIM" : "WAIT"
+        };
+        const claimUrl = targetWallet ? null : `${location.origin}/c/demo_${Date.now()}`;
+        demoSave({ mission, invitation: null, claimUrl });
+        state.mission = mission;
+        if (claimUrl) return renderClaimCreated(mission, claimUrl);
+        navigate(`/mission/${mission.mission_id}`);
+        return;
+      }
+
       const auth = await signedAuth("CREATE_MISSION");
-      const mission = await api("/missions", { method: "POST", body: { ...input, target_consent_confirmed: true, visibility: "UNLISTED", auth } });
-      state.mission = mission; navigate(`/mission/${encodeURIComponent(mission.mission_id || mission.id)}`);
-    } catch (error) { notice(error.message, true); } finally { setBusy(false); }
+      const body = {
+        target_label: input.target_label,
+        mission_note: input.mission_note,
+        creator_display_label: input.creator_display_label || null,
+        visibility: "UNLISTED",
+        auth,
+      };
+      if (targetWallet) {
+        body.target_wallet = targetWallet;
+        body.target_consent_confirmed = true;
+      }
+
+      const mission = await api("/missions", { method: "POST", body });
+      state.mission = mission;
+      if (mission?.claim_url) {
+        renderClaimCreated(mission, mission.claim_url);
+        return;
+      }
+      navigate(`/mission/${encodeURIComponent(mission.mission_id || mission.id)}`);
+    } catch (error) {
+      notice(error.message, true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function renderClaimCreated(mission, claimUrl) {
+    els.screen.innerHTML = `<section class="hero-card claim-created-card">
+      <div class="kicker">Private destination claim</div>
+      <h1 class="target-title">Send this to ${esc(mission?.target_label || "the recipient")}.</h1>
+      <p class="lede">They connect their own Nimiq wallet. No payment moves until that happens.</p>
+      <div class="invite-link" aria-label="Private claim link">${esc(claimUrl)}</div>
+      <div class="warning" style="margin-top:16px">Anyone holding this private link may attempt to claim it. Send it only through a channel you trust.</div>
+      <div class="button-row">
+        <button id="copy-claim" class="button primary">Copy private claim</button>
+        <button id="open-mission" class="button ghost">Open mission</button>
+      </div>
+    </section>`;
+    document.querySelector("#copy-claim")?.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(claimUrl);
+      notice("Private claim link copied.");
+    });
+    document.querySelector("#open-mission")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(mission.mission_id || mission.id)}`));
+    els.screen.focus();
   }
 
   async function openInviteDialog(mission) {
