@@ -254,6 +254,9 @@ describe("secure shared vertical slice", () => {
       sequence: 1,
     });
 
+    const repositoryInvitation = await repository.getInvitationForSequence(missionId, 1);
+    console.log("DIRECT_REPO_INVITE_DEBUG", JSON.stringify(repositoryInvitation));
+
     const bridgeView = await request("GET", `/missions/${missionId}`, undefined, {
       Authorization: `Bearer ${accepted.body.view_token}`,
     });
