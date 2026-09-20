@@ -1,12 +1,12 @@
 project: NimCarry
-updated_at: "2026-09-20T18:57:20-04:00"
+updated_at: "2026-09-20T19:07:31-04:00"
 phase: AUTOMATIC_FINALITY_RECONCILIATION
 source_of_truth: true
 
 repository:
   full_name: Faadil1/nimcarry
-  baseline_main_sha: af758e1a3db9e02f8a84dd9440d24653825b90ff
-  baseline_summary: "PR #114 merged: one-time bridge/direct target payment plus server-owned automatic FINAL reconciliation."
+  baseline_main_sha: bad96d463064e418ec47a949acd792224d8fde24
+  baseline_summary: "PR #117 merged on top of #114: server-owned FINAL reconciliation plus evidence-safe no-hash submission recovery."
 
 latest_live_validation:
   mission_id: 6f7ced41-5971-4c92-904a-ab01c485a3b3
@@ -28,7 +28,7 @@ latest_live_validation:
 
 latest_live_attempt:
   mission_id: d9ae9ec2-5eab-485e-b19a-31b8a96e700a
-  observed_at: "2026-09-20T18:57:20-04:00"
+  observed_at: "2026-09-20T19:07:31-04:00"
   status: INCONCLUSIVE_AMBIGUOUS_SUBMISSION
   target_label: David
   bridge_label: Grace
@@ -49,7 +49,8 @@ latest_live_attempt:
   conclusion:
     - "Do not resend: an authorized intent exists and exact no-hash chain discovery remains the safe recovery path."
     - "This run does not yet prove a payment was broadcast or that automatic reconciliation failed."
-    - "Ambiguous-submission UX must stop claiming a transaction exists before durable broadcast evidence exists."
+    - "Ambiguous-submission UX must not claim a transaction exists before durable broadcast evidence exists."
+    - "At 19:07 local the durable state still had an active intent but no hop/hash; the send remains unresolved and must not be retried."
 
 product_direction:
   status: TEST
@@ -155,6 +156,25 @@ implementation_state:
       - "Verify the same behavior on mobile and desktop."
     evidence_doc: "docs/evidence/AUTOMATIC-FINALITY-RECONCILIATION-2026-09-20.md"
     latest_ambiguous_submission_evidence: "docs/evidence/AMBIGUOUS-SUBMISSION-LIVE-2026-09-20.md"
+  ambiguous_submission_recovery:
+    status: MERGED_AWAITING_LIVE_VALIDATION
+    merged_pr: 117
+    merge_sha: bad96d463064e418ec47a949acd792224d8fde24
+    merge_checks:
+      ci: SUCCESS
+      judge_full_flow_smoke: SUCCESS
+      responsive_guided_flow_mobile_desktop: SUCCESS
+    behavior:
+      - "Legacy hidden 90-second ambiguous-submission polling was removed from the browser guard."
+      - "An ambiguous no-hash send receives at most one opportunistic foreground reconcile."
+      - "Continued no-hash discovery/finality recovery belongs to the server background reconciler."
+      - "The local safety hold remains, so unresolved send attempts cannot become duplicate sends."
+      - "Recovery copy distinguishes an authorized intent from a proven transaction hash/broadcast."
+      - "Mission Home no longer says 'Payment sent' when only an unresolved active intent is known."
+    live_validation_required:
+      - "Resolve the current no-hash mission without resending, or wait for a terminal INVALID observation."
+      - "Run a fresh real TESTNET send that returns/records a hash, close the client before FINAL, and confirm automatic ARRIVED."
+      - "Perform live viewport acceptance at mobile, tablet, and desktop."
 
 next_workstream:
   priority:
