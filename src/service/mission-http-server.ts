@@ -800,7 +800,7 @@ async function buildMissionView(
       })
   );
   const activeIntent = deps.relay.getActiveIntent(missionId);
-  return composeMissionView({
+  const view = composeMissionView({
     mission: record,
     invitation: invitation ?? null,
     route,
@@ -811,6 +811,22 @@ async function buildMissionView(
     activeIntentStale: activeIntent ? isIntentStale(activeIntent) : false,
     activeIntentHasBroadcast: activeIntent ? deps.relay.hasRecordedBroadcast(missionId) : false,
   });
+
+  // A route-view capability is issued only after a wallet has already proved a
+  // mission role. Once a direct delivery closes the invitation, do not make the
+  // bridge disappear merely because there is no longer an open invitation.
+  // This fallback preserves read continuity only for an already-authenticated
+  // bearer; it grants no mutation authority and never exposes the target wallet.
+  if (
+    record.status === "ARRIVED" &&
+    resolution.authorized &&
+    resolution.viewer !== null &&
+    view.viewer_role === "UNLISTED_VIEWER"
+  ) {
+    return { ...view, viewer_role: "PARTICIPANT", primary_action: "START_NEW_ROUTE" };
+  }
+
+  return view;
 }
 
 function toPassIntentPayload(intent: PassIntent, capability: { token: string; expiresAt: number }) {
