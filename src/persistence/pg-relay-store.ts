@@ -5,6 +5,7 @@ import type { Hop, HopStatus, PassIntent } from "../core/types.js";
 
 interface IntentRow {
   mission_id: string;
+  invitation_id: string;
   sequence: number;
   current_holder_wallet_normalized: string;
   recipient_wallet_normalized: string;
@@ -16,6 +17,7 @@ interface IntentRow {
 
 interface HopRow {
   mission_id: string;
+  invitation_id: string;
   sequence: number;
   sender_wallet_normalized: string;
   recipient_wallet_normalized: string;
@@ -33,6 +35,7 @@ function intentFromRow(row: IntentRow): PassIntent {
   return {
     batonId: row.mission_id,
     sequence: row.sequence,
+    invitationId: row.invitation_id,
     currentHolder: row.current_holder_wallet_normalized,
     recipient: row.recipient_wallet_normalized,
     nonce: row.nonce,
@@ -53,6 +56,7 @@ function hopFromRow(row: HopRow): Hop {
   return {
     batonId: row.mission_id,
     sequence: row.sequence,
+    invitationId: row.invitation_id,
     currentHolder: row.sender_wallet_normalized,
     recipient: row.recipient_wallet_normalized,
     nonce: row.nonce,
@@ -158,9 +162,10 @@ export class PgRelayStore extends RelayStore {
             `INSERT INTO pass_intents
               (mission_id, invitation_id, sequence, current_holder_wallet_normalized,
                recipient_wallet_normalized, nonce, recipient_data, authorized_payment_wallets, created_at)
-             VALUES ($1,(SELECT id FROM invitations WHERE mission_id=$1 AND sequence=$2 LIMIT 1),
-                     $2,$3,$4,$5,$6,$7,$8)
+             VALUES ($1,COALESCE($2::uuid,(SELECT id FROM invitations WHERE mission_id=$1 AND sequence=$3 LIMIT 1)),
+                     $3,$4,$5,$6,$7,$8,$9)
              ON CONFLICT (mission_id) DO UPDATE SET
+               invitation_id=EXCLUDED.invitation_id,
                sequence=EXCLUDED.sequence,
                current_holder_wallet_normalized=EXCLUDED.current_holder_wallet_normalized,
                recipient_wallet_normalized=EXCLUDED.recipient_wallet_normalized,
@@ -170,6 +175,7 @@ export class PgRelayStore extends RelayStore {
                created_at=EXCLUDED.created_at`,
             [
               intent.batonId,
+              intent.invitationId ?? null,
               intent.sequence,
               intent.currentHolder,
               intent.recipient,
@@ -192,9 +198,10 @@ export class PgRelayStore extends RelayStore {
               (id, mission_id, invitation_id, sequence, sender_wallet_normalized,
                recipient_wallet_normalized, tx_hash, recipient_value_luna, status,
                created_at, included_at, finalized_at, invalidated_at)
-             VALUES ($1,$2,(SELECT id FROM invitations WHERE mission_id=$2 AND sequence=$3 LIMIT 1),
-                     $3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+             VALUES ($1,$2,COALESCE($3::uuid,(SELECT id FROM invitations WHERE mission_id=$2 AND sequence=$4 LIMIT 1)),
+                     $4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
              ON CONFLICT (mission_id, sequence) DO UPDATE SET
+               invitation_id=EXCLUDED.invitation_id,
                sender_wallet_normalized=EXCLUDED.sender_wallet_normalized,
                recipient_wallet_normalized=EXCLUDED.recipient_wallet_normalized,
                tx_hash=EXCLUDED.tx_hash,
@@ -206,6 +213,7 @@ export class PgRelayStore extends RelayStore {
             [
               randomUUID(),
               hop.batonId,
+              hop.invitationId ?? null,
               hop.sequence,
               hop.currentHolder,
               hop.recipient,
