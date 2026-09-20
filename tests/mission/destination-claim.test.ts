@@ -151,4 +151,29 @@ describe("Destination Claim foundation", () => {
       now: 40_000 + DESTINATION_CLAIM_TTL_MS + 1,
     })).rejects.toMatchObject({ reason: "DESTINATION_CLAIM_EXPIRED" });
   });
+  it("cancels an unused private claim with its pristine mission", async () => {
+    const { service } = fixture();
+    const creator = wallet();
+    const created = await service.createClaimMission({
+      auth: auth(creator, "CREATE_MISSION"),
+      targetLabel: "David",
+      missionNote: "Private delivery.",
+      now: 50_000,
+    });
+
+    await service.cancelMission(
+      created.mission.id,
+      auth(creator, "CANCEL_MISSION", created.mission.id),
+      51_000,
+    );
+
+    await expect(service.getDestinationClaimByToken(created.claimToken, 52_000))
+      .resolves.toMatchObject({ claim: { status: "CANCELLED" } });
+    await expect(service.bindDestinationClaim({
+      token: created.claimToken,
+      auth: auth(wallet(), "BIND_DESTINATION", created.mission.id),
+      now: 53_000,
+    })).rejects.toMatchObject({ reason: "DESTINATION_CLAIM_CLOSED" });
+  });
+
 });
