@@ -35,8 +35,8 @@
 
     const baton = node("div", "wi-baton-note");
     baton.append(
-      node("strong", "", "1 NIM is the baton — not the reward."),
-      node("span", "", "After the first handoff, each intermediate bridge passes onward the 1 NIM it received. It is a custody baton, not a forwarding reward.")
+      node("strong", "", "1 NIM goes to the destination — not the bridge."),
+      node("span", "", "The bridge supplies the trusted introduction. After consent, the sender delivers exactly 1 NIM directly to the intended person.")
     );
     (buttons || hero).before(baton);
 
@@ -116,15 +116,15 @@
 
     const baton = node("div", "wi-baton-proof");
     baton.append(
-      node("strong", "", "The 1 NIM is the custody baton."),
-      node("span", "", "It is not a reward, stake, wager, prize or pooled fund. An intermediate bridge passes onward the 1 NIM baton it received.")
+      node("strong", "", "The 1 NIM is direct delivery."),
+      node("span", "", "It is not paid to the bridge. The accepted bridge makes the human connection; the sender pays the destination directly.")
     );
 
     const ladder = node("div", "wi-proof-ladder");
     [
-      ["01", "Wallet approval", "The current holder authorizes exactly 1 NIM."],
-      ["02", "Independent finality", "Pending is not custody. NimCarry waits for FINAL."],
-      ["03", "Custody moves", "Only then does the verified route advance."],
+      ["01", "Bridge consent", "The bridge agrees to make the introduction."],
+      ["02", "Direct payment", "The sender authorizes exactly 1 NIM to the destination."],
+      ["03", "Independent FINAL", "Only then does NimCarry mark the delivery ARRIVED."],
     ].forEach(([n, title, copy]) => {
       const item = node("div", "wi-proof-step");
       item.append(node("span", "wi-proof-number", n), node("strong", "", title), node("small", "", copy));
@@ -146,8 +146,8 @@
     lifecycle.append(
       node("strong", "", "What happens if you act?"),
       node("span", "", "Accept → no funds move yet."),
-      node("span", "", "Decline → custody stays with the current holder."),
-      node("span", "", "After a verified handoff → the route can be followed until ARRIVED.")
+      node("span", "", "Decline → no delivery is opened."),
+      node("span", "", "Accept → the sender can deliver 1 NIM directly to the destination; FINAL proves ARRIVED.")
     );
     const buttons = hero.querySelector(".button-row");
     (buttons || hero).before(lifecycle);
@@ -199,7 +199,7 @@
 
       if (!routeCard.querySelector(".wi-finality-note")) {
         const note = node("div", "wi-finality-note");
-        note.append(node("strong", "", "Only FINAL handoffs count."), node("span", "", "A pending transaction never changes the current holder or the verified route."));
+        note.append(node("strong", "", "Only FINAL delivery counts."), node("span", "", "A pending transaction never proves that the destination received the 1 NIM."));
         const route = routeCard.querySelector(".route");
         const buttons = routeCard.querySelector(":scope > .button-row");
         if (route) route.after(note);
@@ -226,9 +226,9 @@
 
     const summary = node("div", "wi-receipt-summary");
     summary.append(
-      receiptMetric(String(steps.length), steps.length === 1 ? "FINAL handoff" : "FINAL handoffs"),
-      receiptMetric("1 NIM", "baton per handoff"),
-      receiptMetric("FINAL", "custody rule")
+      receiptMetric(String(steps.length), steps.length === 1 ? "verified bridge" : "verified bridges"),
+      receiptMetric("1 NIM", "direct to destination"),
+      receiptMetric("FINAL", "arrival proof")
     );
     receipt.appendChild(summary);
 
@@ -247,7 +247,7 @@
     }
     receipt.appendChild(routeList);
 
-    const statement = node("p", "wi-receipt-statement", "Each displayed handoff was independently finalized before custody moved. Private destination and full participant wallet data stay hidden from this receipt.");
+    const statement = node("p", "wi-receipt-statement", "Each displayed bridge assisted a direct destination delivery that reached independent FINAL. Private destination wallet data stays hidden from this receipt.");
     receipt.appendChild(statement);
 
     const actions = node("div", "button-row");
