@@ -31,6 +31,14 @@ describe("Nimiq Pay ambiguous-submission hardening", () => {
     expect(guard).not.toContain("nimiq.sign");
   });
 
+  it("keeps independent FINAL verification retrying through transient mobile fetch failures", () => {
+    const app = readFileSync("web/app.js", "utf8");
+    expect(app).toContain('passPhase = "finality_verification"');
+    expect(app).toContain("Load failed");
+    expect(app).toContain("Failed to fetch");
+    expect(app).toContain("Do not resend 1 NIM");
+  });
+
   it("releases the browser hold only after the backend returns a terminal INVALID handoff", () => {
     expect(guard).toContain('hopStatus === "INVALID"');
     expect(guard).toContain("NO_BROADCAST_CONFIRMED");

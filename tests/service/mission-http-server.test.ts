@@ -233,6 +233,7 @@ describe("Reach Mission HTTP bindings", () => {
       Authorization: `Bearer ${missionView.view_token}`,
     });
     expect(reconcileRes.status).toBe(200);
+    expect(reconcileRes.body.hop).toMatchObject({ tx_hash: txHash, status: "FINAL", sequence: 1 });
     expect(reconcileRes.body.mission.status).toBe("ARRIVED");
     expect(reconcileRes.body.mission.sequence).toBe(1);
     expect(reconcileRes.body.mission.finalized_hop_count).toBe(1);

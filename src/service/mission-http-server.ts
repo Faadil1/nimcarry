@@ -417,8 +417,16 @@ async function broadcast(deps: MissionHttpDeps, req: IncomingMessage, missionId:
 async function reconcileMission(deps: MissionHttpDeps, req: IncomingMessage, missionId: string) {
   const obj = await jsonBody(req);
   rejectUnknownKeys(obj, []);
-  await deps.coordinator.reconcile(missionId);
-  return { status: 200, body: { mission: await viewMission(deps, req, missionId) } };
+  const reconciled = await deps.coordinator.reconcile(missionId);
+  return {
+    status: 200,
+    body: {
+      mission: await viewMission(deps, req, missionId),
+      hop: reconciled.hop
+        ? ("baton_id" in reconciled.hop ? reconciled.hop : toHopResponse(reconciled.hop))
+        : null,
+    },
+  };
 }
 
 async function withdrawInvitation(deps: MissionHttpDeps, req: IncomingMessage, missionId: string, invitationId: string) {

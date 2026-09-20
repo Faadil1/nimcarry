@@ -1,3 +1,10 @@
+## 2026-09-20 — FINAL verification retry / reconcile contract hotfix
+
+- Return the independently reconciled hop in `POST /missions/:id/reconcile`, so browser polling can observe `INCLUDED → FINAL` even when the mission itself remains `ACTIVE` after a non-terminal bridge handoff.
+- Keep FINAL polling alive across transient mobile/WebView fetch errors such as Safari/Nimiq Pay `Load failed` instead of surfacing them as a failed payment.
+- Distinguish verification-connection interruption from submission uncertainty in the recovery UX.
+- Preserve the duplicate-send guard: once a transaction claim is recorded, transient verification failures never open a second 1 NIM send path.
+
 ## 2026-09-20 — Payment wallet key normalization hotfix
 
 - Fix the browser payment guard's wallet-key normalizer so it removes Nimiq address whitespace instead of looking for a literal backslash-s sequence.

@@ -601,6 +601,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       handoffEvent("broadcast-claim-recorded", { status: "PENDING" });
       handoffEvent("verification-pending", { status: "PENDING" });
       notice("Transaction claimed. Waiting for independent FINAL verification…");
+      passPhase = "finality_verification";
       await pollFinality(missionId);
       handoffEvent("final", { status: "FINAL" });
       await new Promise((r) => setTimeout(r, 500));
@@ -615,17 +616,21 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
 
   async function pollFinality(missionId) {
     const deadline = Date.now() + 90000;
+    let transientFailures = 0;
     while (Date.now() < deadline) {
       try {
         const result = await api(`/missions/${encodeURIComponent(missionId)}/reconcile`, { method: "POST", body: {} });
+        transientFailures = 0;
         const status = result?.hop?.status || result?.status || result?.mission?.status;
         handoffEvent("verification-status", { status: String(status || "PENDING") });
         if (status === "FINAL" || status === "CONFIRMED" || result?.mission?.status === "ARRIVED") return result;
       } catch (error) {
-        if (/VERIFICATION_DELAYED/.test(error.message)) {
-          handoffEvent("verification-delayed", { status: "PENDING" });
-          notice("Verification delayed — RPC fallback is retrying. Custody has not changed yet.");
-        } else throw error;
+        const message = String(error?.message || error || "");
+        const retryable = /VERIFICATION_DELAYED|Load failed|Failed to fetch|network|transport|timeout|temporar|connection|offline|unavailable/i.test(message);
+        if (!retryable) throw error;
+        transientFailures += 1;
+        handoffEvent("verification-delayed", { status: "PENDING", transient_failures: transientFailures });
+        notice("Verification temporarily unavailable — retrying the independent chain check. Custody has not changed yet. Do not resend 1 NIM.");
       }
       await new Promise((resolve) => setTimeout(resolve, 1800));
     }
