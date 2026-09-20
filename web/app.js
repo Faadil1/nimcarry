@@ -329,13 +329,13 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       const previousFingerprint = missionWatchFingerprint;
       missionWatchFingerprint = nextFingerprint;
       const invitationStatus = String(latest?.invitation?.status || "").toUpperCase();
-      const bridgeJustReceivedCustody =
+      const bridgeCompletedIntroduction =
         previousMission?.viewer_role === "INVITEE" &&
-        previousMission?.current_holder?.is_viewer !== true &&
-        latest?.current_holder?.is_viewer === true;
+        previousMission?.status === "ACTIVE" &&
+        latest?.status === "ARRIVED";
 
-      if (bridgeJustReceivedCustody) {
-        notice("FINAL verified. You now carry this letter — choose the next bridge.");
+      if (bridgeCompletedIntroduction) {
+        notice(`FINAL verified. ${latest?.target_label || "The destination"} received the 1 NIM. Your bridge step is complete.`);
       } else if (invitationStatus === "ACCEPTED" && latest?.current_holder?.is_viewer === true) {
         notice("Bridge accepted the invitation. The handoff is ready.");
       } else if (invitationStatus === "DECLINED") {
@@ -527,7 +527,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     if (invitation.status === "ACCEPTED") {
       const missionId = invitation.mission_id;
       const deadline = invitation.pass_deadline_at ? new Date(invitation.pass_deadline_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null;
-      els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Bridge accepted</div><h1 class="target-title">You already accepted this handoff.</h1><p class="lede">There is nothing else to approve on this invitation link. The current holder can now authorize the 1 NIM pass${deadline ? ` before ${esc(deadline)}` : ""}.</p><div class="warning" style="margin-top:14px">Opening this link again never creates a second acceptance and never moves custody.</div><div class="button-row">${missionId ? `<button id="accepted-follow" class="button primary">Follow this mission</button>` : ""}<button id="accepted-home" class="button ghost">NimCarry home</button></div></section>`;
+      els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Bridge accepted</div><h1 class="target-title">You already accepted this handoff.</h1><p class="lede">There is nothing else to approve on this invitation link. The sender can now deliver the 1 NIM directly to the destination${deadline ? ` before ${esc(deadline)}` : ""}.</p><div class="warning" style="margin-top:14px">Opening this link again never creates a second acceptance. The bridge never receives the 1 NIM.</div><div class="button-row">${missionId ? `<button id="accepted-follow" class="button primary">Follow this mission</button>` : ""}<button id="accepted-home" class="button ghost">NimCarry home</button></div></section>`;
       document.querySelector("#accepted-follow")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}`));
       document.querySelector("#accepted-home")?.addEventListener("click", () => navigate("/"));
       els.screen.focus();
@@ -562,7 +562,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       }
       const auth = await signedAuth("ACCEPT_INVITATION", { missionId: invitation.mission_id, invitationId: invitation.invitation_id, sequence: invitation.sequence });
       await api(`/i/${encodeURIComponent(token)}/accept`, { method: "POST", body: { auth, candidate_display_label: candidateDisplayLabel } });
-      notice("Accepted. Stay here — NimCarry will continue automatically when the handoff reaches FINAL.");
+      notice("Accepted. Stay here — Faadil can now send the 1 NIM directly to the destination. Your bridge step is complete once FINAL lands.");
     } catch (error) { notice(error.message, true); } finally { setBusy(false); }
   }
 
@@ -594,7 +594,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       return;
     }
 
-    els.screen.innerHTML = `<button class="back-link" id="back">← Mission Home</button><section class="hero-card"><div class="kicker">Screen 4 / 5 · Pass 1 NIM</div><h1 class="target-title">One verified handoff.</h1><p class="lede">Accepted bridge: <strong>${esc(inv?.candidate_label || inv?.candidate_display_label || inv?.accepted_wallet_fingerprint || "Accepted bridge")}</strong></p><div class="promise-strip"><div class="promise orange"><span>Value</span><strong>1 NIM</strong><span>100,000 Luna</span></div><div class="promise green"><span>Requested fee</span><strong>0</strong><span>Wallet/network may still refuse</span></div><div class="promise violet"><span>Custody</span><strong>FINAL</strong><span>Never mempool-only</span></div></div><div class="warning" style="margin-top:16px">After a transaction hash is recorded, Carry One will not offer reroute/cancel. The backend must reconcile the claim independently.</div><div class="button-row"><button data-busy-lock="1" id="send" class="button primary">Authorize + Pass 1 NIM</button></div></section>`;
+    els.screen.innerHTML = `<button class="back-link" id="back">← Mission Home</button><section class="hero-card"><div class="kicker">Screen 4 / 5 · Send 1 NIM</div><h1 class="target-title">Bridge accepted. Deliver directly.</h1><p class="lede">Via <strong>${esc(inv?.candidate_label || inv?.candidate_display_label || inv?.accepted_wallet_fingerprint || "Accepted bridge")}</strong> → recipient <strong>${esc(m?.target_label || "Destination")}</strong></p><div class="promise-strip"><div class="promise orange"><span>Value</span><strong>1 NIM</strong><span>100,000 Luna</span></div><div class="promise green"><span>Requested fee</span><strong>0</strong><span>Wallet/network may still refuse</span></div><div class="promise violet"><span>Custody</span><strong>FINAL</strong><span>Never mempool-only</span></div></div><div class="warning" style="margin-top:16px">After a transaction hash is recorded, Carry One will not offer reroute/cancel. The backend must reconcile the claim independently.</div><div class="button-row"><button data-busy-lock="1" id="send" class="button primary">Authorize + Pass 1 NIM</button></div></section>`;
     document.querySelector("#back").addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}`));
     document.querySelector("#send").addEventListener("click", () => executePass(missionId, inv));
     els.screen.focus();
@@ -607,20 +607,32 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     try {
       if (state.demo) {
         handoffEvent("verification-pending", { demo: true, status: "PENDING" });
-        notice("Demo: warm wax — simulated verification in progress…");
+        notice("Demo: simulated direct-delivery verification in progress…");
         await new Promise((r) => setTimeout(r, 2500));
         const stored = demoLoad();
+        const bridgeLabel = stored.invitation?.candidate_display_label || stored.invitation?.candidate_label || "Bridge";
+        const targetLabel = stored.mission.target_label || "Destination";
         stored.invitation.status = "COMPLETED";
         stored.mission.invitation = stored.invitation;
         stored.mission.sequence = Number(stored.mission.sequence || 0) + 1;
         stored.mission.finalized_hop_count = Number(stored.mission.finalized_hop_count || 0) + 1;
-        stored.mission.route = [...(stored.mission.route || []), { sequence: stored.mission.sequence, from: { display_label: "Previous holder", wallet_fingerprint: "NQ…OLD" }, to: { display_label: "Bridge", wallet_fingerprint: "NQ…NEW" }, finalized_at: new Date().toISOString(), tx_hash_short: "demo…final" }];
-        stored.mission.current_holder = { display_label: "Bridge", wallet_fingerprint: "NQ…NEW", is_viewer: false };
-        stored.mission.primary_action = "CREATE_INVITATION";
+        stored.mission.route = [...(stored.mission.route || []), {
+          sequence: stored.mission.sequence,
+          from: { display_label: stored.mission.current_holder?.display_label || "Sender", wallet_fingerprint: stored.mission.current_holder?.wallet_fingerprint || "NQ…SENDER" },
+          via: { display_label: bridgeLabel, wallet_fingerprint: "NQ…BRIDGE" },
+          to: { display_label: targetLabel, wallet_fingerprint: "NQ…TARGET" },
+          finalized_at: new Date().toISOString(),
+          tx_hash_short: "demo…final",
+        }];
+        stored.mission.current_holder = { display_label: targetLabel, wallet_fingerprint: "NQ…TARGET", is_viewer: false };
+        stored.mission.status = "ARRIVED";
+        stored.mission.activity = "TERMINAL";
+        stored.mission.arrived_at = new Date().toISOString();
+        stored.mission.primary_action = "START_NEW_ROUTE";
         demoSave(stored);
         state.mission = stored.mission;
-        handoffEvent("final", { demo: true, status: "FINAL" });
-        notice("Demo FINAL. Custody advanced exactly once.");
+        handoffEvent("final", { demo: true, status: "ARRIVED" });
+        notice(`Demo FINAL: 1 NIM delivered directly to ${targetLabel} via ${bridgeLabel}. No real NIM moved.`);
         await new Promise((r) => setTimeout(r, 500));
         navigate(`/mission/${encodeURIComponent(missionId)}/route`);
         return;
@@ -708,11 +720,12 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     const ordered = route.slice().sort((a, b) => Number(a.sequence) - Number(b.sequence));
     const lastSequence = Number(ordered.at(-1)?.sequence);
     return `<div class="route">${ordered.map((entry) => {
-      const carrierMark = entry.to?.display_label || null;
-      const who = carrierMark || entry.to?.wallet_fingerprint || "Verified bridge";
+      const bridgeMark = entry.via?.display_label || null;
+      const recipient = entry.to?.display_label || entry.to?.wallet_fingerprint || "Destination";
+      const who = bridgeMark || "Verified bridge";
       const isCurrentHolder = options.markCurrentHolder === true && Number(entry.sequence) === lastSequence;
       const currentHolderMark = isCurrentHolder ? " · Current holder" : "";
-      return `<div class="route-step" data-carrier-mark="${esc(carrierMark || "")}" data-current-holder="${isCurrentHolder ? "true" : "false"}"><div class="rail"><span class="dot"></span></div><div><strong class="${carrierMark ? "carrier-mark" : ""}">${esc(who)}</strong><small>Hop ${esc(entry.sequence)} · ${esc(entry.tx_hash_short || "verified tx")} · ${esc(entry.finalized_at ? new Date(entry.finalized_at).toLocaleString() : "FINAL")}${currentHolderMark}</small></div></div>`;
+      return `<div class="route-step" data-carrier-mark="${esc(bridgeMark || "")}" data-current-holder="${isCurrentHolder ? "true" : "false"}"><div class="rail"><span class="dot"></span></div><div><strong class="${bridgeMark ? "carrier-mark" : ""}">${esc(who)}</strong><small>Bridge · delivered to ${esc(recipient)} · ${esc(entry.tx_hash_short || "verified tx")} · ${esc(entry.finalized_at ? new Date(entry.finalized_at).toLocaleString() : "FINAL")}${currentHolderMark}</small></div></div>`;
     }).join("")}</div>`;
   }
 

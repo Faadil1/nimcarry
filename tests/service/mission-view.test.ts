@@ -61,10 +61,12 @@ describe("mission primary action for accepted pass intents", () => {
       protector,
       viewer: A,
       hasActiveIntent: false,
-      finalizedCarrierLabels: { 1: "Bridge B" },
+      finalizedBridgeMarks: { 1: { label: "Bridge B", wallet: B } },
       now: 1,
     });
-    expect(creatorView.route[0].recipient.display_label).toBe("Bridge B");
+    expect(creatorView.route[0].bridge?.display_label).toBe("Bridge B");
+    expect(creatorView.route[0].recipient.display_label).toBe("Target");
+    expect(creatorView.route[0].recipient.wallet_fingerprint).toBe("private");
 
     const pendingView = composeMissionView({
       mission,
@@ -73,9 +75,10 @@ describe("mission primary action for accepted pass intents", () => {
       protector,
       viewer: A,
       hasActiveIntent: false,
-      finalizedCarrierLabels: { 1: "Bridge B" },
+      finalizedBridgeMarks: { 1: { label: "Bridge B", wallet: B } },
       now: 1,
     });
+    expect(pendingView.route[0].bridge?.display_label).toBeNull();
     expect(pendingView.route[0].recipient.display_label).toBeNull();
   });
 
@@ -98,10 +101,11 @@ describe("mission primary action for accepted pass intents", () => {
       protector,
       viewer: stranger,
       hasActiveIntent: false,
-      finalizedCarrierLabels: { 1: "Bridge B" },
+      finalizedBridgeMarks: { 1: { label: "Bridge B", wallet: B } },
       now: 1,
     });
     expect(publicStyleView.viewer_role).toBe("UNLISTED_VIEWER");
+    expect(publicStyleView.route[0].bridge?.display_label).toBeNull();
     expect(publicStyleView.route[0].recipient.display_label).toBeNull();
   });
 });

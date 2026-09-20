@@ -12,20 +12,21 @@ describe("NimCarry V2 compressed handoff ceremony", () => {
   });
 
   it("puts recipient, 1 NIM seal and FINAL rule in one artifact", () => {
-    expect(v2).toContain("HANDOFF SLIP");
-    expect(v2).toContain("Exactly 1 NIM carries custody to this person only after independent FINAL.");
-    expect(v2).toContain("[\"SEAL\", \"1 NIM\"]");
-    expect(v2).toContain("[\"HOLDER CHANGES\", \"ONLY AT FINAL\"]");
+    expect(v2).toContain("DIRECT DELIVERY SLIP");
+    expect(v2).toContain("The bridge introduces the route; the bridge never receives custody.");
+    expect(v2).toContain("[\"AMOUNT\", \"1 NIM\"]");
+    expect(v2).toContain("[\"BRIDGE\", accepted]");
+    expect(v2).toContain("[\"RECIPIENT\", destination]");
   });
 
-  it("keeps 1 NIM framed as custody rather than incentive", () => {
-    expect(v2).toContain("It is the custody seal, not a reward, stake or fee.");
-    expect(v2).toContain("The human introduction is the reason for the route");
+  it("keeps 1 NIM framed as destination delivery rather than bridge incentive", () => {
+    expect(v2).toContain("The 1 NIM is sent to the destination, not paid to the bridge.");
+    expect(v2).toContain("The bridge supplies the human connection");
   });
 
   it("keeps the warm-wax verification scene as the only post-action state machine", () => {
     expect(v2).toContain("clv2-wax-scene");
-    expect(v2).toContain("Approval can open the handoff. Broadcast can make it observable. Neither changes the holder.");
+    expect(v2).toContain("Approval can open delivery. Broadcast can make it observable. Only independent FINAL proves arrival.");
     expect(css).toContain(".clv2-handoff-manifest");
     expect(css).toContain(".clv2-manifest-seal");
   });

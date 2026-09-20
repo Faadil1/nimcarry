@@ -764,38 +764,69 @@ async function buildMissionView(
   resolution: ViewerResolution
 ): Promise<MissionView> {
   const record = await deps.missions.getMissionRecord(missionId);
+  const route = deps.relay.getHistory(missionId);
   let invitation = await deps.repository.getOpenInvitation(missionId);
   const viewerIsRecoveryHolder = resolution.viewer !== null && (
     resolution.viewer === record.creatorWalletNormalized || resolution.viewer === record.currentHolderWalletNormalized
   );
-  if (invitation === undefined && viewerIsRecoveryHolder) {
-    invitation = await deps.repository.getInvitationForSequence(missionId, record.currentSequence + 1);
+  if (invitation === undefined) {
+    const latestFinalHop = route
+      .filter((hop) => hop.status === "CONFIRMED" && hop.confirmed_at !== null)
+      .sort((a, b) => b.sequence - a.sequence)[0];
+
+    if (latestFinalHop?.invitation_id) {
+      // The relay row carries the exact invitation that authorized this
+      // delivery. Use that durable FK instead of reconstructing provenance from
+      // (mission_id, sequence), which can be fragile across adapters/read paths.
+      invitation = await deps.repository.getInvitation(latestFinalHop.invitation_id);
+    } else if (latestFinalHop) {
+      // Legacy persisted hops pre-date invitation_id on the relay model.
+      invitation = await deps.repository.getInvitationForSequence(missionId, latestFinalHop.sequence);
+    } else if (viewerIsRecoveryHolder) {
+      invitation = await deps.repository.getInvitationForSequence(missionId, record.currentSequence + 1);
+    }
   }
-  const route = deps.relay.getHistory(missionId);
-  const finalizedCarrierLabels: Record<number, string | null> = {};
+  const finalizedBridgeMarks: Record<number, { label: string | null; wallet: string | null }> = {};
   await Promise.all(
     route
       .filter((hop) => hop.status === "CONFIRMED" && hop.confirmed_at !== null)
       .map(async (hop) => {
-        const historicalInvitation = await deps.repository.getInvitationForSequence(missionId, hop.sequence);
-        finalizedCarrierLabels[hop.sequence] =
-          historicalInvitation?.status === "COMPLETED"
-            ? historicalInvitation.candidateDisplayLabel
-            : null;
+        // Prefer the invitation already resolved for this mission read. This is
+        // the same canonical row used to derive the viewer role and avoids a
+        // second read racing the FINAL projection. Fall back to a direct
+        // sequence lookup for historical route entries.
+        const historicalInvitation =
+          invitation?.id === hop.invitation_id
+            ? invitation
+            : hop.invitation_id
+              ? await deps.repository.getInvitation(hop.invitation_id)
+              : invitation?.sequence === hop.sequence
+                ? invitation
+                : await deps.repository.getInvitationForSequence(missionId, hop.sequence);
+        finalizedBridgeMarks[hop.sequence] = historicalInvitation
+          ? {
+              label: historicalInvitation.candidateDisplayLabel ?? historicalInvitation.candidateLabel,
+              wallet: historicalInvitation.candidateWalletNormalized,
+            }
+          : { label: null, wallet: null };
       })
   );
   const activeIntent = deps.relay.getActiveIntent(missionId);
-  return composeMissionView({
+  const view = composeMissionView({
     mission: record,
     invitation: invitation ?? null,
     route,
     protector: deps.protector,
     viewer: resolution.viewer,
-    finalizedCarrierLabels,
+    finalizedBridgeMarks,
+    authenticatedParticipantFallback:
+      record.status === "ARRIVED" && resolution.authorized && resolution.viewer !== null,
     hasActiveIntent: activeIntent !== null,
     activeIntentStale: activeIntent ? isIntentStale(activeIntent) : false,
     activeIntentHasBroadcast: activeIntent ? deps.relay.hasRecordedBroadcast(missionId) : false,
   });
+
+  return view;
 }
 
 function toPassIntentPayload(intent: PassIntent, capability: { token: string; expiresAt: number }) {
@@ -818,6 +849,7 @@ function toHopResponse(hop: Hop) {
   return {
     baton_id: hop.batonId,
     sequence: hop.sequence,
+    invitation_id: hop.invitationId ?? null,
     current_holder: hop.currentHolder,
     recipient: hop.recipient,
     tx_hash: hop.txHash,

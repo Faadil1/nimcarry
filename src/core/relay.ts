@@ -101,7 +101,7 @@ export class RelayStore {
     batonId: string,
     currentHolder: string,
     recipient: string,
-    options: { requireOpaqueTag?: boolean; authorizedPaymentWallets?: string[] } = {}
+    options: { requireOpaqueTag?: boolean; authorizedPaymentWallets?: string[]; invitationId?: string | null } = {}
   ): PassIntent {
     const existing = this.getActiveIntent(batonId);
     if (existing) {
@@ -131,6 +131,7 @@ export class RelayStore {
     const intent: PassIntent = {
       batonId,
       sequence,
+      invitationId: options.invitationId ?? null,
       currentHolder,
       recipient,
       authorizedPaymentWallets: paymentWallets,

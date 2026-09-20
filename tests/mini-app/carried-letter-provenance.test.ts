@@ -13,17 +13,17 @@ const css = readFileSync("web/carried-letter-v2.css", "utf8");
 describe("NimCarry V2 finalized carrier provenance", () => {
   it("sources historical marks from completed invitation truth", () => {
     expect(httpServer).toContain('hop.status === "CONFIRMED"');
-    expect(httpServer).toContain('historicalInvitation?.status === "COMPLETED"');
+    expect(httpServer).toContain("finalizedBridgeMarks[hop.sequence] = historicalInvitation");
     expect(httpServer).toContain("historicalInvitation.candidateDisplayLabel");
   });
 
   it("never attaches a mark to a non-FINAL route entry", () => {
     expect(missionView).toContain('hop.status === "CONFIRMED" && hop.confirmed_at !== null');
-    expect(missionView).toContain("finalized && revealCarrierMarks ? recipientCarrierLabel : null");
+    expect(missionView).toContain("finalized && revealBridgeMarks ? bridge.label : null");
   });
 
   it("redacts carrier marks from unlisted/anonymous viewers", () => {
-    expect(missionView).toContain('const revealCarrierMarks = viewerRole !== "UNLISTED_VIEWER"');
+    expect(missionView).toContain('const revealBridgeMarks = viewerRole !== "UNLISTED_VIEWER"');
   });
 
   it("clears a stale mark when an invitation is reissued", () => {
@@ -39,6 +39,7 @@ describe("NimCarry V2 finalized carrier provenance", () => {
 
   it("preserves only authorized labels through browser normalization", () => {
     expect(compat).toContain("entry.current_holder?.display_label || null");
+    expect(compat).toContain("entry.bridge?.display_label || null");
     expect(compat).toContain("entry.recipient?.display_label || null");
     expect(app).toContain("data-carrier-mark");
   });

@@ -180,16 +180,14 @@
     const candidate = meta.pendingCandidate || {};
     const mission = stored.mission;
     const invitation = stored.invitation;
-    const previous = mission.current_holder || { display_label: meta.creatorLabel || "Previous holder", wallet_fingerprint: "NQ…DEMO" };
+    const previous = mission.current_holder || { display_label: meta.creatorLabel || "Sender", wallet_fingerprint: "NQ…DEMO" };
     const nextSequence = Number(mission.sequence || 0) + 1;
-    const targetReached = Boolean(
-      (candidate.wallet && meta.targetWallet && sameText(candidate.wallet, meta.targetWallet)) ||
-      (candidate.label && meta.targetLabel && sameText(candidate.label, meta.targetLabel))
-    );
+    const bridgeLabel = candidate.label || invitation.candidate_label || "Bridge";
+    const targetLabel = meta.targetLabel || mission.target_label || "Destination";
 
     button.disabled = true;
     practiceHandoffEvent("verification-pending", "PENDING");
-    showNotice("PRACTICE — warm wax. Simulating the wait before a verified handoff…");
+    showNotice("PRACTICE — simulating direct delivery to the destination after bridge consent…");
     await new Promise((resolve) => setTimeout(resolve, 2200));
 
     invitation.status = "COMPLETED";
@@ -199,35 +197,32 @@
     mission.route = [...(mission.route || []), {
       sequence: nextSequence,
       from: {
-        display_label: previous.display_label || "Previous holder",
-        wallet_fingerprint: previous.wallet_fingerprint || "NQ…OLD",
+        display_label: previous.display_label || "Sender",
+        wallet_fingerprint: previous.wallet_fingerprint || "NQ…SENDER",
+      },
+      via: {
+        display_label: bridgeLabel,
+        wallet_fingerprint: candidate.wallet ? `${candidate.wallet.slice(0, 7)}…${candidate.wallet.slice(-5)}` : "NQ…BRIDGE",
       },
       to: {
-        display_label: candidate.label || invitation.candidate_label || (targetReached ? meta.targetLabel : "Bridge"),
-        wallet_fingerprint: candidate.wallet ? `${candidate.wallet.slice(0, 7)}…${candidate.wallet.slice(-5)}` : "NQ…DEMO",
+        display_label: targetLabel,
+        wallet_fingerprint: "private",
       },
       finalized_at: new Date().toISOString(),
-      tx_hash_short: targetReached ? "demo-B…C" : "demo-A…B",
+      tx_hash_short: "demo-direct…final",
     }];
     mission.current_holder = {
-      display_label: candidate.label || invitation.candidate_label || (targetReached ? meta.targetLabel : "Bridge"),
-      wallet_fingerprint: candidate.wallet ? `${candidate.wallet.slice(0, 7)}…${candidate.wallet.slice(-5)}` : "NQ…DEMO",
+      display_label: targetLabel,
+      wallet_fingerprint: "private",
       is_viewer: false,
     };
-
-    if (targetReached) {
-      mission.status = "ARRIVED";
-      mission.activity = "TERMINAL";
-      mission.primary_action = "VIEW_ROUTE";
-    } else {
-      mission.status = "ACTIVE";
-      mission.activity = "ACTIVE";
-      mission.primary_action = "CREATE_INVITATION";
-    }
+    mission.status = "ARRIVED";
+    mission.activity = "TERMINAL";
+    mission.primary_action = "START_NEW_ROUTE";
 
     writeDemo({ mission, invitation });
-    practiceHandoffEvent("final", "FINAL");
-    showNotice(targetReached ? "PRACTICE POSTMARK — destination reached. ARRIVED." : "PRACTICE POSTMARK — the simulated holder changed.");
+    practiceHandoffEvent("final", "ARRIVED");
+    showNotice(`PRACTICE POSTMARK — ${targetLabel} received the simulated 1 NIM via ${bridgeLabel}. ARRIVED.`);
     await new Promise((resolve) => setTimeout(resolve, 850));
     history.pushState({}, "", tourPath(`/mission/${encodeURIComponent(mission.mission_id)}/route`));
     window.dispatchEvent(new PopStateEvent("popstate"));

@@ -9,6 +9,7 @@ export type PrimaryAction = "CREATE_INVITATION" | "WAIT" | "PASS_1_NIM" | "REROU
 export interface RouteEntry {
   sequence: number;
   current_holder: { display_label: string | null; wallet_fingerprint: string; is_viewer: boolean };
+  bridge: { display_label: string | null; wallet_fingerprint: string | null; is_viewer: boolean } | null;
   recipient: { display_label: string | null; wallet_fingerprint: string; is_viewer: boolean };
   status: PublicStatus;
   tx_hash: string | null;
@@ -56,23 +57,32 @@ function sameWallet(left: string | null, right: string | null): boolean {
 
 function toRouteEntry(
   hop: PublicHop,
+  mission: MissionRecord,
   viewer: string | null,
-  finalizedCarrierLabels: Readonly<Record<number, string | null>>,
-  revealCarrierMarks: boolean
+  finalizedBridgeMarks: Readonly<Record<number, { label: string | null; wallet: string | null }>>,
+  revealBridgeMarks: boolean
 ): RouteEntry {
   const finalized = hop.status === "CONFIRMED" && hop.confirmed_at !== null;
-  const previousCarrierLabel = hop.sequence > 1 ? finalizedCarrierLabels[hop.sequence - 1] ?? null : null;
-  const recipientCarrierLabel = finalizedCarrierLabels[hop.sequence] ?? null;
+  const bridge = finalizedBridgeMarks[hop.sequence] ?? null;
   return {
     sequence: hop.sequence,
     current_holder: {
-      display_label: finalized && revealCarrierMarks ? previousCarrierLabel : null,
+      display_label: hop.sequence === 1 && revealBridgeMarks ? mission.creatorDisplayLabel : null,
       wallet_fingerprint: walletFingerprint(hop.current_holder),
       is_viewer: sameWallet(viewer, hop.current_holder),
     },
+    bridge: bridge
+      ? {
+          display_label: finalized && revealBridgeMarks ? bridge.label : null,
+          wallet_fingerprint: bridge.wallet && revealBridgeMarks ? walletFingerprint(bridge.wallet) : null,
+          is_viewer: sameWallet(viewer, bridge.wallet),
+        }
+      : null,
     recipient: {
-      display_label: finalized && revealCarrierMarks ? recipientCarrierLabel : null,
-      wallet_fingerprint: walletFingerprint(hop.recipient),
+      display_label: finalized && revealBridgeMarks ? mission.targetLabel : null,
+      // The destination wallet is mission-private. Even after FINAL, bridges
+      // and route followers see the human target label, not David's address.
+      wallet_fingerprint: sameWallet(viewer, hop.recipient) ? walletFingerprint(hop.recipient) : "private",
       is_viewer: sameWallet(viewer, hop.recipient),
     },
     status: hop.status,
@@ -122,20 +132,22 @@ function viewerSeesFullInvitation(mission: MissionRecord, invitation: Invitation
 
 function currentHolderLabel(
   mission: MissionRecord,
-  viewerRole: ViewerRole,
-  finalizedCarrierLabels: Readonly<Record<number, string | null>>
+  viewerRole: ViewerRole
 ): string | null {
   if (mission.currentHolderWalletNormalized === mission.creatorWalletNormalized) return mission.creatorDisplayLabel;
   if (viewerRole === "UNLISTED_VIEWER") return null;
-  return finalizedCarrierLabels[mission.currentSequence] ?? null;
+  if (mission.status === "ARRIVED") return mission.targetLabel;
+  return null;
 }
 
 function deriveViewerRole(
   mission: MissionRecord,
   invitation: InvitationRecord | null,
   route: PublicHop[],
+  finalizedBridgeMarks: Readonly<Record<number, { label: string | null; wallet: string | null }>>,
   protector: TargetWalletProtector,
-  viewer: string | null
+  viewer: string | null,
+  authenticatedParticipantFallback = false
 ): ViewerRole {
   if (viewer === null) return "UNLISTED_VIEWER";
   if (viewer === mission.creatorWalletNormalized) return "CREATOR";
@@ -143,15 +155,19 @@ function deriveViewerRole(
   if (mission.status === "ACTIVE" && viewer === mission.currentHolderWalletNormalized) return "HOLDER";
   if (
     invitation &&
-    (invitation.status === "INVITED" || invitation.status === "ACCEPTED") &&
     invitation.candidateWalletNormalized !== null &&
     sameWallet(viewer, invitation.candidateWalletNormalized)
   ) {
-    return "INVITEE";
+    if (invitation.status === "INVITED" || invitation.status === "ACCEPTED") return "INVITEE";
+    if (invitation.status === "COMPLETED") return "PARTICIPANT";
   }
-  if (route.some((hop) => sameWallet(viewer, hop.current_holder) || sameWallet(viewer, hop.recipient))) {
+  if (
+    route.some((hop) => sameWallet(viewer, hop.current_holder) || sameWallet(viewer, hop.recipient)) ||
+    Object.values(finalizedBridgeMarks).some((bridge) => sameWallet(viewer, bridge.wallet))
+  ) {
     return "PARTICIPANT";
   }
+  if (authenticatedParticipantFallback) return "PARTICIPANT";
   return "UNLISTED_VIEWER";
 }
 
@@ -194,14 +210,23 @@ export function composeMissionView(input: {
   hasActiveIntent: boolean;
   activeIntentStale?: boolean;
   activeIntentHasBroadcast?: boolean;
-  finalizedCarrierLabels?: Readonly<Record<number, string | null>>;
+  finalizedBridgeMarks?: Readonly<Record<number, { label: string | null; wallet: string | null }>>;
+  authenticatedParticipantFallback?: boolean;
   now?: number;
 }): MissionView {
   const now = input.now ?? Date.now();
   const activity = missionActivity(input.mission, now);
-  const viewerRole = deriveViewerRole(input.mission, input.invitation, input.route, input.protector, input.viewer);
-  const finalizedCarrierLabels = input.finalizedCarrierLabels ?? {};
-  const revealCarrierMarks = viewerRole !== "UNLISTED_VIEWER";
+  const finalizedBridgeMarks = input.finalizedBridgeMarks ?? {};
+  const viewerRole = deriveViewerRole(
+    input.mission,
+    input.invitation,
+    input.route,
+    finalizedBridgeMarks,
+    input.protector,
+    input.viewer,
+    input.authenticatedParticipantFallback ?? false
+  );
+  const revealBridgeMarks = viewerRole !== "UNLISTED_VIEWER";
   const invitation = input.invitation === null
     ? null
     : toInvitationSummary(input.invitation, !viewerSeesFullInvitation(input.mission, input.invitation, input.viewer));
@@ -228,12 +253,15 @@ export function composeMissionView(input: {
     sequence: input.mission.currentSequence,
     finalized_hop_count: input.mission.finalizedHopCount,
     current_holder: {
-      display_label: currentHolderLabel(input.mission, viewerRole, finalizedCarrierLabels),
-      wallet_fingerprint: walletFingerprint(input.mission.currentHolderWalletNormalized),
+      display_label: currentHolderLabel(input.mission, viewerRole),
+      wallet_fingerprint:
+        input.mission.status === "ARRIVED" && !viewerIsCurrentHolder
+          ? "private"
+          : walletFingerprint(input.mission.currentHolderWalletNormalized),
       is_viewer: viewerIsCurrentHolder,
     },
     invitation,
-    route: input.route.map((hop) => toRouteEntry(hop, input.viewer, finalizedCarrierLabels, revealCarrierMarks)),
+    route: input.route.map((hop) => toRouteEntry(hop, input.mission, input.viewer, finalizedBridgeMarks, revealBridgeMarks)),
     route_following_available: input.mission.status !== "CANCELLED",
     stalled_restart_available: activity === "STALLED",
     viewer_role: viewerRole,

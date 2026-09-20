@@ -26,8 +26,8 @@ describe("NimCarry V2 guided practice parity", () => {
 
   it("uses the same warm-wax and postmark presentation events as V2", () => {
     expect(tour).toContain('practiceHandoffEvent("verification-pending", "PENDING")');
-    expect(tour).toContain('practiceHandoffEvent("final", "FINAL")');
-    expect(tour).toContain("PRACTICE — warm wax.");
+    expect(tour).toContain('practiceHandoffEvent("final", "ARRIVED")');
+    expect(tour).toContain("PRACTICE — simulating direct delivery");
     expect(tour).toContain("PRACTICE POSTMARK");
   });
 

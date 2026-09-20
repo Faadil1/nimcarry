@@ -207,8 +207,9 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
   it("keeps the accepted bridge in one continuous session until FINAL", () => {
     expect(js).toContain('mission.viewer_role === "INVITEE" && invitationStatus === "ACCEPTED"');
     expect(js).toContain("Accepted — waiting for FINAL");
-    expect(js).toContain("FINAL verified. You now carry this letter — choose the next bridge.");
-    expect(js).toContain("Stay here — NimCarry will continue automatically when the handoff reaches FINAL.");
+    expect(js).toContain("received the 1 NIM. Your bridge step is complete.");
+    expect(js).toContain("Your bridge step is complete once FINAL lands.");
+    expect(js).not.toContain("You now carry this letter — choose the next bridge.");
     expect(compat).toContain("activateBridgeContinuationAfterAcceptance");
     expect(compat).toContain("acceptedInvitation?.view_token");
     const helperStart = compat.indexOf("async function activateBridgeContinuationAfterAcceptance");
@@ -270,8 +271,8 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
   });
   it("keeps route progress and finality truthful in the final product language", () => {
     expect(winning).toContain('node("div", "wi-flow")');
-    expect(winning).toContain("Only FINAL handoffs count.");
-    expect(winning).toContain("A pending transaction never changes the current holder or the verified route.");
+    expect(winning).toContain("Only FINAL delivery counts.");
+    expect(winning).toContain("A pending transaction never proves that the destination received the 1 NIM.");
     expect(finalHuman).toContain("A finite human route in progress.");
     expect(finalHuman).toContain("Pending activity never rewrites the verified path.");
     expect(finalHuman).not.toContain("sendBasicTransactionWithData");
@@ -280,16 +281,17 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
   });
   it("propagates only server-authorized finalized carrier marks into route and receipt UI", () => {
     expect(compat).toContain("entry.current_holder?.display_label || null");
+    expect(compat).toContain("entry.bridge?.display_label || null");
     expect(compat).toContain("entry.recipient?.display_label || null");
-    expect(js).toContain('data-carrier-mark="${esc(carrierMark || "")}"');
-    expect(js).toContain('class="${carrierMark ? "carrier-mark" : ""}"');
+    expect(js).toContain('data-carrier-mark="${esc(bridgeMark || "")}"');
+    expect(js).toContain('class="${bridgeMark ? "carrier-mark" : ""}"');
     expect(winning).toContain("const carrierMark = step.dataset.carrierMark ||");
     expect(winning).toContain('carrierMark ? "wi-carrier-mark" : ""');
   });
 
   it("makes ARRIVED a human outcome plus privacy-safe proof rather than a transaction toast", () => {
-    expect(winning).toContain("Each displayed handoff was independently finalized before custody moved.");
-    expect(winning).toContain("Private destination and full participant wallet data stay hidden from this receipt.");
+    expect(winning).toContain("Each displayed bridge assisted a direct destination delivery that reached independent FINAL.");
+    expect(winning).toContain("Private destination wallet data stays hidden from this receipt.");
     expect(finalHuman).toContain("It arrived because people carried it.");
     expect(finalHuman).toContain("craft-arrival.svg");
     expect(finalHumanCss).toContain("hc-arrived-moment");

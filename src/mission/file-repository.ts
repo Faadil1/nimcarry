@@ -303,9 +303,9 @@ export class FileMissionRepository implements MissionRepository {
         return { mission: clone(mission), invitation: clone(invitation) };
       }
       if (mission.status !== "ACTIVE") throw new MissionValidationError("MISSION_NOT_ACTIVE", `Mission ${mission.id} is ${mission.status}`);
-      if (invitation.status !== "ACCEPTED") throw new MissionValidationError("INVITATION_NOT_ACCEPTED", "Only an accepted invitation can finalize a hop");
-      if (invitation.candidateWalletNormalized !== input.recipientWallet) {
-        throw new MissionValidationError("WRONG_FINAL_RECIPIENT", "Final recipient does not match the accepted bridge wallet");
+      if (invitation.status !== "ACCEPTED") throw new MissionValidationError("INVITATION_NOT_ACCEPTED", "Only an accepted bridge can authorize final delivery");
+      if (input.recipientHmac !== mission.targetWalletHmac) {
+        throw new MissionValidationError("WRONG_FINAL_RECIPIENT", "Final recipient must be the mission destination");
       }
       if (mission.currentSequence + 1 !== input.sequence) {
         throw new MissionValidationError("FINALIZATION_SEQUENCE_RACE", "Mission sequence changed before finalization");

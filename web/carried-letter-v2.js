@@ -438,13 +438,15 @@
     hero.dataset.clv2Pass = "1";
     hero.classList.add("clv2-seal-handoff");
 
-    text(hero.querySelector(".kicker"), "Seal the handover");
-    text(hero.querySelector("h1"), "Pass the letter only when it can be proven.");
+    text(hero.querySelector(".kicker"), "Bridge accepted · direct delivery");
+    text(hero.querySelector("h1"), "Send the 1 NIM to the destination.");
 
-    const accepted = clean(hero.querySelector(".lede strong")?.textContent) || "accepted carrier";
+    const strongs = [...hero.querySelectorAll(".lede strong")];
+    const accepted = clean(strongs[0]?.textContent) || "accepted bridge";
+    const destination = clean(strongs[1]?.textContent) || "destination";
 
     const send = hero.querySelector("#send");
-    if (send) text(send, "Seal & pass 1 NIM");
+    if (send) text(send, "Send 1 NIM to destination");
 
     if (send && !hero.querySelector(".clv2-handoff-manifest")) {
       const manifest = el("section", "clv2-handoff-manifest");
@@ -453,16 +455,16 @@
       seal.setAttribute("aria-hidden", "true");
       const copy = el("div", "clv2-manifest-copy");
       copy.append(
-        el("span", "clv2-manifest-kicker", "HANDOFF SLIP"),
-        el("strong", "", accepted),
-        el("p", "", "Exactly 1 NIM carries custody to this person only after independent FINAL."),
-        el("small", "", "Approval can open the handoff. Broadcast can make it observable. Neither changes the holder.")
+        el("span", "clv2-manifest-kicker", "DIRECT DELIVERY SLIP"),
+        el("strong", "", `Via ${accepted}`),
+        el("p", "", `Exactly 1 NIM is sent directly to ${destination}. The bridge introduces the route; the bridge never receives custody.`),
+        el("small", "", "Approval can open delivery. Broadcast can make it observable. Only independent FINAL proves arrival.")
       );
       const facts = el("div", "clv2-manifest-facts");
       [
-        ["SEAL", "1 NIM"],
-        ["RECIPIENT", accepted],
-        ["HOLDER CHANGES", "ONLY AT FINAL"],
+        ["AMOUNT", "1 NIM"],
+        ["BRIDGE", accepted],
+        ["RECIPIENT", destination],
       ].forEach(([label, value]) => {
         const fact = el("span", "clv2-manifest-fact");
         fact.append(el("small", "", label), el("b", "", value));
@@ -476,7 +478,7 @@
       const details = el("details", "clv2-pass-disclosure");
       details.append(
         el("summary", "", "Why 1 NIM?"),
-        el("p", "", "It is the custody seal, not a reward, stake or fee. The human introduction is the reason for the route; Nimiq only gives each finalized handoff a verifiable record.")
+        el("p", "", "The 1 NIM is sent to the destination, not paid to the bridge. The bridge supplies the human connection; Nimiq supplies the independently verifiable delivery record.")
       );
       send.closest(".button-row")?.after(details);
     }
@@ -502,8 +504,8 @@
     copy.append(
       el("span", "clv2-wax-kicker", "HANDOVER"),
       el("h2", "clv2-wax-title", "Ready to verify."),
-      el("p", "clv2-wax-body", "The letter is still with the last verified holder."),
-      el("small", "clv2-wax-truth", "Approval is not custody. Broadcast is not custody. Only FINAL changes the holder.")
+      el("p", "clv2-wax-body", "The destination has not been proven paid yet."),
+      el("small", "clv2-wax-truth", "The bridge never takes custody. Only FINAL proves direct delivery to the destination.")
     );
     scene.append(object, copy);
 
@@ -520,7 +522,7 @@
         kicker: "AUTHORIZE",
         title: "Authorize the handover.",
         body: "Nimiq Pay is binding this exact handover to you. Nothing has moved yet.",
-        truth: "The letter is still yours.",
+        truth: "The bridge never receives the 1 NIM.",
       };
     }
     if (phase === "authorized") {
@@ -529,7 +531,7 @@
         kicker: "AUTHORIZED · NOT CARRIED",
         title: "Authorized, not carried.",
         body: "Your intent is locked. NimCarry still has no proof that the 1 NIM seal reached the record.",
-        truth: "The letter is still yours.",
+        truth: "The bridge never receives the 1 NIM.",
       };
     }
     if (phase === "wallet-approval-opened") {
@@ -538,7 +540,7 @@
         kicker: "NIMIQ PAY",
         title: "Approve the seal transfer.",
         body: "Nimiq Pay is asking to send exactly 1 NIM. Approval still does not move custody.",
-        truth: "The letter is still yours.",
+        truth: "The bridge never receives the 1 NIM.",
       };
     }
     if (phase === "broadcast-unproven") {
@@ -547,7 +549,7 @@
         kicker: "APPROVED · UNPROVEN",
         title: "Approved, not yet on the record.",
         body: "NimCarry did not receive a transaction reference it can independently verify.",
-        truth: "The letter is still yours.",
+        truth: "The bridge never receives the 1 NIM.",
       };
     }
     if (phase === "provider-reference-returned") {
@@ -556,7 +558,7 @@
         kicker: "REFERENCE RETURNED · NOT FINAL",
         title: "The wax is still warm.",
         body: "Nimiq Pay returned a transaction reference. NimCarry is checking the independent record.",
-        truth: "The letter is still yours until independent verification reaches FINAL.",
+        truth: "The bridge never receives the 1 NIM. Delivery waits for independent FINAL.",
       };
     }
     if (phase === "broadcast-claim-recorded") {
@@ -565,7 +567,7 @@
         kicker: "REFERENCE RECORDED · VERIFYING",
         title: "The wax is still warm.",
         body: "NimCarry recorded the transaction reference and is checking it independently against the authorized handover.",
-        truth: "A recorded reference is not custody. The letter is still yours.",
+        truth: "A recorded reference is not delivery. The bridge never receives the 1 NIM.",
       };
     }
     if (phase === "verification-pending") {
@@ -576,7 +578,7 @@
         body: isDemo
           ? "Practice wax sets on a timer. No real chain write is happening."
           : "The handover is being checked independently. No countdown can make it FINAL.",
-        truth: "Custody is unchanged.",
+        truth: "Direct delivery is still unproven.",
       };
     }
     if (phase === "verification-status") {
@@ -584,9 +586,9 @@
         return {
           mode: "final",
           kicker: isDemo ? "PRACTICE POSTMARK" : "FINAL · VERIFIED",
-          title: "Carried.",
-          body: "The postmark landed. The verified holder has changed.",
-          truth: isDemo ? "Practice only — not on the record." : "This is the only moment custody moves.",
+          title: "Delivered.",
+          body: "The postmark landed. The destination received the verified 1 NIM delivery.",
+          truth: isDemo ? "Practice only — not on the record." : "The bridge introduced the route but never held the payment.",
         };
       }
       if (/INCLUDED/i.test(String(status || ""))) {
@@ -595,7 +597,7 @@
           kicker: "SEEN ON THE RECORD · NOT FINAL",
           title: "Seen, not settled.",
           body: "The handover is included but has not earned its postmark yet.",
-          truth: "The letter is still yours.",
+          truth: "The bridge never receives the 1 NIM.",
         };
       }
       return {
@@ -603,25 +605,25 @@
         kicker: "VERIFYING",
         title: "The wax is still warm.",
         body: "NimCarry has a transaction reference, but the independent record has not confirmed it yet.",
-        truth: "The letter is still yours.",
+        truth: "The bridge never receives the 1 NIM.",
       };
     }
     if (phase === "verification-delayed") {
       return {
         mode: "warm",
         kicker: "VERIFICATION DELAYED",
-        title: "Still warm. Still yours.",
+        title: "Delivery still unproven.",
         body: "Verification is taking longer than usual. NimCarry will not guess.",
-        truth: "Do not reroute while this handover may still finalize.",
+        truth: "Do not resend while this direct delivery may still finalize.",
       };
     }
     if (phase === "final") {
       return {
         mode: "final",
         kicker: isDemo ? "PRACTICE POSTMARK" : "FINAL · VERIFIED",
-        title: "Carried.",
-        body: "The postmark landed. The verified holder has changed.",
-        truth: isDemo ? "Practice only — not on the record." : "This is the only moment custody moves.",
+        title: "Delivered.",
+        body: "The postmark landed. The destination received the verified 1 NIM delivery.",
+        truth: isDemo ? "Practice only — not on the record." : "The bridge introduced the route but never held the payment.",
       };
     }
     if (phase === "error") {
@@ -629,8 +631,8 @@
         mode: "error",
         kicker: "NO VERIFIED POSTMARK",
         title: "Nothing moved.",
-        body: "This handover did not become a verified custody change.",
-        truth: "The letter remains with the last verified holder.",
+        body: "This delivery did not become a verified transfer to the destination.",
+        truth: "The bridge never received the 1 NIM and no arrival is claimed.",
       };
     }
     return null;

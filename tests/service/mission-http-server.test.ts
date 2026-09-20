@@ -134,6 +134,7 @@ describe("Reach Mission HTTP bindings", () => {
 
   it("runs a mission end-to-end over HTTP: create -> invite -> accept -> pass -> broadcast -> reconcile -> arrived", async () => {
     const creator = wallet();
+    const bridge = wallet();
     const target = wallet();
 
     const createRes = await createMissionViaApi(creator, target.address, "create-e2e");
@@ -155,7 +156,7 @@ describe("Reach Mission HTTP bindings", () => {
     const inviteRes = await request("POST", `/missions/${missionId}/invitations`, {
       ...envelope(inviteCh, creator),
       candidate_label: "Bridge",
-      candidate_wallet: target.address,
+      candidate_wallet: bridge.address,
       why_you: "You know the destination.",
     }, { "Idempotency-Key": "invite-e2e" });
     expect(inviteRes.status).toBe(201);
@@ -170,14 +171,14 @@ describe("Reach Mission HTTP bindings", () => {
     expect(inviteViewRes.body.invitation.status).toBe("INVITED");
     expect(inviteViewRes.body.mission.invitation.candidate_label).toBe("Bridge");
 
-    const acceptCh = await challenge(target.address, "ACCEPT_INVITATION", {
+    const acceptCh = await challenge(bridge.address, "ACCEPT_INVITATION", {
       mission_id: missionId,
       invitation_id: invitationId,
       sequence: 1,
     });
     const acceptRes = await request("POST", `/i/${token}/accept`, {
-      ...envelope(acceptCh, target),
-      candidate_display_label: "Harley",
+      ...envelope(acceptCh, bridge),
+      candidate_display_label: "Grace",
     }, { "Idempotency-Key": "accept-e2e" });
     expect(acceptRes.status).toBe(200);
     expect(acceptRes.body.status).toBe("ACCEPTED");
@@ -188,11 +189,7 @@ describe("Reach Mission HTTP bindings", () => {
       Authorization: `Bearer ${acceptRes.body.view_token}`,
     });
     expect(bridgeView.status).toBe(200);
-    // This end-to-end fixture deliberately uses the target wallet as the first
-    // recipient, so TARGET wins the viewer-role precedence. The assertion here
-    // is that the accept response's capability immediately authorizes the same
-    // verified wallet to read the mission without a second VIEW_ROUTE signature.
-    expect(["INVITEE", "TARGET"]).toContain(bridgeView.body.viewer_role);
+    expect(bridgeView.body.viewer_role).toBe("INVITEE");
 
     const passCh = await challenge(creator.address, "AUTHORIZE_PASS", {
       mission_id: missionId,
@@ -207,6 +204,7 @@ describe("Reach Mission HTTP bindings", () => {
     const intent = passRes.body;
     expect(intent.sequence).toBe(1);
     expect(intent.recipient).toBe(target.address);
+    expect(intent.recipient).not.toBe(bridge.address);
     expect(intent.expected_sender).toBe(creator.address);
     expect(intent.value_luna).toBe(ONE_NIM_IN_LUNA);
     expect(intent.recipient_data).toMatch(/^co:v1:/);
@@ -264,7 +262,16 @@ describe("Reach Mission HTTP bindings", () => {
     expect(targetViewRes.body.viewer_role).toBe("TARGET");
     expect(targetViewRes.body.primary_action).toBe("START_NEW_ROUTE");
     expect(targetViewRes.body.route).toHaveLength(1);
+    expect(targetViewRes.body.route[0].bridge.display_label).toBe("Grace");
+    expect(targetViewRes.body.route[0].recipient.display_label).toBe("Harley");
     expect(targetViewRes.body.route[0].recipient.is_viewer).toBe(true);
+
+    const bridgeAfterFinal = await request("GET", `/missions/${missionId}`, undefined, {
+      Authorization: `Bearer ${acceptRes.body.view_token}`,
+    });
+    expect(bridgeAfterFinal.status).toBe(200);
+    expect(bridgeAfterFinal.body.viewer_role).toBe("PARTICIPANT");
+    expect(bridgeAfterFinal.body.status).toBe("ARRIVED");
   });
 
   it("rejects broadcast claims that do not present a capability", async () => {

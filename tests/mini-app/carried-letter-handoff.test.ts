@@ -36,17 +36,17 @@ describe("NimCarry V2 warm-wax handoff ceremony", () => {
     expect(v2).toContain("Authorized, not carried.");
     expect(v2).toContain("Approved, not yet on the record.");
     expect(v2).toContain("Nimiq Pay returned a transaction reference. NimCarry is checking the independent record.");
-    expect(v2).toContain("A recorded reference is not custody. The letter is still yours.");
+    expect(v2).toContain("A recorded reference is not delivery. The bridge never receives the 1 NIM.");
     expect(v2).toContain("The wax is still warm.");
-    expect(v2).toContain("The postmark landed. The verified holder has changed.");
-    expect(v2).toContain("Approval is not custody. Broadcast is not custody. Only FINAL changes the holder.");
+    expect(v2).toContain("The postmark landed. The destination received the verified 1 NIM delivery.");
+    expect(v2).toContain("The bridge never takes custody. Only FINAL proves direct delivery to the destination.");
     expect(v2).not.toContain("The handover reached the record. NimCarry is now waiting for independent finality.");
   });
 
-  it("makes unproven or delayed states explicitly keep custody with the last verified holder", () => {
-    expect(v2).toContain("The letter is still yours.");
-    expect(v2).toContain("Still warm. Still yours.");
-    expect(v2).toContain("The letter remains with the last verified holder.");
+  it("makes unproven or delayed states explicit without turning the bridge into a holder", () => {
+    expect(v2).toContain("The bridge never receives the 1 NIM.");
+    expect(v2).toContain("Delivery still unproven.");
+    expect(v2).toContain("The bridge never received the 1 NIM and no arrival is claimed.");
     expect(v2).toContain("NimCarry will not guess.");
   });
 
