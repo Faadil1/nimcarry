@@ -5,8 +5,8 @@ source_of_truth: true
 
 repository:
   full_name: Faadil1/nimcarry
-  baseline_main_sha: 35695fd0dbf67fae5eb28da01e446de878054a66
-  baseline_summary: "One-time bridge; sender pays the target directly after bridge acceptance."
+  baseline_main_sha: 5d31d5bf3234f267a55aee5e3f5435165b9478aa
+  baseline_summary: "PR #114 merged: one-time bridge/direct target payment plus server-owned automatic FINAL reconciliation."
 
 latest_live_validation:
   mission_id: 6f7ced41-5971-4c92-904a-ab01c485a3b3
@@ -109,7 +109,13 @@ candidate_flows:
 
 implementation_state:
   automatic_finality_reconciliation:
-    status: IMPLEMENTED_AWAITING_LIVE_VALIDATION
+    status: MERGED_AWAITING_LIVE_VALIDATION
+    merged_pr: 114
+    merge_sha: 5d31d5bf3234f267a55aee5e3f5435165b9478aa
+    merge_checks:
+      ci: SUCCESS
+      judge_full_flow_smoke: SUCCESS
+      judge_window_smoke: SUCCESS
     behavior:
       - "Server maintenance enumerates active relay intents that remain unresolved."
       - "Background reconciliation uses the same canonical coordinator.reconcile path as the HTTP endpoint."
