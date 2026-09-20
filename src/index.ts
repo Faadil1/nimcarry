@@ -28,6 +28,7 @@ const repositoryMode = resolveRepositoryMode();
 interface Application {
   server: Server;
   sweep?: () => Promise<number>;
+  reconcilePending?: () => Promise<number>;
 }
 
 async function main(): Promise<void> {
@@ -99,20 +100,67 @@ function createApplicationServer(
       process.env.CARRY_ONE_TARGET_HMAC_KEY_B64URL ?? ""
     ),
     sweep: () => repository.expireDueInvitations(Date.now()),
+    reconcilePending: async () => {
+      const candidates = relayService.listReconciliationCandidates();
+      let reconciled = 0;
+      for (const missionId of candidates) {
+        try {
+          await coordinator.reconcile(missionId);
+          reconciled += 1;
+        } catch (error) {
+          // Verification transport failures are expected to be transient. The
+          // durable intent remains authoritative and will be retried on the
+          // next maintenance tick without exposing a resend path.
+          console.info(
+            `NimCarry background reconciliation deferred for ${missionId}:`,
+            error instanceof Error ? error.message : String(error)
+          );
+        }
+      }
+      return reconciled;
+    },
   };
 }
 
 function registerMaintenance(app: Application): void {
-  if (!app.sweep) return;
-  const intervalMs = Number(process.env.CARRY_ONE_INVITATION_SWEEP_INTERVAL_MS ?? 60_000);
-  const timer = setInterval(() => {
-    app.sweep!().then(
-      (count) => { if (count > 0) console.log(`Carry One invitation sweep expired ${count} invitation${count === 1 ? "" : "s"}`); },
-      (err) => console.error("Carry One invitation sweep failed:", err)
-    );
-  }, intervalMs);
-  timer.unref();
-  app.server.once("close", () => clearInterval(timer));
+  const timers: NodeJS.Timeout[] = [];
+
+  if (app.sweep) {
+    const intervalMs = Number(process.env.CARRY_ONE_INVITATION_SWEEP_INTERVAL_MS ?? 60_000);
+    const timer = setInterval(() => {
+      app.sweep!().then(
+        (count) => { if (count > 0) console.log(`Carry One invitation sweep expired ${count} invitation${count === 1 ? "" : "s"}`); },
+        (err) => console.error("Carry One invitation sweep failed:", err)
+      );
+    }, intervalMs);
+    timer.unref();
+    timers.push(timer);
+  }
+
+  if (app.reconcilePending) {
+    const intervalMs = Number(process.env.CARRY_ONE_RECONCILIATION_INTERVAL_MS ?? 5_000);
+    let inFlight = false;
+    const run = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        await app.reconcilePending!();
+      } catch (error) {
+        console.error(
+          "NimCarry background reconciliation sweep failed:",
+          error instanceof Error ? error.message : String(error)
+        );
+      } finally {
+        inFlight = false;
+      }
+    };
+    void run();
+    const timer = setInterval(() => void run(), intervalMs);
+    timer.unref();
+    timers.push(timer);
+  }
+
+  app.server.once("close", () => timers.forEach((timer) => clearInterval(timer)));
 }
 
 void main().catch((error) => {
