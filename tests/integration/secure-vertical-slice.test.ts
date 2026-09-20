@@ -68,7 +68,7 @@ async function listen(server: ReturnType<typeof createMissionHttpServer>): Promi
 }
 
 describe("secure shared vertical slice", () => {
-  it("connects hardened browser contract -> HTTP -> Postgres and persists a FINAL custody handoff", async () => {
+  it("connects hardened browser contract -> HTTP -> Postgres and persists one bridge-assisted direct FINAL delivery", async () => {
     // Browser contract guard: the production shell must carry the same security
     // artifacts exercised by the HTTP portion below.
     expect(browserCompat).toContain('broadcast_capability: pass.broadcastCapability');
@@ -187,14 +187,8 @@ describe("secure shared vertical slice", () => {
     expect(accepted.status).toBe(200);
     expect(accepted.body.status).toBe("ACCEPTED");
 
-    const viewChallenge = await challenge(bridge, "VIEW_ROUTE", { mission_id: missionId });
-    const bridgeViewMint = await request("POST", `/missions/${missionId}/view`, envelope(viewChallenge, bridge), {
-      "Idempotency-Key": "vertical-view",
-    });
-    expect(bridgeViewMint.status).toBe(200);
-
     const waitingBridgeView = await request("GET", `/missions/${missionId}`, undefined, {
-      Authorization: `Bearer ${bridgeViewMint.body.view_token}`,
+      Authorization: `Bearer ${accepted.body.view_token}`,
     });
     expect(waitingBridgeView.status).toBe(200);
     expect(waitingBridgeView.body.viewer_role).toBe("INVITEE");
@@ -232,7 +226,7 @@ describe("secure shared vertical slice", () => {
     rpc.tx = {
       hash: txHash,
       from: creator.address,
-      to: bridge.address,
+      to: destination.address,
       value: ONE_NIM_IN_LUNA,
       blockNumber: 3_032_020,
       confirmations: 999,
@@ -243,17 +237,20 @@ describe("secure shared vertical slice", () => {
       Authorization: `Bearer ${created.body.view_token}`,
     });
     expect(reconciled.status).toBe(200);
-    expect(reconciled.body.mission.status).toBe("ACTIVE");
+    expect(reconciled.body.mission.status).toBe("ARRIVED");
     expect(reconciled.body.mission.finalized_hop_count).toBe(1);
     expect(reconciled.body.mission.sequence).toBe(1);
 
-    const holderView = await request("GET", `/missions/${missionId}`, undefined, {
-      Authorization: `Bearer ${bridgeViewMint.body.view_token}`,
+    const bridgeView = await request("GET", `/missions/${missionId}`, undefined, {
+      Authorization: `Bearer ${accepted.body.view_token}`,
     });
-    expect(holderView.status).toBe(200);
-    expect(holderView.body.viewer_role).toBe("HOLDER");
-    expect(holderView.body.primary_action).toBe("CREATE_INVITATION");
-    expect(holderView.body.route).toHaveLength(1);
+    expect(bridgeView.status).toBe(200);
+    expect(bridgeView.body.viewer_role).toBe("PARTICIPANT");
+    expect(bridgeView.body.status).toBe("ARRIVED");
+    expect(bridgeView.body.route).toHaveLength(1);
+    expect(bridgeView.body.route[0].bridge.display_label).toBe("Bridge B");
+    expect(bridgeView.body.route[0].recipient.display_label).toBe("Destination C");
+    expect(bridgeView.body.route[0].recipient.wallet_fingerprint).toBe("private");
 
     // PostgreSQL is not just configured: the projected custody state and FINAL
     // hop must be durably visible in the database before the HTTP response is
