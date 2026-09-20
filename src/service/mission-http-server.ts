@@ -473,7 +473,24 @@ async function acceptInvitation(deps: MissionHttpDeps, req: IncomingMessage, tok
 
   const auth = await verifyEnvelope(deps, envelope);
   const invitation = await deps.missions.acceptInvitation({ token, auth, candidateDisplayLabel });
-  return { status: 200, body: invitation };
+
+  // The ACCEPT_INVITATION signature already proves the bridge wallet and binds
+  // it to this mission/sequence. Reuse that verified identity to issue the
+  // read-only mission capability in the same response. The bridge should not
+  // be asked for a second VIEW_ROUTE signature just to continue the handoff.
+  const issued = routeViewCapabilityStore(deps).issue({
+    missionId: invitation.mission_id,
+    holderWallet: normalizeNimiqAddress(auth.wallet),
+  });
+
+  return {
+    status: 200,
+    body: {
+      ...invitation,
+      view_token: issued.token,
+      view_token_expires_at: new Date(issued.expiresAt).toISOString(),
+    },
+  };
 }
 
 async function declineInvitation(deps: MissionHttpDeps, req: IncomingMessage, token: string) {
