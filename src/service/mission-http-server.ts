@@ -770,16 +770,18 @@ async function buildMissionView(
     resolution.viewer === record.creatorWalletNormalized || resolution.viewer === record.currentHolderWalletNormalized
   );
   if (invitation === undefined) {
-    const lastFinalSequence = route.reduce(
-      (latest, hop) => hop.status === "CONFIRMED" && hop.confirmed_at !== null ? Math.max(latest, hop.sequence) : latest,
-      0
-    );
-    const historicalSequence = Math.max(record.currentSequence, lastFinalSequence);
-    if (historicalSequence > 0) {
-      // Completed invitation context is safe to load here because
-      // composeMissionView redacts it for unrelated viewers. Keeping it in the
-      // view model lets the accepted bridge remain a PARTICIPANT after ARRIVED.
-      invitation = await deps.repository.getInvitationForSequence(missionId, historicalSequence);
+    const latestFinalHop = route
+      .filter((hop) => hop.status === "CONFIRMED" && hop.confirmed_at !== null)
+      .sort((a, b) => b.sequence - a.sequence)[0];
+
+    if (latestFinalHop?.invitation_id) {
+      // The relay row carries the exact invitation that authorized this
+      // delivery. Use that durable FK instead of reconstructing provenance from
+      // (mission_id, sequence), which can be fragile across adapters/read paths.
+      invitation = await deps.repository.getInvitation(latestFinalHop.invitation_id);
+    } else if (latestFinalHop) {
+      // Legacy persisted hops pre-date invitation_id on the relay model.
+      invitation = await deps.repository.getInvitationForSequence(missionId, latestFinalHop.sequence);
     } else if (viewerIsRecoveryHolder) {
       invitation = await deps.repository.getInvitationForSequence(missionId, record.currentSequence + 1);
     }
@@ -794,9 +796,13 @@ async function buildMissionView(
         // second read racing the FINAL projection. Fall back to a direct
         // sequence lookup for historical route entries.
         const historicalInvitation =
-          invitation?.sequence === hop.sequence
+          invitation?.id === hop.invitation_id
             ? invitation
-            : await deps.repository.getInvitationForSequence(missionId, hop.sequence);
+            : hop.invitation_id
+              ? await deps.repository.getInvitation(hop.invitation_id)
+              : invitation?.sequence === hop.sequence
+                ? invitation
+                : await deps.repository.getInvitationForSequence(missionId, hop.sequence);
         finalizedBridgeMarks[hop.sequence] = historicalInvitation
           ? {
               label: historicalInvitation.candidateDisplayLabel ?? historicalInvitation.candidateLabel,
@@ -843,6 +849,7 @@ function toHopResponse(hop: Hop) {
   return {
     baton_id: hop.batonId,
     sequence: hop.sequence,
+    invitation_id: hop.invitationId ?? null,
     current_holder: hop.currentHolder,
     recipient: hop.recipient,
     tx_hash: hop.txHash,
