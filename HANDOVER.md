@@ -7,10 +7,11 @@ This file is intentionally operational. A new conversation should be able to rea
 
 ## 1. Current baseline
 
-Current main baseline before this handover update:
+Current main baseline before this workstream:
 
-- SHA: `7eddc47a8033927a85970c93f7b4edfd837c4ae6`
+- SHA: `35695fd0dbf67fae5eb28da01e446de878054a66`
 - Product behavior: one-time human bridge; sender pays the target directly.
+- Canonical Human-Resolved Delivery state and the durable handover system are already on main.
 - The prior custody-chain model is obsolete.
 
 Latest live test completed successfully:
@@ -26,23 +27,39 @@ Latest live test completed successfully:
 - The sender remained authoritative until FINAL.
 - Exactly one payment was required.
 
-## 2. Live-test defect that remains
+## 2. Automatic reconciliation workstream
 
-The client stopped polling after its verification timeout and exposed:
+The live test exposed a client-owned finality defect:
 
-`VERIFICATION_STILL_PENDING`
+- the client waited up to 90 seconds;
+- it emitted `VERIFICATION_STILL_PENDING`;
+- the user had to return to Mission Home and press `Recheck existing handoff`;
+- the same original transaction later reached FINAL/ARRIVED without a second payment.
 
-The user then had to return to Mission Home and press:
+The current workstream changes that architecture.
 
-`Recheck existing handoff`
+Implemented in the code branch for this handover:
 
-The existing transaction later reconciled to FINAL/ARRIVED without a second payment.
+- the canonical relay service exposes unresolved active intents for reconciliation;
+- `ReachMissionCoordinator.reconcilePending()` advances each mission through the same canonical reconciliation path used by HTTP;
+- the server maintenance loop runs reconciliation in the background, independent of the browser;
+- the 90-second foreground polling loop is removed;
+- after broadcast, the user is told the payment is finalizing in the background and may safely close the page;
+- Mission Home no longer exposes `Recheck existing handoff`;
+- while open, Mission Home watches the sender's accepted/pending state and reflects ARRIVED when the backend advances;
+- retries remain read/reconcile operations only and never authorize or send a second payment.
 
-Canonical conclusion:
+Status: **implemented, CI/live validation still required before calling this production-proven.**
 
-**Manual recheck is not an acceptable happy path.**
+Required live validation:
 
-Reconciliation must become durable, automatic, and idempotent. Once a transaction hash is attached to a mission, closing the browser/app must not stop finality verification and reopening must never create a resend path while the existing transaction can still finalize.
+1. create a fresh real TESTNET mission;
+2. broadcast the one payment;
+3. close the client while the hop is still pending/included;
+4. wait without pressing any manual recheck;
+5. reopen and confirm the mission reached ARRIVED automatically;
+6. verify no second payment control is offered at any point;
+7. repeat the UI verification on desktop as well as mobile.
 
 ## 3. Product Council result
 
@@ -122,15 +139,13 @@ Do not add public destination requests, bridge search, bounty routing, reputatio
 
 ## 6. Immediate next implementation sequence
 
-1. **Automatic reconciliation**
-   - Move finality reconciliation out of the fragile client-only happy path.
-   - Persist mission + transaction proof.
-   - Reconcile in server/worker background.
-   - Make reconcile operations idempotent.
-   - When the app reopens, sync state automatically.
-   - Never present a payment button while a valid attached transaction remains unresolved.
+1. **Automatic reconciliation — implemented, awaiting live validation**
+   - Server-side maintenance now reconciles unresolved active intents.
+   - Browser no longer owns the long-running finality wait.
+   - Manual recheck is removed from the current happy path.
+   - CI must pass, then validate with a real close/reopen TESTNET run before promoting this as production-proven.
 
-2. **Destination Claim experiment**
+2. **Destination Claim experiment — next implementation workstream**
    - No on-chain escrow dependency.
    - Sender can create a mission before knowing destination wallet.
    - Destination alone can bind the destination wallet.
