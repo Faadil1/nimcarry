@@ -789,13 +789,16 @@ async function buildMissionView(
     route
       .filter((hop) => hop.status === "CONFIRMED" && hop.confirmed_at !== null)
       .map(async (hop) => {
-        const historicalInvitation = await deps.repository.getInvitationForSequence(missionId, hop.sequence);
+        // Prefer the invitation already resolved for this mission read. This is
+        // the same canonical row used to derive the viewer role and avoids a
+        // second read racing the FINAL projection. Fall back to a direct
+        // sequence lookup for historical route entries.
+        const historicalInvitation =
+          invitation?.sequence === hop.sequence
+            ? invitation
+            : await deps.repository.getInvitationForSequence(missionId, hop.sequence);
         finalizedBridgeMarks[hop.sequence] = historicalInvitation
           ? {
-              // The hop itself is already independently CONFIRMED. Use the
-              // invitation bound to that exact sequence as provenance even if
-              // a read replica briefly still reports ACCEPTED while the mission
-              // projection has already reached ARRIVED.
               label: historicalInvitation.candidateDisplayLabel ?? historicalInvitation.candidateLabel,
               wallet: historicalInvitation.candidateWalletNormalized,
             }
