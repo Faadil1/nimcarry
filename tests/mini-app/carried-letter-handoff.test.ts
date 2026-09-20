@@ -29,7 +29,7 @@ describe("NimCarry V2 warm-wax handoff ceremony", () => {
   it("keeps FINAL as the only success signal while pending verification moves to the background", () => {
     expect(app).toContain('status === "FINAL" || status === "CONFIRMED" || result?.mission?.status === "ARRIVED"');
     expect(app).toContain('handoffEvent("verification-backgrounded"');
-    expect(app).toContain("You can safely close this page. Do not send again.");
+    expect(app).toContain("You can safely close this page. Do not resend 1 NIM.");
     expect(app).not.toContain("VERIFICATION_STILL_PENDING");
     expect(app).not.toContain("Date.now() + 90000");
   });
