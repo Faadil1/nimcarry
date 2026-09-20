@@ -219,6 +219,25 @@ async function run(viewport) {
     await page.locator("#demo-tour-continue").waitFor({ state: "visible" });
     captures.push(await captureState(page, viewport, "07-route", "route"));
 
+    // Regression guard for the real-device issue: after FINAL the bridge must
+    // appear once, not once as a route row plus again as a separate holder card
+    // or decorative holder→destination diagram.
+    activeStep = "mission-after-first-final-single-presence";
+    await page.locator("#back").click();
+    steps.push(await expectPath(page, /^\/mission\/[^/]+$/, "mission-after-first-final-single-presence"));
+    const holderCards = await page.locator(".holder-chip").count();
+    const routeSteps = await page.locator(".route-step").count();
+    const currentHolderRows = await page.locator('.route-step[data-current-holder="true"]').count();
+    const duplicateHolderDiagrams = await page.locator(".hc-mission-route").count();
+    if (holderCards !== 0) throw new Error(`Expected no duplicate standalone current-holder card after FINAL, got ${holderCards}`);
+    if (routeSteps !== 1) throw new Error(`Expected exactly one verified bridge row after first FINAL, got ${routeSteps}`);
+    if (currentHolderRows !== 1) throw new Error(`Expected exactly one current-holder marker on the verified bridge row, got ${currentHolderRows}`);
+    if (duplicateHolderDiagrams !== 0) throw new Error(`Expected no duplicate holder→destination diagram after FINAL, got ${duplicateHolderDiagrams}`);
+    captures.push(await captureState(page, viewport, "07b-mission-single-presence", "mission"));
+    await page.locator("#route-button").click();
+    steps.push(await expectPath(page, /^\/mission\/[^/]+\/route$/, "route-after-single-presence-check"));
+    await page.locator(".clv2-route-ledger-head").waitFor({ state: "visible" });
+
     activeStep = "refresh-route-after-first-final";
     const beforeRefresh = new URL(page.url());
     if (beforeRefresh.searchParams.get("demo") !== "1" || beforeRefresh.searchParams.get("tour") !== "1") {
