@@ -162,8 +162,9 @@ async function run(viewport) {
     await page.locator("#create-form").waitFor({ state: "visible" });
 
     await page.locator('input[name="target_label"]').fill("Nimiq Community Lead");
-    await page.locator('input[name="target_wallet"]').fill("NQDEMO_TARGET_0001");
     await page.locator('textarea[name="mission_note"]').fill("I need a warm introduction to one specific person I cannot reach directly.");
+    await page.locator('details.advanced-field summary').click();
+    await page.locator('input[name="target_wallet"]').fill("NQDEMO_TARGET_0001");
     await page.locator('input[name="creator_display_label"]').fill("Creator");
     await page.locator('input[name="target_consent_confirmed"]').check();
     captures.push(await captureState(page, viewport, "02-write", "create"));
