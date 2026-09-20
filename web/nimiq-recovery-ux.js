@@ -106,9 +106,9 @@
         eyebrow: "A handoff may already be in flight",
         title: "Don’t create a second handoff.",
         body: "NimCarry has evidence that a broadcast claim exists and is keeping the route locked while it checks the independent record. Leave the letter with the last verified holder until FINAL is observed.",
-        primary: ["Check verified route", routePath()],
-        secondary: ["Back to mission", missionPath()],
-        rule: "In-flight is not FINAL · do not duplicate the baton",
+        primary: ["Back to mission", missionPath()],
+        secondary: ["NimCarry home", "/"],
+        rule: "Verification continues automatically · never duplicate the payment",
       };
     }
 
@@ -129,10 +129,10 @@
         kind: "pending",
         eyebrow: "Verification connection interrupted",
         title: "The transaction is already claimed. Do not resend it.",
-        body: "The independent FINAL check briefly lost its connection. NimCarry keeps the recorded handoff locked and will retry verification; custody stays with the last verified holder until FINAL.",
-        primary: ["Check verified route", routePath()],
-        secondary: ["Back to mission", missionPath()],
-        rule: "Network read failure ≠ failed payment · never duplicate the baton",
+        body: "The independent FINAL check briefly lost its connection. NimCarry keeps the existing send attempt locked and retries verification in the background. You can leave this screen; no second payment is needed.",
+        primary: ["Back to mission", missionPath()],
+        secondary: ["NimCarry home", "/"],
+        rule: "Network read failure ≠ failed payment · verification continues automatically",
       };
     }
 
@@ -140,11 +140,11 @@
       return {
         kind: "pending",
         eyebrow: "Verification still running",
-        title: "Do not resend the baton.",
-        body: "A submitted handoff may still finalize. NimCarry keeps the last verified holder authoritative until FINAL is independently observed.",
-        primary: ["Check verified route", routePath()],
-        secondary: ["Back to mission", missionPath()],
-        rule: "Pending is not custody · FINAL is custody",
+        title: "Your part is done. NimCarry is still verifying.",
+        body: "A submitted payment may still finalize. NimCarry keeps checking it automatically in the background and will update the mission when FINAL is independently observed.",
+        primary: ["Back to mission", missionPath()],
+        secondary: ["NimCarry home", "/"],
+        rule: "Pending is not delivery · FINAL is delivery · no manual recheck required",
       };
     }
 
@@ -201,10 +201,10 @@
         kind: "ambiguous",
         eyebrow: "Submission not proven",
         title: "Don’t send a second baton yet.",
-        body: "Nimiq Pay did not return enough evidence for NimCarry to prove this handoff. NimCarry checks the chain independently. The route stays with the last verified holder unless FINAL is independently observed.",
-        primary: ["Check verified route", routePath()],
+        body: "Nimiq Pay did not return enough evidence for NimCarry to prove this send immediately. NimCarry checks the chain independently in the background. Do not approve a second payment while this attempt remains unresolved.",
+        primary: ["Back to mission", missionPath()],
         secondary: ["Run provider check", providerCheckPath()],
-        rule: "Approval ≠ broadcast ≠ FINAL",
+        rule: "Approval ≠ broadcast ≠ FINAL · unresolved sends stay locked",
       };
     }
 
