@@ -321,8 +321,13 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       mission.current_holder?.is_viewer === true &&
       invitationStatus === "ACCEPTED" &&
       mission.primary_action === "WAIT";
+    const senderWaitingForDirectFinal =
+      mission.current_holder?.is_viewer === true &&
+      !mission.invitation &&
+      mission.target_resolved === true &&
+      mission.primary_action === "WAIT";
 
-    return holderWaitingForAcceptance || acceptedBridgeWaitingForFinal || senderWaitingForFinal;
+    return holderWaitingForAcceptance || acceptedBridgeWaitingForFinal || senderWaitingForFinal || senderWaitingForDirectFinal;
   }
 
   async function refreshWatchedMission() {
@@ -1021,7 +1026,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     return `<div class="route">${ordered.map((entry) => {
       const bridgeMark = entry.via?.display_label || null;
       const recipient = entry.to?.display_label || entry.to?.wallet_fingerprint || "Destination";
-      const who = bridgeMark || "Verified bridge";
+      const who = bridgeMark || "Direct delivery";
       const isCurrentHolder = options.markCurrentHolder === true && Number(entry.sequence) === lastSequence;
       const currentHolderMark = isCurrentHolder ? " · Current holder" : "";
       return `<div class="route-step" data-carrier-mark="${esc(bridgeMark || "")}" data-current-holder="${isCurrentHolder ? "true" : "false"}"><div class="rail"><span class="dot"></span></div><div><strong class="${bridgeMark ? "carrier-mark" : ""}">${esc(who)}</strong><small>Bridge · delivered to ${esc(recipient)} · ${esc(entry.tx_hash_short || "verified tx")} · ${esc(entry.finalized_at ? new Date(entry.finalized_at).toLocaleString() : "FINAL")}${currentHolderMark}</small></div></div>`;
