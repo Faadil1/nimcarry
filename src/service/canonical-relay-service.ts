@@ -22,7 +22,7 @@ function addressKey(value: string): string {
 export interface PublicHop {
   baton_id: string;
   sequence: number;
-  invitation_id: string | null;
+  invitation_id?: string | null;
   current_holder: string;
   recipient: string;
   tx_hash: string | null;
