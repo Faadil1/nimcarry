@@ -329,13 +329,13 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       const previousFingerprint = missionWatchFingerprint;
       missionWatchFingerprint = nextFingerprint;
       const invitationStatus = String(latest?.invitation?.status || "").toUpperCase();
-      const bridgeJustReceivedCustody =
+      const bridgeCompletedIntroduction =
         previousMission?.viewer_role === "INVITEE" &&
-        previousMission?.current_holder?.is_viewer !== true &&
-        latest?.current_holder?.is_viewer === true;
+        previousMission?.status === "ACTIVE" &&
+        latest?.status === "ARRIVED";
 
-      if (bridgeJustReceivedCustody) {
-        notice("FINAL verified. You now carry this letter — choose the next bridge.");
+      if (bridgeCompletedIntroduction) {
+        notice(`FINAL verified. ${latest?.target_label || "The destination"} received the 1 NIM. Your bridge step is complete.`);
       } else if (invitationStatus === "ACCEPTED" && latest?.current_holder?.is_viewer === true) {
         notice("Bridge accepted the invitation. The handoff is ready.");
       } else if (invitationStatus === "DECLINED") {
@@ -562,7 +562,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       }
       const auth = await signedAuth("ACCEPT_INVITATION", { missionId: invitation.mission_id, invitationId: invitation.invitation_id, sequence: invitation.sequence });
       await api(`/i/${encodeURIComponent(token)}/accept`, { method: "POST", body: { auth, candidate_display_label: candidateDisplayLabel } });
-      notice("Accepted. Stay here — NimCarry will continue automatically when the handoff reaches FINAL.");
+      notice("Accepted. Stay here — Faadil can now send the 1 NIM directly to the destination. Your bridge step is complete once FINAL lands.");
     } catch (error) { notice(error.message, true); } finally { setBusy(false); }
   }
 
@@ -594,7 +594,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       return;
     }
 
-    els.screen.innerHTML = `<button class="back-link" id="back">← Mission Home</button><section class="hero-card"><div class="kicker">Screen 4 / 5 · Pass 1 NIM</div><h1 class="target-title">One verified handoff.</h1><p class="lede">Accepted bridge: <strong>${esc(inv?.candidate_label || inv?.candidate_display_label || inv?.accepted_wallet_fingerprint || "Accepted bridge")}</strong></p><div class="promise-strip"><div class="promise orange"><span>Value</span><strong>1 NIM</strong><span>100,000 Luna</span></div><div class="promise green"><span>Requested fee</span><strong>0</strong><span>Wallet/network may still refuse</span></div><div class="promise violet"><span>Custody</span><strong>FINAL</strong><span>Never mempool-only</span></div></div><div class="warning" style="margin-top:16px">After a transaction hash is recorded, Carry One will not offer reroute/cancel. The backend must reconcile the claim independently.</div><div class="button-row"><button data-busy-lock="1" id="send" class="button primary">Authorize + Pass 1 NIM</button></div></section>`;
+    els.screen.innerHTML = `<button class="back-link" id="back">← Mission Home</button><section class="hero-card"><div class="kicker">Screen 4 / 5 · Send 1 NIM</div><h1 class="target-title">Bridge accepted. Deliver directly.</h1><p class="lede">Via <strong>${esc(inv?.candidate_label || inv?.candidate_display_label || inv?.accepted_wallet_fingerprint || "Accepted bridge")}</strong> → recipient <strong>${esc(m?.target_label || "Destination")}</strong></p><div class="promise-strip"><div class="promise orange"><span>Value</span><strong>1 NIM</strong><span>100,000 Luna</span></div><div class="promise green"><span>Requested fee</span><strong>0</strong><span>Wallet/network may still refuse</span></div><div class="promise violet"><span>Custody</span><strong>FINAL</strong><span>Never mempool-only</span></div></div><div class="warning" style="margin-top:16px">After a transaction hash is recorded, Carry One will not offer reroute/cancel. The backend must reconcile the claim independently.</div><div class="button-row"><button data-busy-lock="1" id="send" class="button primary">Authorize + Pass 1 NIM</button></div></section>`;
     document.querySelector("#back").addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}`));
     document.querySelector("#send").addEventListener("click", () => executePass(missionId, inv));
     els.screen.focus();
@@ -708,11 +708,12 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     const ordered = route.slice().sort((a, b) => Number(a.sequence) - Number(b.sequence));
     const lastSequence = Number(ordered.at(-1)?.sequence);
     return `<div class="route">${ordered.map((entry) => {
-      const carrierMark = entry.to?.display_label || null;
-      const who = carrierMark || entry.to?.wallet_fingerprint || "Verified bridge";
+      const bridgeMark = entry.via?.display_label || null;
+      const recipient = entry.to?.display_label || entry.to?.wallet_fingerprint || "Destination";
+      const who = bridgeMark || "Verified bridge";
       const isCurrentHolder = options.markCurrentHolder === true && Number(entry.sequence) === lastSequence;
       const currentHolderMark = isCurrentHolder ? " · Current holder" : "";
-      return `<div class="route-step" data-carrier-mark="${esc(carrierMark || "")}" data-current-holder="${isCurrentHolder ? "true" : "false"}"><div class="rail"><span class="dot"></span></div><div><strong class="${carrierMark ? "carrier-mark" : ""}">${esc(who)}</strong><small>Hop ${esc(entry.sequence)} · ${esc(entry.tx_hash_short || "verified tx")} · ${esc(entry.finalized_at ? new Date(entry.finalized_at).toLocaleString() : "FINAL")}${currentHolderMark}</small></div></div>`;
+      return `<div class="route-step" data-carrier-mark="${esc(bridgeMark || "")}" data-current-holder="${isCurrentHolder ? "true" : "false"}"><div class="rail"><span class="dot"></span></div><div><strong class="${bridgeMark ? "carrier-mark" : ""}">${esc(who)}</strong><small>Bridge · delivered to ${esc(recipient)} · ${esc(entry.tx_hash_short || "verified tx")} · ${esc(entry.finalized_at ? new Date(entry.finalized_at).toLocaleString() : "FINAL")}${currentHolderMark}</small></div></div>`;
     }).join("")}</div>`;
   }
 
