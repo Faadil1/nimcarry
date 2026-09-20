@@ -1,3 +1,10 @@
+## 2026-09-20 — Expired pass-window UX hardening
+
+- Treat an already accepted invitation whose pass deadline elapsed as `PASS_DEADLINE_EXPIRED` instead of the misleading generic `INVITATION_NOT_ACCEPTED`.
+- Never render the “Accepted bridge” + “Authorize + Pass 1 NIM” ceremony when the invitation is no longer ACCEPTED or its pass window has expired.
+- Replace stale pass controls with a safe return-to-mission / verified-route state; custody remains unchanged and no second payment path is offered.
+- Route legacy `INVITATION_NOT_ACCEPTED` pass errors through the same expiry/recovery guidance.
+
 ## 2026-09-20 — Provider result-shape diagnostic
 
 - Preserve a privacy-safe provider diagnostic when Nimiq Pay approval returns no canonical transaction hash.
