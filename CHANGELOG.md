@@ -1,3 +1,10 @@
+## 2026-09-20 — Durable unproven-submission recovery
+
+- Harden Postgres relay durability so a failed snapshot write cannot be forgotten by a later `AUTHORIZE_PASS`; serialized flushes retry the latest snapshot and never acknowledge a process-local-only pass intent.
+- Ignore orphaned relay rows from administratively deleted missions when persisting a long-lived container snapshot, preventing an old mission from rolling back a new mission's `pass_intents` write.
+- Normalize Nimiq Pay transaction-hash return shapes conservatively: direct strings and known wrapper fields are accepted only when they contain one unambiguous 64-hex hash.
+- Keep ambiguous/no-hash approvals fail-closed and chain-recoverable; no second 1 NIM send is opened merely because the wallet UI returned an unexpected result shape.
+
 ## 2026-09-20 — Single-presence bridge UX
 
 - Stop repeating a finalized bridge as both the standalone current-holder summary and the verified-path entry.
