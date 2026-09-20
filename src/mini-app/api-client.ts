@@ -70,6 +70,18 @@ export class CarryOneApiClient {
     return this.request(`/missions/${encodeURIComponent(missionId)}`, { viewToken });
   }
 
+  getDestinationClaim(claimToken: string): Promise<unknown> {
+    return this.request(`/c/${encodeURIComponent(claimToken)}`);
+  }
+
+  bindDestinationClaim(claimToken: string, input: { auth: SignatureEnvelope }): Promise<unknown> {
+    return this.mutation(`/c/${encodeURIComponent(claimToken)}/bind`, signedBody(input.auth));
+  }
+
+  authorizeDelivery(missionId: string, input: { auth: SignatureEnvelope }): Promise<PassIntentResponse> {
+    return this.mutation(`/missions/${encodeURIComponent(missionId)}/delivery-intent`, signedBody(input.auth));
+  }
+
   createInvitation(missionId: string, input: Record<string, unknown> & { auth: SignatureEnvelope }): Promise<unknown> {
     const { auth, ...fields } = input;
     return this.mutation(`/missions/${encodeURIComponent(missionId)}/invitations`, signedBody(auth, fields));
@@ -100,7 +112,7 @@ export class CarryOneApiClient {
    */
   recordBroadcast(
     missionId: string,
-    invitationId: string,
+    invitationId: string | null,
     txHash: string,
     broadcastCapability: string,
     idempotencyKey?: string
