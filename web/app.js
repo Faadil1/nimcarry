@@ -267,6 +267,10 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     const match = location.pathname.match(/^\/i\/([A-Za-z0-9_-]+)/);
     return match ? match[1] : null;
   }
+  function claimTokenFromPath() {
+    const match = location.pathname.match(/^\/c\/([A-Za-z0-9_-]+)/);
+    return match ? match[1] : null;
+  }
 
   function demoLoad() { try { return JSON.parse(localStorage.getItem("carryone.demo") || "null"); } catch { return null; } }
   function demoSave(value) { localStorage.setItem("carryone.demo", JSON.stringify(value)); }
@@ -379,7 +383,9 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     const path = location.pathname.replace(/\/+$/, "") || "/";
     if (!/^\/mission\/[^/]+$/.test(path)) stopMissionWatch();
     if (path === "/create") return renderCreate();
+    if (/^\/c\/[A-Za-z0-9_-]+$/.test(path)) return renderDestinationClaim();
     if (/^\/i\/[A-Za-z0-9_-]+$/.test(path)) return renderInvitation();
+    if (/^\/mission\/[^/]+\/deliver$/.test(path)) return renderDelivery();
     if (/^\/mission\/[^/]+\/pass$/.test(path)) return renderPass();
     if (/^\/mission\/[^/]+\/route$/.test(path)) return renderRoute();
     return renderHome();
@@ -424,24 +430,30 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
   function derivePrimaryAction(m) {
     if (m.status === "ARRIVED") return "VIEW_ROUTE";
     const status = m.invitation?.status;
-    if (!status || ["DECLINED", "EXPIRED", "WITHDRAWN", "COMPLETED"].includes(status)) return "CREATE_INVITATION";
+    if (!status || ["DECLINED", "EXPIRED", "WITHDRAWN", "COMPLETED"].includes(status)) {
+      return m.target_resolved ? "DELIVER_1_NIM" : "WAIT";
+    }
     if (status === "INVITED") return "WAIT";
     if (status === "ACCEPTED") return "PASS_1_NIM";
     return null;
   }
+
   function homeButtons(action, m) {
     if (m.status === "ARRIVED") return `<button id="route-button" class="button green">View completed route</button><button id="new-button" class="button ghost">Start your own mission</button>`;
     if (action === "CREATE_INVITATION" || action === "REROUTE") return `<button id="invite-button" class="button primary">${action === "REROUTE" ? "Choose another bridge" : "Choose next bridge"}</button><button id="route-button" class="button ghost">Follow route</button>`;
+    if (action === "DELIVER_1_NIM") return `<button id="deliver-button" class="button primary">Deliver 1 NIM</button><button id="invite-button" class="button ghost">Add an introducer instead</button><button id="route-button" class="button ghost">Follow delivery</button>`;
+    if (action === "WAIT" && !m.target_resolved && !m.invitation) return `<button class="button primary" disabled>Waiting for destination</button><button id="route-button" class="button ghost">Follow delivery</button>`;
     if (action === "WAIT" && m.viewer_role === "INVITEE" && m.invitation?.status === "ACCEPTED") return `<button class="button primary" disabled>Accepted — finalizing delivery</button><button id="route-button" class="button ghost">Follow route</button>`;
     if (action === "WAIT" && m.invitation?.status === "ACCEPTED") return `<button class="button primary" disabled>Payment sent — finalizing</button><button id="route-button" class="button ghost">Follow route</button>`;
     if (action === "WAIT") return `<button class="button primary" disabled>Waiting for response</button><button id="route-button" class="button ghost">Follow route</button>`;
-    if (action === "PASS_1_NIM") return `<button id="pass-button" class="button primary">Pass 1 NIM</button><button id="route-button" class="button ghost">Follow route</button>`;
+    if (action === "PASS_1_NIM") return `<button id="pass-button" class="button primary">Deliver 1 NIM</button><button id="route-button" class="button ghost">Follow route</button>`;
     return `<button id="route-button" class="button ghost">View route</button>`;
   }
 
   function wireHomeButtons(action, m) {
     document.querySelector("#route-button")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(m.mission_id)}/route`));
     document.querySelector("#new-button")?.addEventListener("click", () => navigate("/create"));
+    document.querySelector("#deliver-button")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(m.mission_id)}/deliver`));
     document.querySelector("#pass-button")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(m.mission_id)}/pass`));
     document.querySelector("#invite-button")?.addEventListener("click", () => openInviteDialog(m));
   }
