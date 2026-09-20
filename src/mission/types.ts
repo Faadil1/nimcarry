@@ -60,6 +60,7 @@ export interface DestinationClaimRecord {
 
 export interface PublicDestinationClaim {
   mission_id: string;
+  sender_label: string | null;
   target_label: string;
   mission_note: string;
   status: DestinationClaimStatus;
