@@ -192,17 +192,15 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(html).toContain("DEMO MODE — no wallet or network writes");
     expect(js).toContain('query.get("demo") === "1"');
   });
-  it("recovers an already-recorded handoff without offering a second payment", () => {
-    expect(js).toContain("Recheck existing handoff");
-    expect(js).toContain("async function recheckExistingHandoff");
+  it("backgrounds an already-recorded handoff without offering a second payment", () => {
+    expect(js).not.toContain("Recheck existing handoff");
+    expect(js).not.toContain("async function recheckExistingHandoff");
+    expect(js).toContain("Payment sent — finalizing");
+    expect(js).toContain("finalizing in the background");
+    expect(js).toContain("You can safely close this page. Do not send again.");
     expect(js).toContain("/reconcile");
-    expect(js).toContain("No second payment was requested.");
-    const start = js.indexOf("async function recheckExistingHandoff");
-    const end = js.indexOf("\n  function wireHomeButtons", start);
-    const recovery = start >= 0 && end >= 0 ? js.slice(start, end) : "";
-    expect(recovery).not.toContain("sendBasicTransactionWithData");
-    expect(recovery).not.toContain("AUTHORIZE_PASS");
-    expect(recovery).not.toContain("pass-intent");
+    expect(js).not.toContain("VERIFICATION_STILL_PENDING");
+    expect(js).not.toContain("Date.now() + 90000");
   });
   it("keeps the accepted bridge in one continuous session until FINAL", () => {
     expect(js).toContain('mission.viewer_role === "INVITEE" && invitationStatus === "ACCEPTED"');
@@ -224,7 +222,10 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(js).toContain("async function refreshWatchedMission");
     expect(js).toContain('const invitationStatus = String(mission.invitation?.status || "").toUpperCase()');
     expect(js).toContain('mission.current_holder?.is_viewer === true && invitationStatus === "INVITED"');
+    expect(js).toContain('mission.primary_action === "WAIT"');
+    expect(js).toContain("senderWaitingForFinal");
     expect(js).toContain("Bridge accepted the invitation. The handoff is ready.");
+    expect(js).toContain("Delivered.");
     expect(js).toContain('addEventListener("focus", () => { void refreshWatchedMission(); })');
     expect(js).toContain('document.addEventListener("visibilitychange"');
     const start = js.indexOf("async function refreshWatchedMission");
@@ -297,6 +298,13 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(finalHumanCss).toContain("hc-arrived-moment");
     expect(finalHumanCss).toContain("wi-receipt");
   });
+  it("keeps the finality-state UI responsive across mobile, tablet and desktop layouts", () => {
+    expect(css).toContain("width:min(760px,100%)");
+    expect(css).toContain(".button-row{display:flex;gap:9px;flex-wrap:wrap");
+    expect(css).toContain("@media(min-width:620px)");
+    expect(css).toContain("prefers-reduced-motion:reduce");
+  });
+
   it("honors reduced-motion in both base and final identity CSS", () => {
     expect(css).toContain("prefers-reduced-motion:reduce");
     expect(finalHumanCss).toContain("prefers-reduced-motion:reduce");
