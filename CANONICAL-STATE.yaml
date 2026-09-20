@@ -1,0 +1,128 @@
+project: NimCarry
+updated_at: "2026-09-20T16:00:00-04:00"
+phase: POST_LIVE_TEST_PRODUCT_REFRAME
+source_of_truth: true
+
+repository:
+  full_name: Faadil1/nimcarry
+  baseline_main_sha: 7eddc47a8033927a85970c93f7b4edfd837c4ae6
+  baseline_summary: "One-time bridge; sender pays the target directly after bridge acceptance."
+
+latest_live_validation:
+  mission_id: 6f7ced41-5971-4c92-904a-ab01c485a3b3
+  status: ARRIVED
+  finalized_hop_count: 1
+  transaction_hash: 066651d2a0e8bd791b7d7809f10f9dfc014294a21c02cf0e970fce88d5f825ad
+  bridge:
+    label: Grace
+    role: "consent/introduction only"
+    received_funds: false
+  destination:
+    label: David
+  validated_truths:
+    - "The bridge can accept exactly once and leave the financial route."
+    - "The sender can pay the destination directly."
+    - "One payment can progress INCLUDED -> FINAL -> ARRIVED."
+    - "A client polling timeout does not imply payment failure."
+    - "Manual 'Recheck existing handoff' can recover state, but this is product/architecture debt."
+
+product_direction:
+  status: TEST
+  working_name: HUMAN_RESOLVED_DELIVERY
+  thesis: >-
+    Deliver value to a specific human even when their payment endpoint is not yet known,
+    using only the level of human consent required by the situation and preserving
+    verifiable evidence of how delivery was authorized and finalized.
+  user_entry_rule: "One NimCarry user must be able to start without coordinating two additional users."
+  minimum_success_rule: "Two people must be sufficient for the simplest legitimate completed mission."
+  bridge_rule: "A bridge appears only when the real-world relationship requires an introduction."
+
+promoted_invariants:
+  - id: INV-01
+    rule: "A bridge never receives, holds, or controls mission funds."
+  - id: INV-02
+    rule: "A bridge never binds, replaces, or redirects the destination wallet."
+  - id: INV-03
+    rule: "When the destination wallet is unknown at creation, only the destination may bind it through an authorized claim flow."
+  - id: INV-04
+    rule: "Consent is bound to a specific mission and destination; changing the destination invalidates existing consent."
+  - id: INV-05
+    rule: "A mission may have at most one successful payment outcome."
+  - id: INV-06
+    rule: "Only independently verified Nimiq FINAL constitutes completed financial delivery."
+  - id: INV-07
+    rule: "Reconciliation must be automatic, durable, and idempotent."
+  - id: INV-08
+    rule: "Closing or reopening the client must never require or trigger a duplicate payment."
+  - id: INV-09
+    rule: "Sender, Bridge, and Destination are mission roles, not three mandatory NimCarry accounts."
+  - id: INV-10
+    rule: "No public/browsable social graph or public bridge marketplace in the current product scope."
+  - id: INV-11
+    rule: "v1 supports at most one optional introducer; multi-hop is not a required architecture."
+
+ux_invariants:
+  - id: UX-01
+    rule: "Do not ask the user to choose routing topology on the first screen."
+  - id: UX-02
+    rule: "User-facing flows begin with who the value is for and what is being sent."
+  - id: UX-03
+    rule: "Do not expose manual reconciliation as the happy path."
+  - id: UX-04
+    rule: "Do not use copy that implies bridge custody."
+  - id: UX-05
+    rule: "Financial FINAL and human acknowledgement must remain semantically distinct."
+  - id: UX-06
+    rule: "Technical states such as RPC timeout, mempool, raw transaction hashes, and reconciliation internals stay behind progressive disclosure."
+  - id: UX-07
+    rule: "All UI changes must remain responsive on mobile, tablet, and desktop; desktop is a first-class acceptance target, not an afterthought."
+
+responsive_acceptance:
+  required: true
+  applies_to: "every web/UI change"
+  minimum_viewports:
+    - "390x844 mobile"
+    - "768x1024 tablet"
+    - "1440x900 desktop"
+  gates:
+    - "No horizontal overflow."
+    - "Primary actions remain visible and usable."
+    - "Mission/receipt hierarchy remains understandable without mobile-only assumptions."
+    - "Touch targets remain appropriate on mobile; pointer/keyboard interaction remains usable on desktop."
+    - "Long wallet addresses, status copy, and receipts wrap or truncate safely."
+    - "Reduced-motion behavior remains supported where motion exists."
+
+candidate_flows:
+  direct:
+    status: KEEP_AS_PRIMITIVE
+    description: "Known destination wallet -> sender pays destination directly -> background FINAL verification -> receipt."
+  destination_claim:
+    status: TEST_NEXT
+    description: "Wallet unknown -> private claim -> destination binds own wallet -> sender pays -> background FINAL verification."
+    escrow_required_for_v1: false
+  introduced:
+    status: TEST
+    description: "Optional bridge consents once for a fixed destination; destination is then resolved directly or by claim; sender pays destination."
+  find_a_connection:
+    status: OUT_OF_SCOPE
+    description: "Do not build a public discovery/marketplace flow until real demand and abuse controls are proven."
+
+next_workstream:
+  priority:
+    - "Replace manual recheck with durable automatic server/worker reconciliation."
+    - "Design and implement a non-custodial Destination Claim experiment."
+    - "Compare Claim vs Introduced Claim with real users before deciding whether social-route proof is core or a trust layer."
+    - "Update user-facing mental model away from Create -> Invite -> Accept -> Pass -> Arrive."
+  implementation_constraints:
+    - "No escrow/on-chain refund dependency for the first claim experiment."
+    - "No bridge reputation system."
+    - "No public bridge discovery."
+    - "No multi-hop."
+    - "No in-app chat or public social graph."
+    - "Every UI change must pass mobile + tablet + desktop responsive review."
+
+continuous_recording:
+  rule: >-
+    After every accepted product decision, implementation milestone, live test, or material failure,
+    update CANONICAL-STATE.yaml and HANDOVER.md in the same workstream before declaring the step complete.
+  handover_goal: "A new conversation must be able to take the lead from repository state without reconstructing hidden chat history."
