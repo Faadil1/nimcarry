@@ -152,9 +152,9 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(compat).not.toContain("challenge_id: auth.wallet");
   });
   it("uses the hardened route-view capability boundary and never restores X-Wallet spoofing", () => {
-    expect(compat).toContain('action: "VIEW_ROUTE"');
-    expect(compat).toContain('/view`, requestUrl.origin');
-    expect(compat).toContain("mintRouteViewAfterAcceptance");
+    expect(compat).toContain("activateBridgeContinuationAfterAcceptance");
+    expect(compat).toContain("acceptedInvitation?.view_token");
+    expect(compat).not.toContain("mintRouteViewAfterAcceptance");
     expect(compat).not.toContain('headers.set("X-Wallet"');
     expect(compat).not.toContain("X-Wallet only");
   });
@@ -204,10 +204,25 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(recovery).not.toContain("AUTHORIZE_PASS");
     expect(recovery).not.toContain("pass-intent");
   });
+  it("keeps the accepted bridge in one continuous session until FINAL", () => {
+    expect(js).toContain('mission.viewer_role === "INVITEE" && invitationStatus === "ACCEPTED"');
+    expect(js).toContain("Accepted — waiting for FINAL");
+    expect(js).toContain("FINAL verified. You now carry this letter — choose the next bridge.");
+    expect(js).toContain("Stay here — NimCarry will continue automatically when the handoff reaches FINAL.");
+    expect(compat).toContain("activateBridgeContinuationAfterAcceptance");
+    expect(compat).toContain("acceptedInvitation?.view_token");
+    const helperStart = compat.indexOf("async function activateBridgeContinuationAfterAcceptance");
+    const helperEnd = compat.indexOf("\n  window.fetch", helperStart);
+    const helper = compat.slice(helperStart, helperEnd);
+    expect(helper).not.toContain("nimiq.sign");
+    expect(helper).not.toContain("VIEW_ROUTE");
+  });
+
   it("reflects bridge acceptance on the sender mission with read-only polling", () => {
     expect(js).toContain("MISSION_WATCH_INTERVAL_MS = 3000");
     expect(js).toContain("async function refreshWatchedMission");
-    expect(js).toContain('mission.invitation?.status === "INVITED"');
+    expect(js).toContain('const invitationStatus = String(mission.invitation?.status || "").toUpperCase()');
+    expect(js).toContain('mission.current_holder?.is_viewer === true && invitationStatus === "INVITED"');
     expect(js).toContain("Bridge accepted the invitation. The handoff is ready.");
     expect(js).toContain('addEventListener("focus", () => { void refreshWatchedMission(); })');
     expect(js).toContain('document.addEventListener("visibilitychange"');

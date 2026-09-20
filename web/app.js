@@ -306,14 +306,22 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     if (state.demo || !mission?.mission_id) return false;
     const exactMissionPath = `/mission/${encodeURIComponent(mission.mission_id)}`;
     if (location.pathname.replace(/\/+$/, "") !== exactMissionPath) return false;
-    if (mission.status !== "ACTIVE" || mission.current_holder?.is_viewer !== true) return false;
-    return mission.invitation?.status === "INVITED";
+    if (mission.status !== "ACTIVE") return false;
+
+    const invitationStatus = String(mission.invitation?.status || "").toUpperCase();
+    const holderWaitingForAcceptance =
+      mission.current_holder?.is_viewer === true && invitationStatus === "INVITED";
+    const acceptedBridgeWaitingForFinal =
+      mission.viewer_role === "INVITEE" && invitationStatus === "ACCEPTED";
+
+    return holderWaitingForAcceptance || acceptedBridgeWaitingForFinal;
   }
 
   async function refreshWatchedMission() {
     if (!missionWatchMissionId || missionWatchInFlight || state.busy || document.visibilityState === "hidden") return;
     missionWatchInFlight = true;
     try {
+      const previousMission = state.mission;
       const latest = await loadMission(missionWatchMissionId);
       const nextFingerprint = missionWatchKey(latest);
       if (nextFingerprint === missionWatchFingerprint) return;
@@ -321,7 +329,14 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       const previousFingerprint = missionWatchFingerprint;
       missionWatchFingerprint = nextFingerprint;
       const invitationStatus = String(latest?.invitation?.status || "").toUpperCase();
-      if (invitationStatus === "ACCEPTED") {
+      const bridgeJustReceivedCustody =
+        previousMission?.viewer_role === "INVITEE" &&
+        previousMission?.current_holder?.is_viewer !== true &&
+        latest?.current_holder?.is_viewer === true;
+
+      if (bridgeJustReceivedCustody) {
+        notice("FINAL verified. You now carry this letter — choose the next bridge.");
+      } else if (invitationStatus === "ACCEPTED" && latest?.current_holder?.is_viewer === true) {
         notice("Bridge accepted the invitation. The handoff is ready.");
       } else if (invitationStatus === "DECLINED") {
         notice("Bridge declined the invitation. The letter stayed with you.");
@@ -409,6 +424,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
   function homeButtons(action, m) {
     if (m.status === "ARRIVED") return `<button id="route-button" class="button green">View completed route</button><button id="new-button" class="button ghost">Start your own mission</button>`;
     if (action === "CREATE_INVITATION" || action === "REROUTE") return `<button id="invite-button" class="button primary">${action === "REROUTE" ? "Choose another bridge" : "Choose next bridge"}</button><button id="route-button" class="button ghost">Follow route</button>`;
+    if (action === "WAIT" && m.viewer_role === "INVITEE" && m.invitation?.status === "ACCEPTED") return `<button class="button primary" disabled>Accepted — waiting for FINAL</button><button id="route-button" class="button ghost">Follow route</button>`;
     if (action === "WAIT" && m.invitation?.status === "ACCEPTED") return `<button data-busy-lock="1" id="recheck-button" class="button primary">Recheck existing handoff</button><button id="route-button" class="button ghost">Follow route</button>`;
     if (action === "WAIT") return `<button class="button primary" disabled>Waiting for response</button><button id="route-button" class="button ghost">Follow route</button>`;
     if (action === "PASS_1_NIM") return `<button id="pass-button" class="button primary">Pass 1 NIM</button><button id="route-button" class="button ghost">Follow route</button>`;
@@ -546,7 +562,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       }
       const auth = await signedAuth("ACCEPT_INVITATION", { missionId: invitation.mission_id, invitationId: invitation.invitation_id, sequence: invitation.sequence });
       await api(`/i/${encodeURIComponent(token)}/accept`, { method: "POST", body: { auth, candidate_display_label: candidateDisplayLabel } });
-      notice("Accepted. Your signed Nimiq authorization is the consent proof; the current holder can now authorize the 1 NIM handoff.");
+      notice("Accepted. Stay here — NimCarry will continue automatically when the handoff reaches FINAL.");
     } catch (error) { notice(error.message, true); } finally { setBusy(false); }
   }
 

@@ -1,3 +1,11 @@
+## 2026-09-20 — One-pass bridge continuation
+
+- Make bridge acceptance a single wallet-approval moment: the signed `ACCEPT_INVITATION` response now includes the read-only mission capability for that same verified wallet, eliminating the follow-up `VIEW_ROUTE` signature.
+- After acceptance, the bridge is moved directly into the mission and the client watches the handoff read-only while the previous holder submits 1 NIM.
+- When independent FINAL transfers custody, the same screen automatically changes from “Accepted — waiting for FINAL” to the new-holder workflow and surfaces “Choose next bridge”.
+- Reopening the invitation, restoring mission access, or manually refreshing the verified route is no longer part of the normal bridge journey.
+- Custody authority is unchanged: acceptance grants read continuity only; mutation authority still follows canonical holder state after FINAL.
+
 ## 2026-09-20 — Accepted-invite replay + profile-backed mission reads
 
 - Reopening an already accepted private invitation no longer renders the accept ceremony or throws `INVITATION_NOT_INVITED`; the same bridge sees a clear “already accepted” state instead.

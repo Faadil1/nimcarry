@@ -164,47 +164,18 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     return payload;
   }
 
-  // Acceptance is a signed custody-consent action, but invite tokens themselves
-  // are landing-page-only. After a successful accept we therefore obtain the
-  // separate signed VIEW_ROUTE capability required for continued route access.
-  async function mintRouteViewAfterAcceptance(requestUrl, acceptanceContext, acceptedInvitation) {
+  // ACCEPT_INVITATION already proves the bridge wallet. The canonical server
+  // returns a read-only route capability in that same signed response, so the
+  // bridge can continue from one wallet approval without a second VIEW_ROUTE
+  // signature or reopening the invitation later.
+  async function activateBridgeContinuationAfterAcceptance(acceptanceContext, acceptedInvitation) {
     const missionId = acceptedInvitation?.mission_id || acceptanceContext?.missionId;
-    const wallet = acceptanceContext?.wallet;
-    if (!missionId || !wallet) return false;
-    const nimiq = await getNimiqProvider();
-    if (typeof nimiq.sign !== "function") return false;
+    const token = acceptedInvitation?.view_token;
+    if (!missionId || !token) {
+      throw new Error("ACCEPT_CONTINUATION_CAPABILITY_MISSING");
+    }
 
-    const challengeUrl = new URL("/auth/challenge", requestUrl.origin);
-    const challenge = await nativeJson(challengeUrl.toString(), {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ wallet, action: "VIEW_ROUTE", mission_id: missionId }),
-    });
-    const challengeId = challenge?.challenge_id || challenge?.id;
-    const message = challenge?.message || challenge?.canonical_message;
-    if (!challengeId || !message) throw new Error("VIEW_ROUTE_CHALLENGE_CONTRACT_MISMATCH");
-
-    const signed = await nimiq.sign(message);
-    const viewUrl = new URL(`/missions/${encodeURIComponent(missionId)}/view`, requestUrl.origin);
-    const view = await nativeJson(viewUrl.toString(), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "Idempotency-Key": randomToken("view"),
-      },
-      body: JSON.stringify({
-        challenge_id: challengeId,
-        public_key: signed.publicKey,
-        signature: signed.signature,
-      }),
-    });
-    if (!view?.view_token) throw new Error("VIEW_ROUTE_CAPABILITY_CONTRACT_MISMATCH");
-    storeViewToken(missionId, view.view_token);
-
-    // Keep the accepted bridge in the real product flow. The newly minted token
-    // authorizes this participant to follow the mission while custody remains
-    // with the previous holder until independent FINAL.
+    storeViewToken(missionId, token);
     setTimeout(() => {
       if (/^\/i\//.test(location.pathname)) {
         history.pushState({}, "", `/mission/${encodeURIComponent(missionId)}`);
@@ -315,11 +286,12 @@ import { getNimiqProvider } from "/nimiq-provider.js";
 
     if (response.ok && acceptanceContext) {
       try {
-        await mintRouteViewAfterAcceptance(requestUrl, acceptanceContext, payload);
+        await activateBridgeContinuationAfterAcceptance(acceptanceContext, payload);
       } catch (error) {
-        // Acceptance itself already succeeded. Do not lie or replay it; leave the
-        // participant on the invite screen and fail closed for later route reads.
-        console.warn("NimCarry route-view capability mint after acceptance failed", error);
+        // Acceptance itself already succeeded. Do not replay it. Profile-backed
+        // mission reads remain a safe fallback if the browser continuation token
+        // cannot be stored.
+        console.warn("NimCarry bridge continuation after acceptance failed", error);
       }
     }
 

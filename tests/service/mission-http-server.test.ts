@@ -181,6 +181,18 @@ describe("Reach Mission HTTP bindings", () => {
     }, { "Idempotency-Key": "accept-e2e" });
     expect(acceptRes.status).toBe(200);
     expect(acceptRes.body.status).toBe("ACCEPTED");
+    expect(acceptRes.body.view_token).toMatch(/^[A-Za-z0-9_-]{32,}$/);
+    expect(new Date(acceptRes.body.view_token_expires_at).getTime()).toBeGreaterThan(Date.now());
+
+    const bridgeView = await request("GET", `/missions/${missionId}`, undefined, {
+      Authorization: `Bearer ${acceptRes.body.view_token}`,
+    });
+    expect(bridgeView.status).toBe(200);
+    // This end-to-end fixture deliberately uses the target wallet as the first
+    // recipient, so TARGET wins the viewer-role precedence. The assertion here
+    // is that the accept response's capability immediately authorizes the same
+    // verified wallet to read the mission without a second VIEW_ROUTE signature.
+    expect(["INVITEE", "TARGET"]).toContain(bridgeView.body.viewer_role);
 
     const passCh = await challenge(creator.address, "AUTHORIZE_PASS", {
       mission_id: missionId,
