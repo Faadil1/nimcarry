@@ -79,10 +79,10 @@ function toRouteEntry(
         }
       : null,
     recipient: {
-      display_label: finalized && revealBridgeMarks && mission.targetWalletHmac
-        ? mission.targetLabel
-        : null,
-      wallet_fingerprint: walletFingerprint(hop.recipient),
+      display_label: finalized && revealBridgeMarks ? mission.targetLabel : null,
+      // The destination wallet is mission-private. Even after FINAL, bridges
+      // and route followers see the human target label, not David's address.
+      wallet_fingerprint: sameWallet(viewer, hop.recipient) ? walletFingerprint(hop.recipient) : "private",
       is_viewer: sameWallet(viewer, hop.recipient),
     },
     status: hop.status,
@@ -243,7 +243,10 @@ export function composeMissionView(input: {
     finalized_hop_count: input.mission.finalizedHopCount,
     current_holder: {
       display_label: currentHolderLabel(input.mission, viewerRole),
-      wallet_fingerprint: walletFingerprint(input.mission.currentHolderWalletNormalized),
+      wallet_fingerprint:
+        input.mission.status === "ARRIVED" && !viewerIsCurrentHolder
+          ? "private"
+          : walletFingerprint(input.mission.currentHolderWalletNormalized),
       is_viewer: viewerIsCurrentHolder,
     },
     invitation,
