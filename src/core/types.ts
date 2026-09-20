@@ -16,6 +16,8 @@ export type HopStatus = "PENDING" | "INCLUDED" | "FINAL" | "CANCELLED" | "INVALI
 export interface PassIntent {
   batonId: string;
   sequence: number; // expected next hop number
+  /** Mission invitation whose accepted bridge authorized this delivery. */
+  invitationId?: string | null;
   currentHolder: string; // wallet identity authorized to make this pass
   recipient: string; // intended next holder
   /**
@@ -38,6 +40,8 @@ export interface PassIntent {
 export interface Hop {
   batonId: string;
   sequence: number;
+  /** Durable provenance link to the bridge invitation for this delivery. */
+  invitationId?: string | null;
   currentHolder: string;
   recipient: string;
   nonce: string;
