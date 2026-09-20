@@ -181,6 +181,15 @@ describe("Reach Mission HTTP bindings", () => {
     }, { "Idempotency-Key": "accept-e2e" });
     expect(acceptRes.status).toBe(200);
     expect(acceptRes.body.status).toBe("ACCEPTED");
+    expect(acceptRes.body.view_token).toMatch(/^[A-Za-z0-9_-]{32,}$/);
+    expect(new Date(acceptRes.body.view_token_expires_at).getTime()).toBeGreaterThan(Date.now());
+
+    const bridgeView = await request("GET", `/missions/${missionId}`, undefined, {
+      Authorization: `Bearer ${acceptRes.body.view_token}`,
+    });
+    expect(bridgeView.status).toBe(200);
+    expect(bridgeView.body.viewer_role).toBe("INVITEE");
+    expect(bridgeView.body.primary_action).toBe("WAIT");
 
     const passCh = await challenge(creator.address, "AUTHORIZE_PASS", {
       mission_id: missionId,
