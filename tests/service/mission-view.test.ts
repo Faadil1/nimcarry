@@ -75,7 +75,7 @@ describe("mission primary action for accepted pass intents", () => {
       protector,
       viewer: A,
       hasActiveIntent: false,
-      finalizedBridgeMarks: { 1: "Bridge B" },
+      finalizedBridgeMarks: { 1: { label: "Bridge B", wallet: B } },
       now: 1,
     });
     expect(pendingView.route[0].bridge?.display_label).toBeNull();
@@ -101,7 +101,7 @@ describe("mission primary action for accepted pass intents", () => {
       protector,
       viewer: stranger,
       hasActiveIntent: false,
-      finalizedBridgeMarks: { 1: "Bridge B" },
+      finalizedBridgeMarks: { 1: { label: "Bridge B", wallet: B } },
       now: 1,
     });
     expect(publicStyleView.viewer_role).toBe("UNLISTED_VIEWER");
