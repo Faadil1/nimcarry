@@ -122,6 +122,8 @@ export class FileMissionRepository implements MissionRepository {
       mission.status = "CANCELLED";
       mission.cancelledAt = now;
       mission.updatedAt = now;
+      const claim = (this.state.destinationClaims ?? []).find((item) => item.missionId === id && item.status === "PENDING");
+      if (claim) claim.status = "CANCELLED";
       this.persist();
       return clone(mission);
     });
