@@ -764,18 +764,26 @@ async function buildMissionView(
   resolution: ViewerResolution
 ): Promise<MissionView> {
   const record = await deps.missions.getMissionRecord(missionId);
+  const route = deps.relay.getHistory(missionId);
   let invitation = await deps.repository.getOpenInvitation(missionId);
   const viewerIsRecoveryHolder = resolution.viewer !== null && (
     resolution.viewer === record.creatorWalletNormalized || resolution.viewer === record.currentHolderWalletNormalized
   );
-  if (invitation === undefined && record.status === "ARRIVED" && record.currentSequence > 0) {
-    // Preserve the completed bridge's identity/continuity after direct arrival.
-    // composeMissionView still redacts invitation details for unrelated viewers.
-    invitation = await deps.repository.getInvitationForSequence(missionId, record.currentSequence);
-  } else if (invitation === undefined && viewerIsRecoveryHolder) {
-    invitation = await deps.repository.getInvitationForSequence(missionId, record.currentSequence + 1);
+  if (invitation === undefined) {
+    const lastFinalSequence = route.reduce(
+      (latest, hop) => hop.status === "CONFIRMED" && hop.confirmed_at !== null ? Math.max(latest, hop.sequence) : latest,
+      0
+    );
+    const historicalSequence = Math.max(record.currentSequence, lastFinalSequence);
+    if (historicalSequence > 0) {
+      // Completed invitation context is safe to load here because
+      // composeMissionView redacts it for unrelated viewers. Keeping it in the
+      // view model lets the accepted bridge remain a PARTICIPANT after ARRIVED.
+      invitation = await deps.repository.getInvitationForSequence(missionId, historicalSequence);
+    } else if (viewerIsRecoveryHolder) {
+      invitation = await deps.repository.getInvitationForSequence(missionId, record.currentSequence + 1);
+    }
   }
-  const route = deps.relay.getHistory(missionId);
   const finalizedBridgeMarks: Record<number, { label: string | null; wallet: string | null }> = {};
   await Promise.all(
     route
