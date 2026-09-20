@@ -1,3 +1,11 @@
+## 2026-09-20 — Accepted-invite replay + profile-backed mission reads
+
+- Reopening an already accepted private invitation no longer renders the accept ceremony or throws `INVITATION_NOT_INVITED`; the same bridge sees a clear “already accepted” state instead.
+- Repeating the signed acceptance from the same wallet is idempotent and returns the existing accepted invitation.
+- Logged-in NimCarry profiles with a verified wallet participating in a mission can recover read-only mission access when a process-local route-view token disappears after a runtime restart.
+- Profile-backed read recovery prioritizes the current-holder wallet, then the creator wallet, then other linked participant wallets; it does not grant mutation or custody authority and does not accept unrelated profiles.
+- Cross-mission bearer-token mismatches still fail closed and do not fall back to profile access.
+
 ## 2026-09-20 — Expired pass-window UX hardening
 
 - Treat an already accepted invitation whose pass deadline elapsed as `PASS_DEADLINE_EXPIRED` instead of the misleading generic `INVITATION_NOT_ACCEPTED`.

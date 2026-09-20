@@ -285,6 +285,16 @@ export class ReachMissionService {
       sequence: invitation.sequence,
     });
     const wallet = normalizeNimiqAddress(input.auth.wallet);
+    if (
+      invitation.status === "ACCEPTED" &&
+      invitation.candidateWalletNormalized !== null &&
+      normalizeNimiqAddress(invitation.candidateWalletNormalized) === wallet
+    ) {
+      // Reopening the same invite link after a successful acceptance is a
+      // harmless replay from the same bridge. Treat it as idempotent instead of
+      // surfacing INVITATION_NOT_INVITED to a user who already consented.
+      return toPublicInvitation(invitation);
+    }
     if (this.routeWalletGuard(invitation.missionId, wallet)) {
       throw new MissionValidationError("ROUTE_WALLET_REUSE", "A finalized route participant cannot re-enter the same mission");
     }
