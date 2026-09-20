@@ -147,6 +147,20 @@ try {
       /wallets\.map\(\(wallet\)/.test(userProfileAsset?.text || ""),
     "verified profiles must be able to add and display more than one Nimiq wallet"
   );
+  record(
+    "profile-single-render-contract",
+    /refreshPromise/.test(userProfileAsset?.text || "") &&
+      /forcedRefreshPending/.test(userProfileAsset?.text || "") &&
+      /querySelectorAll/.test(userProfileAsset?.text || ""),
+    "profile rendering must serialize async refreshes and dedupe repeated cards"
+  );
+  record(
+    "profile-basic-wallet-only-contract",
+    /classifyNimiqAccounts/.test(userProfileAsset?.text || "") &&
+      /isBasicNimiqAccountType/.test(userProfileAsset?.text || "") &&
+      /HTLC payment rails are hidden/.test(userProfileAsset?.text || ""),
+    "profile linking must hide technical HTLC rails and offer only basic wallet identities"
+  );
 
   let appAsset = null;
   let appAssetAttempt = 0;
@@ -158,7 +172,9 @@ try {
       /PAYMENT_SOURCE_UNVERIFIED/.test(appAsset.text) &&
       /authorized_payment_wallets/.test(appAsset.text) &&
       /X-NimCarry-User-Token/.test(appAsset.text) &&
-      /sameOriginApi/.test(appAsset.text)
+      /sameOriginApi/.test(appAsset.text) &&
+      /classifyNimiqAccounts/.test(appAsset.text) &&
+      /verified_htlc_rail_count/.test(appAsset.text)
     ) break;
     if (appAssetAttempt < 12) {
       console.log(`WAIT ${base}/app.js — verified multiwallet payment guard not promoted yet (attempt ${appAssetAttempt}/12)`);
@@ -172,8 +188,39 @@ try {
       /PAYMENT_SOURCE_UNVERIFIED/.test(appAsset?.text || "") &&
       /authorized_payment_wallets/.test(appAsset?.text || "") &&
       /X-NimCarry-User-Token/.test(appAsset?.text || "") &&
-      /sameOriginApi/.test(appAsset?.text || ""),
-    appAsset ? `${appAsset.response.status} in ${appAsset.ms}ms (attempt ${appAssetAttempt}) — multiple payment accounts are allowed only when frozen into the verified same-profile pass snapshot` : "no response"
+      /sameOriginApi/.test(appAsset?.text || "") &&
+      /classifyNimiqAccounts/.test(appAsset?.text || "") &&
+      /verified_htlc_rail_count/.test(appAsset?.text || ""),
+    appAsset ? `${appAsset.response.status} in ${appAsset.ms}ms (attempt ${appAssetAttempt}) — verified basic wallets are snapshotted while their independently classified HTLC rails remain technical payment rails` : "no response"
+  );
+
+  const providerAsset = await get("/nimiq-provider.js");
+  record(
+    "account-classification-client-contract",
+    providerAsset.response.ok &&
+      /\/network\/account-types/.test(providerAsset.text) &&
+      /classifyNimiqAccounts/.test(providerAsset.text) &&
+      /isHtlcNimiqAccountType/.test(providerAsset.text),
+    "browser account classification must be same-origin and distinguish basic identities from HTLC rails"
+  );
+
+  const accountTypeProbe = await postJson("/network/account-types", { addresses: [] });
+  record(
+    "account-classification-endpoint-contract",
+    accountTypeProbe.response.status === 400 &&
+      accountTypeProbe.payload?.error === "INVALID_ADDRESSES" &&
+      accountTypeProbe.payload?.writes_performed !== true,
+    `${accountTypeProbe.response.status} in ${accountTypeProbe.ms}ms — read-only account classifier must reject malformed probes without writes`
+  );
+
+  const recoveryAsset = await get("/route-access-recovery.js");
+  record(
+    "recovery-home-and-basic-identity-contract",
+    recoveryAsset.response.ok &&
+      /cancel\.href = "\/"/.test(recoveryAsset.text) &&
+      /classifyNimiqAccounts/.test(recoveryAsset.text) &&
+      /isBasicNimiqAccountType/.test(recoveryAsset.text),
+    "recovery must return to Mission Home explicitly and never offer HTLC rails as mission identities"
   );
 
   const authRequestProbe = await postJson("/users/auth/request", { email: "nimcarry-smoke-missing@example.invalid" });
