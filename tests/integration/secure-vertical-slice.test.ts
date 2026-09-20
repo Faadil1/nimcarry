@@ -261,6 +261,9 @@ describe("secure shared vertical slice", () => {
     expect(bridgeView.body.viewer_role).toBe("PARTICIPANT");
     expect(bridgeView.body.status).toBe("ARRIVED");
     expect(bridgeView.body.route).toHaveLength(1);
+    expect(bridgeView.body.route[0].status).toBe("CONFIRMED");
+    expect(bridgeView.body.route[0].confirmed_at).toBeTruthy();
+    expect(bridgeView.body.route[0].bridge).not.toBeNull();
     expect(bridgeView.body.route[0].bridge.display_label).toBe("Bridge B");
     expect(bridgeView.body.route[0].recipient.display_label).toBe("Destination C");
     expect(bridgeView.body.route[0].recipient.wallet_fingerprint).toBe("private");
