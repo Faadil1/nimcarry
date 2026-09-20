@@ -124,6 +124,18 @@
       };
     }
 
+    if (/load failed|failed to fetch|network request failed|connection.*lost|offline/.test(lower) && onPass) {
+      return {
+        kind: "pending",
+        eyebrow: "Verification connection interrupted",
+        title: "The transaction is already claimed. Do not resend it.",
+        body: "The independent FINAL check briefly lost its connection. NimCarry keeps the recorded handoff locked and will retry verification; custody stays with the last verified holder until FINAL.",
+        primary: ["Check verified route", routePath()],
+        secondary: ["Back to mission", missionPath()],
+        rule: "Network read failure ≠ failed payment · never duplicate the baton",
+      };
+    }
+
     if (/verification_still_pending|verification delayed|still pending/.test(lower)) {
       return {
         kind: "pending",
