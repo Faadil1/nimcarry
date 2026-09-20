@@ -7,12 +7,13 @@ This file is intentionally operational. A new conversation should be able to rea
 
 ## 1. Current baseline
 
-Current main baseline before this workstream:
+Current main baseline:
 
-- SHA: `35695fd0dbf67fae5eb28da01e446de878054a66`
-- Product behavior: one-time human bridge; sender pays the target directly.
-- Canonical Human-Resolved Delivery state and the durable handover system are already on main.
-- The prior custody-chain model is obsolete.
+- SHA: `5d31d5bf3234f267a55aee5e3f5435165b9478aa`
+- PR #114 **Move FINAL reconciliation into the background** is merged.
+- Main checks after merge: CI #1494 **SUCCESS**, Judge Full Flow #195 **SUCCESS**, Judge Window #80 **SUCCESS**.
+- Product behavior: one-time human bridge; sender pays the target directly; long-running FINAL reconciliation is server-owned.
+- The prior custody-chain model and manual-recheck happy path are obsolete.
 
 Latest live test completed successfully:
 
@@ -49,7 +50,7 @@ Implemented in the code branch for this handover:
 - while open, Mission Home watches the sender's accepted/pending state and reflects ARRIVED when the backend advances;
 - retries remain read/reconcile operations only and never authorize or send a second payment.
 
-Status: **implemented, CI/live validation still required before calling this production-proven.**
+Status: **merged with CI/Judge gates green; real close/reopen TESTNET validation is still required before calling this production-proven.**
 
 Required live validation:
 
@@ -139,11 +140,13 @@ Do not add public destination requests, bridge search, bounty routing, reputatio
 
 ## 6. Immediate next implementation sequence
 
-1. **Automatic reconciliation — implemented, awaiting live validation**
+1. **Automatic reconciliation — merged, awaiting live validation**
+   - PR #114 merged as `5d31d5bf3234f267a55aee5e3f5435165b9478aa`.
+   - Main CI, Judge Full Flow, and Judge Window are green.
    - Server-side maintenance now reconciles unresolved active intents.
    - Browser no longer owns the long-running finality wait.
    - Manual recheck is removed from the current happy path.
-   - CI must pass, then validate with a real close/reopen TESTNET run before promoting this as production-proven.
+   - Next proof gate is a real close/reopen TESTNET run; do not call it production-proven before that test.
 
 2. **Destination Claim experiment — next implementation workstream**
    - No on-chain escrow dependency.
