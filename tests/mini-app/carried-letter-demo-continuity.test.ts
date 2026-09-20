@@ -28,10 +28,10 @@ describe("NimCarry V2 guided-demo continuity", () => {
   });
 
   it("proves a browser refresh cannot silently turn practice into real mode", () => {
-    expect(smoke).toContain('activeStep = "refresh-route-after-first-final"');
+    expect(smoke).toContain('activeStep = "refresh-arrived-direct-route"');
     expect(smoke).toContain('await page.reload({ waitUntil: "networkidle"');
     expect(smoke).toContain('beforeRefresh.searchParams.get("demo") !== "1"');
     expect(smoke).toContain('afterRefresh.searchParams.get("tour") !== "1"');
-    expect(smoke).toContain("refresh-preserved-practice-context");
+    expect(smoke).toContain("refresh-preserved-direct-arrival");
   });
 });
