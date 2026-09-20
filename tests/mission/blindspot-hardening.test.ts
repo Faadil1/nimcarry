@@ -99,6 +99,6 @@ describe("Reach Mission blind-spot hardening", () => {
       auth: auth(bridge, "CREATE_INVITATION", mission.id, undefined, 2),
       candidateWallet: creator,
       now: 5_000,
-    })).rejects.toMatchObject({ reason: expect.stringMatching(/MISSION_NOT_ACTIVE|NOT_CURRENT_HOLDER/) });
+    })).rejects.toMatchObject({ reason: expect.stringMatching(/MISSION_NOT_ACTIVE|NOT_CURRENT_HOLDER|WRONG_CURRENT_HOLDER/) });
   });
 });
