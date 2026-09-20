@@ -13,7 +13,7 @@ const css = readFileSync("web/carried-letter-v2.css", "utf8");
 describe("NimCarry V2 finalized carrier provenance", () => {
   it("sources historical marks from completed invitation truth", () => {
     expect(httpServer).toContain('hop.status === "CONFIRMED"');
-    expect(httpServer).toContain('historicalInvitation?.status === "COMPLETED"');
+    expect(httpServer).toContain("finalizedBridgeMarks[hop.sequence] = historicalInvitation");
     expect(httpServer).toContain("historicalInvitation.candidateDisplayLabel");
   });
 
