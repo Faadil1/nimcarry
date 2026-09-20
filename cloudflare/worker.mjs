@@ -33,6 +33,32 @@ function normalizeAccountType(value) {
   return type || "unknown";
 }
 
+function rpcFieldKey(value) {
+  return String(value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function deepRpcField(root, names, maxDepth = 4) {
+  const wanted = new Set(names.map(rpcFieldKey));
+  const queue = [{ value: root, depth: 0 }];
+  const seen = new Set();
+  while (queue.length) {
+    const current = queue.shift();
+    const value = current?.value;
+    const depth = current?.depth ?? 0;
+    if (!value || typeof value !== "object" || seen.has(value)) continue;
+    seen.add(value);
+
+    for (const [key, child] of Object.entries(value)) {
+      if (wanted.has(rpcFieldKey(key)) && child !== undefined && child !== null) return child;
+    }
+    if (depth >= maxDepth) continue;
+    for (const child of Object.values(value)) {
+      if (child && typeof child === "object") queue.push({ value: child, depth: depth + 1 });
+    }
+  }
+  return undefined;
+}
+
 function configuredTestnetRpcUrls(env) {
   const raw = String(env.NIMIQ_RPC_URLS || env.NIMIQ_RPC_URL || DEFAULT_TESTNET_RPC_URL);
   const urls = raw
@@ -104,14 +130,17 @@ async function rpcAccountByAddress(rpcUrl, address) {
     if (!raw || typeof raw !== "object") {
       return { address, type: "unknown", sender: null };
     }
-    const extra = raw.accountAdditionalFields && typeof raw.accountAdditionalFields === "object"
-      ? raw.accountAdditionalFields
-      : raw;
-    const senderRaw = raw.sender ?? extra.sender ?? raw.senderAddress ?? extra.senderAddress ?? null;
+    const typeRaw = deepRpcField(raw, ["type", "accountType"]);
+    const senderRaw = deepRpcField(raw, ["sender", "senderAddress", "htlcSender"]);
+    const recipientRaw = deepRpcField(raw, ["recipient", "recipientAddress", "htlcRecipient"]);
+    const totalAmountRaw = deepRpcField(raw, ["totalAmount", "total_amount", "htlcTotalAmount"]);
+    const totalAmount = Number(totalAmountRaw);
     return {
       address,
-      type: normalizeAccountType(raw.type ?? extra.type),
+      type: normalizeAccountType(typeRaw),
       sender: senderRaw ? normalizeNimiqAddress(senderRaw) : null,
+      recipient: recipientRaw ? normalizeNimiqAddress(recipientRaw) : null,
+      total_amount: Number.isFinite(totalAmount) && totalAmount > 0 ? totalAmount : null,
     };
   } finally {
     clearTimeout(timeout);

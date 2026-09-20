@@ -1,3 +1,11 @@
+## 2026-09-20 — HTLC sender-linkage normalization
+
+- Harden Nimiq RPC account parsing for public-node response variants where HTLC metadata is nested.
+- Resolve `sender`, `recipient`, and `totalAmount` recursively through bounded account metadata layers.
+- Apply the same normalization in the Cloudflare payment preflight and backend FINAL verifier.
+- Keep the payment guard fail-closed; unresolved or non-authorized HTLC senders are still rejected before the 1 NIM request.
+- Surface only a short sender fingerprint in the technical error path to distinguish “unresolved sender” from “sender not in snapshot”.
+
 ## 2026-09-20 — Nimiq Pay HTLC + recovery/profile UX hardening
 
 - Classify Nimiq Pay-exposed TESTNET accounts independently before payment.
