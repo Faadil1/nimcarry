@@ -331,19 +331,20 @@ describe("PgMissionRepository", () => {
       });
     });
 
-    it("does not mark ARRIVED when recipient HMAC differs from target", async () => {
+    it("rejects FINAL projection when recipient HMAC differs from target", async () => {
       const { mission, acceptedInv, candidate } = await acceptedMission();
-      const result = await repo.completeFinalHop({
+      await expect(repo.completeFinalHop({
         missionId: mission.id,
         invitationId: acceptedInv.id,
         sequence: 1,
         recipientWallet: candidate,
         recipientHmac: "different-hmac",
         now: 6000,
-      });
-      expect(result.mission.status).toBe("ACTIVE");
-      expect(result.mission.finalizedHopCount).toBe(1);
-      expect(result.mission.currentSequence).toBe(1);
+      })).rejects.toMatchObject({ reason: "WRONG_FINAL_RECIPIENT" });
+      const unchanged = await repo.getMission(mission.id);
+      expect(unchanged?.status).toBe("ACTIVE");
+      expect(unchanged?.finalizedHopCount).toBe(0);
+      expect(unchanged?.currentSequence).toBe(0);
     });
 
     it("is idempotent for double-completion of the same hop", async () => {
