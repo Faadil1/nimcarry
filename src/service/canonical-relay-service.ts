@@ -81,6 +81,27 @@ export class CanonicalRelayService {
     return this.store.getActiveIntent(batonId) ?? null;
   }
 
+  /**
+   * Active relay intents that still need independent chain reconciliation.
+   *
+   * FINAL removes the active intent from the canonical store, while INVALID
+   * hops are deliberately excluded so a bad observation does not create an
+   * endless background retry loop. Intents with no recorded hash are included:
+   * reconcile() may independently discover an exact matching broadcast from
+   * the committed recipient-data tag.
+   */
+  getPendingReconciliationBatonIds(): string[] {
+    const snapshot = this.store.snapshot();
+    return snapshot.intents
+      .filter((intent) => {
+        const hop = snapshot.hops.find(
+          (candidate) => candidate.batonId === intent.batonId && candidate.sequence === intent.sequence
+        );
+        return !hop || hop.status === "PENDING" || hop.status === "INCLUDED";
+      })
+      .map((intent) => intent.batonId);
+  }
+
   hasRecordedBroadcast(batonId: string): boolean {
     const intent = this.store.getActiveIntent(batonId);
     if (!intent) return false;
