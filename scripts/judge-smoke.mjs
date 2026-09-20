@@ -178,7 +178,8 @@ try {
       /sameOriginApi/.test(appAsset.text) &&
       /classifyNimiqAccounts/.test(appAsset.text) &&
       /verified_htlc_rail_count/.test(appAsset.text) &&
-      /sender=/.test(appAsset.text)
+      /sender=/.test(appAsset.text) &&
+      /replace\(\/\\s\+\/g, ""\)\.toUpperCase\(\)/.test(appAsset.text)
     ) break;
     if (appAssetAttempt < 12) {
       console.log(`WAIT ${base}/app.js — verified multiwallet payment guard not promoted yet (attempt ${appAssetAttempt}/12)`);
@@ -195,7 +196,8 @@ try {
       /sameOriginApi/.test(appAsset?.text || "") &&
       /classifyNimiqAccounts/.test(appAsset?.text || "") &&
       /verified_htlc_rail_count/.test(appAsset?.text || "") &&
-      /sender=/.test(appAsset?.text || ""),
+      /sender=/.test(appAsset?.text || "") &&
+      /replace\(\/\\s\+\/g, ""\)\.toUpperCase\(\)/.test(appAsset?.text || ""),
     appAsset ? `${appAsset.response.status} in ${appAsset.ms}ms (attempt ${appAssetAttempt}) — verified basic wallets are snapshotted while their independently classified HTLC rails remain technical payment rails` : "no response"
   );
 
