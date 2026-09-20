@@ -1,4 +1,4 @@
-import { getNimiqProvider } from "/nimiq-provider.js";
+import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType } from "/nimiq-provider.js";
 
 (() => {
   "use strict";
@@ -10,6 +10,8 @@ import { getNimiqProvider } from "/nimiq-provider.js";
   let cachedProfile = null;
   let loading = false;
   let loginChallengeId = null;
+  let refreshPromise = null;
+  let forcedRefreshPending = false;
 
   const esc = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;",
@@ -338,9 +340,17 @@ import { getNimiqProvider } from "/nimiq-provider.js";
   }
 
   async function chooseWallet(nimiq) {
-    const accounts = await nimiq.listAccounts();
-    if (!Array.isArray(accounts) || accounts.length === 0) {
+    const exposedAccounts = await nimiq.listAccounts();
+    if (!Array.isArray(exposedAccounts) || exposedAccounts.length === 0) {
       throw new Error("No Nimiq wallet is available in Nimiq Pay yet.");
+    }
+
+    const classified = await classifyNimiqAccounts(exposedAccounts);
+    const accounts = classified
+      .filter((account) => isBasicNimiqAccountType(account.type))
+      .map((account) => account.address);
+    if (accounts.length === 0) {
+      throw new Error("Nimiq Pay exposed no basic wallet identity. HTLC payment rails cannot be linked as NimCarry profile wallets.");
     }
     if (accounts.length === 1) return accounts[0];
 
@@ -354,11 +364,12 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     picker.className = "card";
     picker.style.marginTop = "12px";
     picker.innerHTML = `
-      <label>Choose wallet
+      <label>Choose basic wallet identity
         <select id="nimcarry-wallet-select">
           ${accounts.map((wallet) => `<option value="${esc(wallet)}">${esc(wallet.slice(0, 7))}…${esc(wallet.slice(-5))}</option>`).join("")}
         </select>
       </label>
+      <small>HTLC payment rails are hidden here because they are not human wallet identities.</small>
       <button id="nimcarry-wallet-confirm" class="button secondary" type="button">Verify this wallet</button>
     `;
     host.appendChild(picker);
@@ -445,15 +456,39 @@ import { getNimiqProvider } from "/nimiq-provider.js";
   }
 
   async function refresh(force = false) {
-    const host = profileHost();
-    if (!host) return;
-    const existing = document.querySelector(`#${PROFILE_ID}`);
-    if (existing && !force) return;
-    existing?.remove();
-    const profile = await loadProfile();
-    if (!document.contains(host)) return;
-    if (profile) renderProfile(host, profile);
-    else renderLoggedOut(host);
+    if (refreshPromise) {
+      if (force) forcedRefreshPending = true;
+      return refreshPromise;
+    }
+
+    refreshPromise = (async () => {
+      const host = profileHost();
+      if (!host) return;
+
+      const existing = [...host.querySelectorAll(`#${PROFILE_ID}`)];
+      if (existing.length === 1 && !force) return;
+      existing.forEach((card) => card.remove());
+
+      const profile = await loadProfile();
+      if (!document.contains(host) || profileHost() !== host) return;
+
+      // A MutationObserver can fire while an async profile read is pending.
+      // Re-dedupe immediately before render so one host can never accumulate
+      // repeated profile cards.
+      [...host.querySelectorAll(`#${PROFILE_ID}`)].forEach((card) => card.remove());
+      if (profile) renderProfile(host, profile);
+      else renderLoggedOut(host);
+    })();
+
+    try {
+      await refreshPromise;
+    } finally {
+      refreshPromise = null;
+      if (forcedRefreshPending) {
+        forcedRefreshPending = false;
+        queueMicrotask(() => void refresh(true));
+      }
+    }
   }
 
   const observer = new MutationObserver(() => void refresh());
