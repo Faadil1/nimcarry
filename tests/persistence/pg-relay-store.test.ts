@@ -179,6 +179,53 @@ describe("PgRelayStore", () => {
     expect(hops[0].value).toBe(ONE_NIM_IN_LUNA);
   });
 
+  it("ignores orphaned in-memory relay rows after an administrative mission deletion", async () => {
+    const { mission: removed, creator: removedCreator, candidate: removedCandidate } = await seededMission();
+    const relay = await PgRelayStore.load(pool);
+    const removedIntent = relay.createIntent(
+      removed.id,
+      normalizeNimiqAddress(removedCreator),
+      normalizeNimiqAddress(removedCandidate),
+      { requireOpaqueTag: true }
+    );
+    relay.recordHop({
+      batonId: removed.id,
+      sequence: removedIntent.sequence,
+      currentHolder: removedIntent.currentHolder,
+      recipient: removedIntent.recipient,
+      nonce: removedIntent.nonce,
+      txHash: "dd".repeat(32),
+      value: ONE_NIM_IN_LUNA,
+      status: "FINAL",
+      createdAt: removedIntent.createdAt,
+      confirmedAt: Date.now(),
+    });
+    await relay.flush();
+
+    // pg-mem does not reproduce every production ON DELETE CASCADE edge, so
+    // model the administrative cleanup explicitly while deliberately keeping
+    // this already-loaded relay instance stale in memory.
+    await pool.query("DELETE FROM hops WHERE mission_id = $1", [removed.id]);
+    await pool.query("DELETE FROM pass_intents WHERE mission_id = $1", [removed.id]);
+    await pool.query("DELETE FROM invitations WHERE mission_id = $1", [removed.id]);
+    await pool.query("DELETE FROM missions WHERE id = $1", [removed.id]);
+
+    const { mission: live, creator: liveCreator, candidate: liveCandidate } = await seededMission();
+    const liveIntent = relay.createIntent(
+      live.id,
+      normalizeNimiqAddress(liveCreator),
+      normalizeNimiqAddress(liveCandidate),
+      { requireOpaqueTag: true }
+    );
+    await relay.flush();
+
+    const row = await pool.query<{ mission_id: string; nonce: string }>(
+      "SELECT mission_id, nonce FROM pass_intents WHERE mission_id = $1",
+      [live.id]
+    );
+    expect(row.rows).toEqual([{ mission_id: live.id, nonce: liveIntent.nonce }]);
+  });
+
   it("rejects duplicate tx hash at DB level across different batons (defense-in-depth)", async () => {
     const { mission: m1, creator: c1 } = await seededMission();
     const { mission: m2, creator: c2 } = await seededMission();

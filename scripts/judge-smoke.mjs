@@ -211,8 +211,10 @@ try {
     providerAsset.response.ok &&
       /\/network\/account-types/.test(providerAsset.text) &&
       /classifyNimiqAccounts/.test(providerAsset.text) &&
-      /isHtlcNimiqAccountType/.test(providerAsset.text),
-    "browser account classification must be same-origin and distinguish basic identities from HTLC rails"
+      /isHtlcNimiqAccountType/.test(providerAsset.text) &&
+      /extractProviderTxHash/.test(providerAsset.text) &&
+      /NIMIQ_PAY_SEND_AMBIGUOUS_RESULT/.test(providerAsset.text),
+    "browser account classification must be same-origin, distinguish HTLC rails, and normalize only provable provider transaction hashes"
   );
 
   const accountTypeProbe = await postJson("/network/account-types", { addresses: [] });

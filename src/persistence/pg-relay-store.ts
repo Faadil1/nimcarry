@@ -100,28 +100,44 @@ export class PgRelayStore extends RelayStore {
   }
 
   private queue: Promise<void> = Promise.resolve();
+  private flushQueue: Promise<void> = Promise.resolve();
   private persistError: Error | null = null;
 
   private enqueue(snapshot: RelayStoreSnapshot): void {
     const next = this.queue.then(() => this.writeSnapshot(snapshot));
-    // Keep the queue resolvable so later writes still run; surface the first
-    // failure through flush() instead of becoming an unhandled rejection.
+    // Keep the write queue resolvable so later writes can still run. A failed
+    // snapshot stays marked dirty until a serialized flush retries the latest
+    // state successfully; this prevents a later request from acknowledging a
+    // process-local intent that never became durable.
     const settled = next.catch((error) => {
       this.persistError = this.persistError ?? (error as Error);
     });
     this.queue = settled;
   }
 
+  private async flushDurably(): Promise<void> {
+    await this.queue;
+    if (!this.persistError) return;
+
+    // Retry the latest full snapshot once. The previous implementation cleared
+    // persistError before returning it to the caller, which meant a second
+    // AUTHORIZE_PASS could reuse the in-memory intent and appear successful
+    // without ever writing pass_intents to Postgres.
+    this.persistError = null;
+    this.enqueue(this.snapshot());
+    await this.queue;
+    if (this.persistError) throw this.persistError;
+  }
+
   /**
-   * Wait for every queued write to settle and rethrow the first persistence
-   * failure. Callers that require durability (or want to assert DB-level
-   * rejects) await this after the synchronous mutation.
+   * Serialize durability barriers. Concurrent requests must not race on
+   * persistError: either the latest snapshot is durable or every caller sees
+   * the persistence failure.
    */
   async flush(): Promise<void> {
-    await this.queue;
-    const error = this.persistError;
-    this.persistError = null;
-    if (error) throw error;
+    const run = this.flushQueue.then(() => this.flushDurably());
+    this.flushQueue = run.catch(() => undefined);
+    return run;
   }
 
   private async writeSnapshot(snapshot: RelayStoreSnapshot): Promise<void> {
@@ -129,8 +145,15 @@ export class PgRelayStore extends RelayStore {
     try {
       await client.query("BEGIN");
       try {
+        // A mission can be removed administratively while a long-lived
+        // container still has its old relay snapshot in memory. Never let
+        // those orphaned rows poison persistence for a newer mission (or
+        // resurrect deleted missions through FK failures).
+        const liveMissionRows = await client.query<{ id: string }>("SELECT id FROM missions");
+        const liveMissionIds = new Set(liveMissionRows.rows.map((row) => row.id));
+
         for (const intent of snapshot.intents) {
-          if (intent.recipientData === null) continue;
+          if (!liveMissionIds.has(intent.batonId) || intent.recipientData === null) continue;
           await client.query(
             `INSERT INTO pass_intents
               (mission_id, invitation_id, sequence, current_holder_wallet_normalized,
@@ -163,6 +186,7 @@ export class PgRelayStore extends RelayStore {
         // global_tx_hash_replay_guard also protects against a different
         // store instance recording the same tx hash.
         for (const hop of snapshot.hops) {
+          if (!liveMissionIds.has(hop.batonId)) continue;
           await client.query(
             `INSERT INTO hops
               (id, mission_id, invitation_id, sequence, sender_wallet_normalized,

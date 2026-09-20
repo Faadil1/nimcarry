@@ -34,6 +34,25 @@ function looksLikeTxHash(value) {
   return typeof value === "string" && /^[0-9a-f]{64}$/i.test(value);
 }
 
+export function extractProviderTxHash(value, depth = 0, seen = new Set()) {
+  if (looksLikeTxHash(value)) return String(value).toLowerCase();
+  if (!value || typeof value !== "object" || depth > 3 || seen.has(value)) return null;
+  seen.add(value);
+
+  const object = value;
+  const candidateKeys = ["hash", "txHash", "transactionHash", "result", "data", "transaction", "tx"];
+  const hashes = new Set();
+  for (const key of candidateKeys) {
+    if (!(key in object)) continue;
+    const candidate = extractProviderTxHash(object[key], depth + 1, seen);
+    if (candidate) hashes.add(candidate);
+  }
+  if (hashes.size > 1) {
+    throw new Error("NIMIQ_PAY_SEND_AMBIGUOUS_RESULT: wallet returned more than one canonical transaction hash.");
+  }
+  return hashes.values().next().value ?? null;
+}
+
 export function nimiqAddressKey(value) {
   return String(value ?? "").replace(/\s+/g, "").toUpperCase();
 }
@@ -172,10 +191,12 @@ function wrapProvider(raw) {
             validityStartHeight,
           };
           const result = unwrap("SEND", await target.sendBasicTransactionWithData(request));
-          if (!looksLikeTxHash(result)) {
-            throw new Error("NIMIQ_PAY_SEND_UNEXPECTED_RESULT: wallet returned no canonical transaction hash.");
+          const txHash = extractProviderTxHash(result);
+          if (!txHash) {
+            const shape = result === null ? "null" : Array.isArray(result) ? "array" : typeof result;
+            throw new Error(`NIMIQ_PAY_SEND_UNEXPECTED_RESULT: wallet returned no canonical transaction hash (result shape: ${shape}).`);
           }
-          return result;
+          return txHash;
         };
       }
       const value = Reflect.get(target, property, receiver);
