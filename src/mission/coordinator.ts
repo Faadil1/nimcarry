@@ -55,9 +55,6 @@ export class ReachMissionCoordinator {
     if (invitation) {
       throw new MissionValidationError("INTRODUCTION_IN_PROGRESS", "Finish or close the active introduction before direct delivery");
     }
-    if (!mission.targetWalletCiphertext || !mission.targetWalletHmac || !mission.targetConsentConfirmed) {
-      throw new MissionValidationError("DESTINATION_UNRESOLVED", "Destination must bind a wallet before delivery can be authorized");
-    }
     const targetWallet = normalizeNimiqAddress(this.protector.decrypt(mission.targetWalletCiphertext));
     const existing = this.relay.getActiveIntent(mission.id);
     if (existing) {
@@ -143,6 +140,9 @@ export class ReachMissionCoordinator {
     // 1 NIM pass is addressed directly to the mission target. This keeps the
     // human route Creator → Bridge → Target while avoiding a second bridge-side
     // payment/selection step.
+    if (!mission.targetWalletCiphertext || !mission.targetWalletHmac || !mission.targetConsentConfirmed) {
+      throw new MissionValidationError("DESTINATION_UNRESOLVED", "Destination must bind a wallet before introduced delivery can be authorized");
+    }
     const targetWallet = normalizeNimiqAddress(this.protector.decrypt(mission.targetWalletCiphertext));
 
     const existing = this.relay.getActiveIntent(mission.id);
