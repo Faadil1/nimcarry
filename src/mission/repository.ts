@@ -12,6 +12,7 @@ export interface MissionRepository {
   getMission(id: string): Promise<MissionRecord | undefined>;
   cancelMissionPristine(id: string, signerWallet: string, now: number): Promise<MissionRecord>;
 
+  createMissionWithDestinationClaim(mission: MissionRecord, claim: DestinationClaimRecord): Promise<{ mission: MissionRecord; claim: DestinationClaimRecord }>;
   createDestinationClaim(record: DestinationClaimRecord): Promise<DestinationClaimRecord>;
   getDestinationClaimByTokenHash(tokenHash: string): Promise<DestinationClaimRecord | undefined>;
   getDestinationClaimForMission(missionId: string): Promise<DestinationClaimRecord | undefined>;
