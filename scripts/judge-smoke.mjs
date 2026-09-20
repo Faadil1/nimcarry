@@ -109,10 +109,13 @@ try {
       /Returning user/.test(userProfileAsset.text) &&
       /\/users\/auth\/request/.test(userProfileAsset.text) &&
       /\/users\/auth\/verify/.test(userProfileAsset.text) &&
-      /Add another Nimiq wallet/.test(userProfileAsset.text)
+      /Add another Nimiq wallet/.test(userProfileAsset.text) &&
+      /refreshPromise/.test(userProfileAsset.text) &&
+      /classifyNimiqAccounts/.test(userProfileAsset.text) &&
+      /isBasicNimiqAccountType/.test(userProfileAsset.text)
     ) break;
     if (profileAssetAttempt < 12) {
-      console.log(`WAIT ${base}/user-profile.js — returning-user asset not promoted yet (attempt ${profileAssetAttempt}/12)`);
+      console.log(`WAIT ${base}/user-profile.js — current profile/HTLC hardening asset not promoted yet (attempt ${profileAssetAttempt}/12)`);
       await sleep(10000);
     }
   }
