@@ -1,3 +1,12 @@
+## 2026-09-20 — Nimiq Pay HTLC + recovery/profile UX hardening
+
+- Classify Nimiq Pay-exposed TESTNET accounts independently before payment.
+- Treat HTLCs whose declared sender is in the frozen verified-wallet snapshot as technical payment rails, not extra human wallets.
+- Keep unknown/unverified basic accounts and unbound HTLCs fail-closed before the 1 NIM request.
+- Hide HTLC rails from wallet-link and route-recovery identity pickers.
+- Fix route recovery so “Mission Home” always exits to `/` while successful recovery returns to the mission.
+- Serialize/dedupe profile rendering to prevent repeated “Your NimCarry profile” cards.
+
 # Changelog
 
 ## 1.0.0 — Cycle II Preview
