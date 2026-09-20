@@ -5,7 +5,7 @@ import type { Hop, HopStatus, PassIntent } from "../core/types.js";
 
 interface IntentRow {
   mission_id: string;
-  invitation_id: string;
+  invitation_id: string | null;
   sequence: number;
   current_holder_wallet_normalized: string;
   recipient_wallet_normalized: string;
@@ -17,7 +17,7 @@ interface IntentRow {
 
 interface HopRow {
   mission_id: string;
-  invitation_id: string;
+  invitation_id: string | null;
   sequence: number;
   sender_wallet_normalized: string;
   recipient_wallet_normalized: string;
