@@ -127,6 +127,28 @@ export class FileMissionRepository implements MissionRepository {
     });
   }
 
+  async createMissionWithDestinationClaim(mission: MissionRecord, claim: DestinationClaimRecord): Promise<{ mission: MissionRecord; claim: DestinationClaimRecord }> {
+    return this.exclusive(() => {
+      this.state.destinationClaims ??= [];
+      if (this.state.missions.some((item) => item.id === mission.id)) {
+        throw new MissionValidationError("MISSION_EXISTS", `Mission ${mission.id} already exists`);
+      }
+      if (claim.missionId !== mission.id) {
+        throw new MissionValidationError("DESTINATION_CLAIM_MISMATCH", "Destination claim must belong to the mission being created");
+      }
+      if (this.state.destinationClaims.some((item) => item.id === claim.id || item.missionId === mission.id)) {
+        throw new MissionValidationError("DESTINATION_CLAIM_EXISTS", "Mission already has a destination claim");
+      }
+      if (this.state.destinationClaims.some((item) => item.claimTokenHash === claim.claimTokenHash)) {
+        throw new MissionValidationError("DESTINATION_CLAIM_TOKEN_COLLISION", "Destination claim token already exists");
+      }
+      this.state.missions.push(clone(mission));
+      this.state.destinationClaims.push(clone(claim));
+      this.persist();
+      return { mission: clone(mission), claim: clone(claim) };
+    });
+  }
+
   async createDestinationClaim(record: DestinationClaimRecord): Promise<DestinationClaimRecord> {
     return this.exclusive(() => {
       this.state.destinationClaims ??= [];
