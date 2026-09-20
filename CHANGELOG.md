@@ -1,3 +1,11 @@
+## 2026-09-20 — Journey health contract
+
+- Add a canonical regression contract for the full 1→5 user journey: create → invite → accept → pass → FINAL/arrive.
+- Gate the guided smoke on single-presence after the first FINAL: one verified bridge row, one current-holder marker, no duplicate holder card, and no duplicate holder→destination diagram.
+- Lock bridge acceptance to one signed interaction for consent + read continuity; explicit `VIEW_ROUTE` remains recovery-only.
+- Lock timeout behavior so an expired pass cannot expose a second payment path.
+- Document restart/profile recovery as fallback behavior rather than part of the normal bridge journey.
+
 ## 2026-09-20 — One-pass bridge continuation
 
 - Make bridge acceptance a single wallet-approval moment: the signed `ACCEPT_INVITATION` response now includes the read-only mission capability for that same verified wallet, eliminating the follow-up `VIEW_ROUTE` signature.
