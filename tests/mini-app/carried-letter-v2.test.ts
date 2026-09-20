@@ -33,7 +33,7 @@ describe("NimCarry V2 carried-letter foundation", () => {
   it("keeps Nimiq visible but progressively disclosed", () => {
     expect(js).toContain("An independent record — the Nimiq network — verifies every handover before it counts.");
     expect(js).toContain("Nimiq Pay authorization is the consent proof.");
-    expect(js).toContain("Approval can open the handoff. Broadcast can make it observable. Neither changes the holder.");
+    expect(js).toContain("Approval can open delivery. Broadcast can make it observable. Only independent FINAL proves arrival.");
     expect(html).toContain('id="network-label"');
   });
 
@@ -54,8 +54,8 @@ describe("NimCarry V2 carried-letter foundation", () => {
   it("preserves privacy and FINAL semantics in the new metaphor", () => {
     expect(js).toContain("Their address stays sealed from every carrier.");
     expect(js).toContain("Only independently verified handoffs are inked onto this letter.");
-    expect(js).toContain("Exactly 1 NIM carries custody to this person only after independent FINAL.");
-    expect(js).toContain("No bridge was rewarded. The 1 NIM moved only as the custody baton.");
+    expect(js).toContain("The bridge introduces the route; the bridge never receives custody.");
+    expect(js).toContain("The 1 NIM is sent to the destination, not paid to the bridge.");
   });
 
   it("supports mobile, deliberate desktop composition and reduced motion", () => {
@@ -78,6 +78,6 @@ describe("NimCarry V2 carried-letter foundation", () => {
     expect(smoke).toContain('"01-home"');
     expect(smoke).toContain('"03-mission"');
     expect(smoke).toContain('"05-handoff"');
-    expect(smoke).toContain('"08-arrived"');
+    expect(smoke).toContain('"07-arrived-direct"');
   });
 });
