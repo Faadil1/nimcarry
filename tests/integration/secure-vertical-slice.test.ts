@@ -254,6 +254,11 @@ describe("secure shared vertical slice", () => {
       sequence: 1,
     });
 
+    const rawSequenceInvitation = await pool.query<{ mission_id: string; sequence: number; status: string; candidate_label: string | null; candidate_display_label: string | null }>(
+      "SELECT mission_id, sequence, status, candidate_label, candidate_display_label FROM invitations WHERE mission_id = $1 AND sequence = $2",
+      [missionId, 1]
+    );
+    console.log("DIRECT_RAW_SEQ_INVITE_DEBUG", JSON.stringify(rawSequenceInvitation.rows));
     const repositoryInvitation = await repository.getInvitationForSequence(missionId, 1);
     console.log("DIRECT_REPO_INVITE_DEBUG", JSON.stringify(repositoryInvitation));
 
