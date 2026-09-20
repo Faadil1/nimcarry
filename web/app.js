@@ -748,6 +748,132 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     } catch (error) { notice(error.message, true); } finally { setBusy(false); }
   }
 
+  async function renderDelivery() {
+    const missionId = missionIdFromPath();
+    try { await loadMission(missionId); } catch (error) { notice(error.message, true); }
+    const m = state.mission;
+
+    if (!m || !m.target_resolved) {
+      els.screen.innerHTML = `<button class="back-link" id="back">← Mission Home</button><section class="hero-card"><div class="kicker">Destination not ready</div><h1 class="target-title">Waiting for the recipient.</h1><p class="lede">No payment can be authorized until the intended person connects their own destination wallet.</p><div class="warning" style="margin-top:16px">No NIM has moved.</div><div class="button-row"><button id="mission-return" class="button primary">Return to mission</button></div></section>`;
+      document.querySelector("#back")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}`));
+      document.querySelector("#mission-return")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}`));
+      els.screen.focus();
+      return;
+    }
+
+    if (m.invitation && ["INVITED", "ACCEPTED"].includes(m.invitation.status)) {
+      els.screen.innerHTML = `<button class="back-link" id="back">← Mission Home</button><section class="hero-card"><div class="kicker">Introduction in progress</div><h1 class="target-title">Finish the human introduction first.</h1><p class="lede">This mission already has an active introducer step. NimCarry will not open a second delivery path around that consent.</p><div class="button-row"><button id="mission-return" class="button primary">Return to mission</button></div></section>`;
+      document.querySelector("#back")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}`));
+      document.querySelector("#mission-return")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}`));
+      els.screen.focus();
+      return;
+    }
+
+    els.screen.innerHTML = `<button class="back-link" id="back">← Mission Home</button>
+      <section class="hero-card direct-delivery-card">
+        <div class="kicker">Direct delivery</div>
+        <h1 class="target-title">Deliver directly to ${esc(m.target_label || "the recipient")}.</h1>
+        <p class="lede">The destination wallet is resolved. No bridge is required for this delivery.</p>
+        <div class="promise-strip">
+          <div class="promise orange"><span>Value</span><strong>1 NIM</strong><span>100,000 Luna</span></div>
+          <div class="promise green"><span>Route</span><strong>Direct</strong><span>No intermediary custody</span></div>
+          <div class="promise violet"><span>Proof</span><strong>FINAL</strong><span>Verified independently</span></div>
+        </div>
+        <div class="warning" style="margin-top:16px">After a transaction is recorded, NimCarry keeps verifying it in the background. Never send a second payment just because confirmation is taking time.</div>
+        <div class="button-row"><button data-busy-lock="1" id="send-direct" class="button primary">Deliver 1 NIM</button></div>
+      </section>`;
+    document.querySelector("#back")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}`));
+    document.querySelector("#send-direct")?.addEventListener("click", () => executeDirectDelivery(missionId));
+    els.screen.focus();
+  }
+
+  async function executeDirectDelivery(missionId) {
+    setBusy(true);
+    let passPhase = "start";
+    try {
+      if (state.demo) {
+        const stored = demoLoad();
+        stored.mission.sequence = Number(stored.mission.sequence || 0) + 1;
+        stored.mission.finalized_hop_count = Number(stored.mission.finalized_hop_count || 0) + 1;
+        stored.mission.route = [...(stored.mission.route || []), {
+          sequence: stored.mission.sequence,
+          from: { display_label: stored.mission.current_holder?.display_label || "Sender", wallet_fingerprint: stored.mission.current_holder?.wallet_fingerprint || "NQ…SENDER" },
+          via: null,
+          to: { display_label: stored.mission.target_label || "Destination", wallet_fingerprint: "NQ…TARGET" },
+          finalized_at: new Date().toISOString(),
+          tx_hash_short: "demo…final",
+        }];
+        stored.mission.status = "ARRIVED";
+        stored.mission.activity = "TERMINAL";
+        stored.mission.arrived_at = new Date().toISOString();
+        stored.mission.primary_action = "START_NEW_ROUTE";
+        demoSave(stored);
+        notice("Demo FINAL: direct delivery completed. No real NIM moved.");
+        navigate(`/mission/${encodeURIComponent(missionId)}/route`);
+        return;
+      }
+
+      const sequence = Number(state.mission?.sequence || 0) + 1;
+      handoffEvent("authorization-requested", { status: "AUTHORIZATION_REQUESTED", direct: true });
+      passPhase = "authorize";
+      const auth = await signedAuth("AUTHORIZE_DELIVERY", { missionId, sequence });
+      passPhase = "delivery_intent";
+      const intent = await api(`/missions/${encodeURIComponent(missionId)}/delivery-intent`, { method: "POST", body: { auth } });
+      if (!intent?.recipient || Number(intent.value_luna) !== ONE_NIM || !intent.recipient_data) {
+        throw new Error("DELIVERY_INTENT_CONTRACT_MISMATCH: recipient/value/opaque data required.");
+      }
+      if (!String(intent.recipient_data).startsWith("co:v1:")) {
+        throw new Error("OPAQUE_COMMITMENT_REQUIRED: refusing clear-text/legacy recipient data.");
+      }
+      if (!intent.expected_sender || walletKey(auth.wallet) !== walletKey(intent.expected_sender)) {
+        throw new Error("WRONG_WALLET_SELECTION: the signed Nimiq identity is not the canonical sender for this delivery.");
+      }
+
+      handoffEvent("authorized", { status: "AUTHORIZED", direct: true });
+      passPhase = "payment_source_preflight";
+      const nimiq = await assertAuthorizedPaymentAccounts(intent);
+      handoffEvent("wallet-approval-opened", { status: "AWAITING_WALLET", direct: true });
+      notice("Open Nimiq Pay and approve exactly 1 NIM…");
+      passPhase = "transaction_submission";
+      const txHash = await nimiq.sendBasicTransactionWithData({
+        recipient: intent.recipient,
+        value: ONE_NIM,
+        fee: 0,
+        data: intent.recipient_data,
+      });
+      if (!txHash) throw new Error("DELIVERY_BROADCAST_CONTRACT_MISMATCH: wallet approval returned no provable transaction hash.");
+
+      await api(`/missions/${encodeURIComponent(missionId)}/broadcast`, {
+        method: "POST",
+        body: {
+          invitation_id: null,
+          tx_hash: txHash,
+          broadcast_capability: intent.broadcast_capability,
+        },
+      });
+      handoffEvent("broadcast-claim-recorded", { status: "PENDING", direct: true });
+      notice("Payment sent. NimCarry is checking independent FINAL in the background…");
+
+      passPhase = "finality_verification";
+      const verification = await pollFinality(missionId);
+      if (verification.final) {
+        handoffEvent("final", { status: "FINAL", direct: true });
+        navigate(`/mission/${encodeURIComponent(missionId)}/route`);
+      } else {
+        handoffEvent("verification-backgrounded", { status: "PENDING", direct: true });
+        navigate(`/mission/${encodeURIComponent(missionId)}`);
+        notice("Payment sent — finalizing in the background. You can safely close this page. Do not resend 1 NIM.");
+      }
+    } catch (error) {
+      const classification = passFailureClass(passPhase, error);
+      passDiagnostic("direct_delivery_failed", { phase: passPhase, classification });
+      handoffEvent("error", { classification, direct: true });
+      notice(error.message, true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function renderPass() {
     const missionId = missionIdFromPath();
     try { await loadMission(missionId); } catch (error) { notice(error.message, true); }
