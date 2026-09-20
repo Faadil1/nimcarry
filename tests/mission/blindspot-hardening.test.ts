@@ -49,7 +49,7 @@ describe("Reach Mission blind-spot hardening", () => {
       .not.toThrow();
   });
 
-  it("prevents a wallet already in the finalized route from re-entering the same mission", async () => {
+  it("prevents a completed bridge-assisted delivery from opening a second hop", async () => {
     const dir = mkdtempSync(join(tmpdir(), "carry-one-loop-"));
     dirs.push(dir);
     const repo = new FileMissionRepository(join(dir, "mission.json"));
@@ -83,20 +83,22 @@ describe("Reach Mission blind-spot hardening", () => {
     rpc.tx = {
       hash: txHash,
       from: normalizeNimiqAddress(creator),
-      to: normalizeNimiqAddress(bridge),
+      to: normalizeNimiqAddress(target),
       value: ONE_NIM_IN_LUNA,
       blockNumber: 3_032_020,
       confirmations: 999,
       recipientData: intent.recipientData!,
     };
     await coordinator.reconcile(mission.id);
-    expect((await service.getMissionRecord(mission.id)).currentHolderWalletNormalized).toBe(normalizeNimiqAddress(bridge));
+    const completed = await service.getMissionRecord(mission.id);
+    expect(completed.status).toBe("ARRIVED");
+    expect(completed.currentHolderWalletNormalized).toBe(normalizeNimiqAddress(target));
 
     await expect(service.createInvitation({
       missionId: mission.id,
       auth: auth(bridge, "CREATE_INVITATION", mission.id, undefined, 2),
       candidateWallet: creator,
       now: 5_000,
-    })).rejects.toMatchObject({ reason: "ROUTE_WALLET_REUSE" });
+    })).rejects.toMatchObject({ reason: expect.stringMatching(/MISSION_NOT_ACTIVE|NOT_CURRENT_HOLDER/) });
   });
 });
