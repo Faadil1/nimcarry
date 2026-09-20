@@ -617,6 +617,81 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     document.querySelector("#copy-invite").addEventListener("click", async () => { await navigator.clipboard.writeText(inviteUrl); notice("Invite link copied."); });
   }
 
+  async function renderDestinationClaim() {
+    const token = claimTokenFromPath();
+    let claim = null;
+    try {
+      if (state.demo) {
+        const stored = demoLoad();
+        claim = {
+          mission_id: stored?.mission?.mission_id || "demo",
+          target_label: stored?.mission?.target_label || "Recipient",
+          mission_note: stored?.mission?.mission_note || "Private delivery",
+          status: "PENDING",
+          bound: false,
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        };
+      } else {
+        claim = await api(`/c/${encodeURIComponent(token)}`);
+      }
+    } catch (error) {
+      notice(error.message, true);
+    }
+
+    if (!claim) {
+      els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Private claim</div><h1 class="target-title">This claim is unavailable.</h1><p class="lede">It may be invalid, expired, or already closed.</p><div class="button-row"><button id="claim-home" class="button primary">NimCarry home</button></div></section>`;
+      document.querySelector("#claim-home")?.addEventListener("click", () => navigate("/"));
+      els.screen.focus();
+      return;
+    }
+
+    if (claim.status === "BOUND" || claim.bound === true) {
+      els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Destination connected</div><h1 class="target-title">Your wallet is already connected.</h1><p class="lede">The sender can now deliver directly to the wallet you proved you control. Opening this claim again cannot change the destination.</p><div class="button-row"><button id="claim-home" class="button primary">NimCarry home</button></div></section>`;
+      document.querySelector("#claim-home")?.addEventListener("click", () => navigate("/"));
+      els.screen.focus();
+      return;
+    }
+
+    const expiry = claim.expires_at ? new Date(claim.expires_at).toLocaleDateString() : null;
+    els.screen.innerHTML = `<section class="hero-card destination-claim-card">
+      <div class="kicker">Private delivery for ${esc(claim.target_label || "you")}</div>
+      <h1 class="target-title">Connect where this should arrive.</h1>
+      <p class="lede">${esc(claim.mission_note || "A sender created a private delivery for you.")}</p>
+      <div class="promise-strip">
+        <div class="promise green"><span>Your control</span><strong>Your wallet</strong><span>You bind it yourself</span></div>
+        <div class="promise violet"><span>Money</span><strong>Not sent yet</strong><span>Binding cannot move funds</span></div>
+        <div class="promise orange"><span>Claim</span><strong>Private</strong><span>${expiry ? `Expires ${esc(expiry)}` : "Single use"}</span></div>
+      </div>
+      <div class="warning" style="margin-top:16px">Only continue if you expected this private claim. Connecting your wallet authorizes it as this mission's destination; it does not send NIM from your wallet.</div>
+      <div class="button-row"><button data-busy-lock="1" id="bind-destination" class="button primary">Connect my Nimiq wallet</button><button id="claim-home" class="button ghost">Not now</button></div>
+    </section>`;
+    document.querySelector("#claim-home")?.addEventListener("click", () => navigate("/"));
+    document.querySelector("#bind-destination")?.addEventListener("click", async () => {
+      if (state.busy) return;
+      setBusy(true);
+      notice("Confirming your destination wallet…");
+      try {
+        if (state.demo) {
+          notice("Demo: destination wallet connected. No payment moved.");
+          return;
+        }
+        const auth = await signedAuth("BIND_DESTINATION", { missionId: claim.mission_id });
+        const bound = await api(`/c/${encodeURIComponent(token)}/bind`, { method: "POST", body: { auth } });
+        notice("Wallet connected. The sender can now deliver directly to you.");
+        if (bound?.mission_id) {
+          setTimeout(() => navigate(`/mission/${encodeURIComponent(bound.mission_id)}`), 700);
+        } else {
+          await renderDestinationClaim();
+        }
+      } catch (error) {
+        notice(error.message, true);
+      } finally {
+        setBusy(false);
+      }
+    });
+    els.screen.focus();
+  }
+
   async function renderInvitation() {
     const token = inviteTokenFromPath(); state.inviteToken = token; let invitation;
     try { if (state.demo) invitation = demoLoad()?.invitation || { mission_id: "demo", invitation_id: "demo-invite", sequence: 1, status: "INVITED", target_label: state.mission?.target_label || "Destination", mission_note: state.mission?.mission_note || "Move this closer.", why_you: "You know someone closer to the destination.", finalized_hop_count: 0 }; else invitation = await api(`/i/${encodeURIComponent(token)}`); state.invitation = invitation; }
