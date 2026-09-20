@@ -623,6 +623,41 @@ interface ViewerResolution {
   authorized: boolean;
 }
 
+async function resolveProfileViewer(
+  deps: MissionHttpDeps,
+  req: IncomingMessage,
+  missionId: string
+): Promise<ViewerResolution | null> {
+  if (!deps.userDirectory) return null;
+
+  const raw = req.headers["x-nimcarry-user-token"];
+  const token = typeof raw === "string" ? raw : Array.isArray(raw) ? raw[0] : undefined;
+  if (!token || !USER_PROFILE_TOKEN_RE.test(token)) return null;
+
+  const profile = await deps.userDirectory.getByTokenHash(profileTokenHash(token));
+  if (!profile) return null;
+
+  const linkedWallets = (await deps.userDirectory.walletsForUser(profile.id)).map(normalizeNimiqAddress);
+  if (linkedWallets.length === 0) return null;
+
+  const record = await deps.missions.getMissionRecord(missionId);
+  const linkedSet = new Set(linkedWallets);
+  const preferred = [
+    record.currentHolderWalletNormalized,
+    record.creatorWalletNormalized,
+    ...linkedWallets,
+  ].filter((wallet, index, all) => linkedSet.has(wallet) && all.indexOf(wallet) === index);
+
+  for (const wallet of preferred) {
+    const view = await buildMissionView(deps, missionId, { viewer: wallet, authorized: true });
+    if (view.viewer_role !== "UNLISTED_VIEWER") {
+      await deps.userDirectory.touch(profile.id);
+      return { viewer: wallet, authorized: true };
+    }
+  }
+  return null;
+}
+
 /**
  * Resolve a route-view request to an (optionally personalized) viewer identity.
  *
@@ -637,20 +672,35 @@ async function resolveViewer(
   missionId: string
 ): Promise<ViewerResolution> {
   const token = bearerToken(req);
-  if (!token) {
-    throw new MissionValidationError(
-      "ROUTE_VIEW_CAPABILITY_REQUIRED",
-      "This mission is not public. Route view requires a Bearer route view capability"
-    );
+  if (token) {
+    try {
+      const capability = routeViewCapabilityStore(deps).verify(token, { missionId });
+      if (capability.holderWallet === null) {
+        throw new MissionValidationError(
+          "VIEWER_AUTH_REQUIRED",
+          "This route view capability does not bind a viewer identity"
+        );
+      }
+      return { viewer: capability.holderWallet, authorized: true };
+    } catch (error) {
+      if (
+        error instanceof RouteViewCapabilityError &&
+        ["ROUTE_VIEW_CAPABILITY_INVALID", "ROUTE_VIEW_CAPABILITY_EXPIRED"].includes(error.reason)
+      ) {
+        const profileViewer = await resolveProfileViewer(deps, req, missionId);
+        if (profileViewer) return profileViewer;
+      }
+      throw error;
+    }
   }
-  const capability = routeViewCapabilityStore(deps).verify(token, { missionId });
-  if (capability.holderWallet === null) {
-    throw new MissionValidationError(
-      "VIEWER_AUTH_REQUIRED",
-      "This route view capability does not bind a viewer identity"
-    );
-  }
-  return { viewer: capability.holderWallet, authorized: true };
+
+  const profileViewer = await resolveProfileViewer(deps, req, missionId);
+  if (profileViewer) return profileViewer;
+
+  throw new MissionValidationError(
+    "ROUTE_VIEW_CAPABILITY_REQUIRED",
+    "This mission is not public. Route view requires a Bearer route view capability"
+  );
 }
 
 function bearerToken(req: IncomingMessage): string | null {
