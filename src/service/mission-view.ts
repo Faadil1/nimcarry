@@ -154,11 +154,11 @@ function deriveViewerRole(
   if (mission.status === "ACTIVE" && viewer === mission.currentHolderWalletNormalized) return "HOLDER";
   if (
     invitation &&
-    (invitation.status === "INVITED" || invitation.status === "ACCEPTED") &&
     invitation.candidateWalletNormalized !== null &&
     sameWallet(viewer, invitation.candidateWalletNormalized)
   ) {
-    return "INVITEE";
+    if (invitation.status === "INVITED" || invitation.status === "ACCEPTED") return "INVITEE";
+    if (invitation.status === "COMPLETED") return "PARTICIPANT";
   }
   if (
     route.some((hop) => sameWallet(viewer, hop.current_holder) || sameWallet(viewer, hop.recipient)) ||
