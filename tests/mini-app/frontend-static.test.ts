@@ -204,6 +204,20 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(recovery).not.toContain("AUTHORIZE_PASS");
     expect(recovery).not.toContain("pass-intent");
   });
+  it("keeps the accepted bridge in one continuous session until FINAL", () => {
+    expect(js).toContain('mission.viewer_role === "INVITEE" && invitationStatus === "ACCEPTED"');
+    expect(js).toContain("Accepted — waiting for FINAL");
+    expect(js).toContain("FINAL verified. You now carry this letter — choose the next bridge.");
+    expect(js).toContain("Stay here — NimCarry will continue automatically when the handoff reaches FINAL.");
+    expect(compat).toContain("activateBridgeContinuationAfterAcceptance");
+    expect(compat).toContain("acceptedInvitation?.view_token");
+    const helperStart = compat.indexOf("async function activateBridgeContinuationAfterAcceptance");
+    const helperEnd = compat.indexOf("\n  window.fetch", helperStart);
+    const helper = compat.slice(helperStart, helperEnd);
+    expect(helper).not.toContain("nimiq.sign");
+    expect(helper).not.toContain("VIEW_ROUTE");
+  });
+
   it("reflects bridge acceptance on the sender mission with read-only polling", () => {
     expect(js).toContain("MISSION_WATCH_INTERVAL_MS = 3000");
     expect(js).toContain("async function refreshWatchedMission");
