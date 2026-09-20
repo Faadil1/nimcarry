@@ -261,6 +261,11 @@ describe("secure shared vertical slice", () => {
     expect(bridgeView.body.viewer_role).toBe("PARTICIPANT");
     expect(bridgeView.body.status).toBe("ARRIVED");
     expect(bridgeView.body.route).toHaveLength(1);
+    console.log("DIRECT_ROUTE_DEBUG", JSON.stringify({
+      invitation: bridgeView.body.invitation,
+      viewer_role: bridgeView.body.viewer_role,
+      route: bridgeView.body.route[0],
+    }));
     expect(bridgeView.body.route[0].status).toBe("CONFIRMED");
     expect(bridgeView.body.route[0].confirmed_at).toBeTruthy();
     expect(bridgeView.body.route[0].bridge).not.toBeNull();
