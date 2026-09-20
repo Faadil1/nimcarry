@@ -9,9 +9,10 @@ This file is intentionally operational. A new conversation should be able to rea
 
 Current main baseline:
 
-- SHA: `af758e1a3db9e02f8a84dd9440d24653825b90ff`
+- SHA: `bad96d463064e418ec47a949acd792224d8fde24`
 - PR #114 **Move FINAL reconciliation into the background** is merged.
-- Main checks after merge: CI #1494 **SUCCESS**, Judge Full Flow #195 **SUCCESS**, Judge Window #80 **SUCCESS**.
+- PR #117 **Hand ambiguous Nimiq Pay submissions to background reconciliation** is merged as `bad96d463064e418ec47a949acd792224d8fde24`.
+- PR #117 gates: CI #1575 **SUCCESS**, Judge Full Flow #220 **SUCCESS**; guided-flow coverage exercised mobile + desktop.
 - Product behavior: one-time human bridge; sender pays the target directly; long-running FINAL reconciliation is server-owned.
 - The prior custody-chain model and manual-recheck happy path are obsolete.
 
@@ -83,7 +84,11 @@ Read-only PostgreSQL inspection at 18:57 showed:
 
 Therefore this run is **inconclusive about whether Nimiq Pay actually broadcast a transaction**. It does not justify a resend. The canonical no-hash recovery path may still discover an exact committed transaction independently.
 
-It also exposed a concrete UX truthfulness defect: the recovery card said **“The transaction is already claimed”** even though durable state had no recorded hop/hash. The next patch changes this to evidence-safe language and hands continued recovery to the already-merged server background reconciler instead of keeping a hidden 90-second client recovery loop.
+It also exposed a concrete UX truthfulness defect: the recovery card said **“The transaction is already claimed”** even though durable state had no recorded hop/hash.
+
+PR #117 is now merged. It removes the hidden 90-second ambiguous-submission polling loop, performs at most one opportunistic foreground reconciliation, hands continued recovery to the server background reconciler, keeps the local no-resend safety hold, and uses evidence-safe copy that does not claim a broadcast before a transaction hash/hop is proven.
+
+A second read-only database check at about 19:07 local still showed the mission ACTIVE with the same accepted invitation and active intent, but **no hop and no recorded transaction hash**. Therefore the current mission remains unresolved; do not resend it unless canonical reconciliation eventually proves the old attempt terminal INVALID.
 
 ## 3. Product Council result
 
@@ -163,13 +168,15 @@ Do not add public destination requests, bridge search, bounty routing, reputatio
 
 ## 6. Immediate next implementation sequence
 
-1. **Automatic reconciliation — merged, awaiting live validation**
+1. **Automatic reconciliation + ambiguous-submission recovery — merged, awaiting decisive live validation**
    - PR #114 merged as `5d31d5bf3234f267a55aee5e3f5435165b9478aa`.
-   - Main CI, Judge Full Flow, and Judge Window are green.
-   - Server-side maintenance now reconciles unresolved active intents.
-   - Browser no longer owns the long-running finality wait.
-   - Manual recheck is removed from the current happy path.
-   - Next proof gate is a real close/reopen TESTNET run; do not call it production-proven before that test.
+   - PR #117 merged as `bad96d463064e418ec47a949acd792224d8fde24`.
+   - PR #117 CI and mobile+desktop guided-flow smoke are green.
+   - Server-side maintenance reconciles unresolved active intents, including no-hash intents that may be discovered from the exact opaque commitment.
+   - Browser no longer owns long-running FINAL or ambiguous-submission recovery loops.
+   - Manual recheck is removed from the happy path.
+   - Current mission `d9ae9ec2-5eab-485e-b19a-31b8a96e700a` remains unresolved with no recorded hop/hash; do not resend.
+   - Next proof gate is a fresh real hash-recorded close/reopen TESTNET run plus live mobile/tablet/desktop acceptance.
 
 2. **Destination Claim experiment — next implementation workstream**
    - No on-chain escrow dependency.
