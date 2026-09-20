@@ -70,8 +70,9 @@ const outputRoot = process.env.JUDGE_FLOW_OUTPUT || "judge-flow-smoke";
 await mkdir(outputRoot, { recursive: true });
 
 const viewports = [
-  { name: "mobile-375", width: 375, height: 812 },
-  { name: "desktop-1280", width: 1280, height: 900 },
+  { name: "mobile-390", width: 390, height: 844 },
+  { name: "tablet-768", width: 768, height: 1024 },
+  { name: "desktop-1440", width: 1440, height: 900 },
 ];
 
 const report = {
