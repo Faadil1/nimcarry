@@ -22,6 +22,7 @@ function addressKey(value: string): string {
 export interface PublicHop {
   baton_id: string;
   sequence: number;
+  invitation_id: string | null;
   current_holder: string;
   recipient: string;
   tx_hash: string | null;
@@ -43,6 +44,7 @@ function toPublicHop(hop: Hop): PublicHop {
   return {
     baton_id: hop.batonId,
     sequence: hop.sequence,
+    invitation_id: hop.invitationId ?? null,
     current_holder: hop.currentHolder,
     recipient: hop.recipient,
     tx_hash: hop.txHash,
@@ -70,7 +72,7 @@ export class CanonicalRelayService {
     batonId: string,
     currentHolder: string,
     recipient: string,
-    options: { requireOpaqueTag?: boolean; authorizedPaymentWallets?: string[] } = {}
+    options: { requireOpaqueTag?: boolean; authorizedPaymentWallets?: string[]; invitationId?: string | null } = {}
   ): PassIntent {
     return this.store.createIntent(batonId, currentHolder, recipient, options);
   }
@@ -97,6 +99,7 @@ export class CanonicalRelayService {
     const hop: Hop = {
       batonId: intent.batonId,
       sequence: intent.sequence,
+      invitationId: intent.invitationId ?? null,
       currentHolder: intent.currentHolder,
       recipient: intent.recipient,
       nonce: intent.nonce,
@@ -241,6 +244,7 @@ export class CanonicalRelayService {
         const invalidHop: Hop = {
           batonId: intent.batonId,
           sequence: intent.sequence,
+          invitationId: intent.invitationId ?? null,
           currentHolder: intent.currentHolder,
           recipient: intent.recipient,
           nonce: intent.nonce,
