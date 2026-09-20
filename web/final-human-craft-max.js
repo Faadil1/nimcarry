@@ -63,7 +63,7 @@
     setText(secondary, "Preview receipt");
 
     setText(story.querySelector(".hc-script"), "Different paths. One human outcome.");
-    setText(story.querySelector(".hc-home-caption"), "Exactly 1 NIM is the custody baton. People carry the introduction.");
+    setText(story.querySelector(".hc-home-caption"), "A trusted bridge makes the introduction. Exactly 1 NIM goes directly to the destination.");
 
     let stage = hero.querySelector(".hc-max-home-stage");
     let copy = stage?.querySelector(".hc-max-home-copy");
@@ -82,7 +82,7 @@
       [
         ["Real people", "Relationships carry it."],
         ["One destination", "One intended person."],
-        ["FINAL only", "Verified custody moves."],
+        ["FINAL only", "Verified delivery arrives."],
       ].forEach(([title, body]) => {
         const value = el("div", "hc-max-value");
         value.append(el("strong", "", title), el("span", "", body));
@@ -122,9 +122,9 @@
     const preview = screen.querySelector(".hc-create-preview");
     if (preview) {
       const introCopy = [...preview.querySelectorAll(":scope > p")][0];
-      setText(introCopy, "Human outcome first. 1 NIM only records verified custody.");
+      setText(introCopy, "Human outcome first. 1 NIM is delivered only to the intended destination.");
       const note = preview.querySelector(".hc-hand-note span");
-      setText(note, "Give each bridge one clear reason to keep moving.");
+      setText(note, "Give the bridge one clear reason to make the introduction.");
       disclosure(preview, "Preview the mission card", "hc-create-preview-more");
     }
   }
@@ -144,13 +144,13 @@
     setText(whyCopy, "You can move this introduction one trusted step closer.");
 
     const warning = [...hero.querySelectorAll(".warning")].find((node) => /Accepting does not move funds|current holder sends/i.test(clean(node.textContent)));
-    if (warning && !warning.querySelector("a,button")) setText(warning, "Accepting joins the route. No funds move yet.");
+    if (warning && !warning.querySelector("a,button")) setText(warning, "Accepting confirms the introduction. The bridge never receives the 1 NIM.");
 
     const context = hero.querySelector(".hc-invite-context");
     const note = hero.querySelector(".hc-invite-note");
     if (note) {
       setText(note.querySelector("strong"), "Accept = consent, not payment.");
-      setText(note.querySelector("span"), "One private destination. Custody moves only after FINAL.");
+      setText(note.querySelector("span"), "One private destination. The sender pays that destination directly after your consent.");
     }
 
     const onboarding = hero.querySelector(".wallet-onboarding-card");
@@ -164,8 +164,8 @@
       paragraphs.forEach((node) => {
         const text = clean(node.textContent);
         if (/Accept → no funds move/i.test(text)) setText(node, "Accept → no funds move yet.");
-        if (/Decline → custody stays/i.test(text)) setText(node, "Decline → custody stays put.");
-        if (/verified handoff/i.test(text)) setText(node, "Verified handoff → the route updates.");
+        if (/Decline → custody stays/i.test(text)) setText(node, "Decline → no delivery is opened.");
+        if (/verified handoff/i.test(text)) setText(node, "FINAL → direct delivery is proven ARRIVED.");
       });
       walletHelp = disclosure(onboarding, "Need a Nimiq wallet?", "hc-wallet-help");
     }
@@ -200,14 +200,14 @@
     const ritual = hero.querySelector(".hc-pass-ritual");
     const steps = [...hero.querySelectorAll(".hc-pass-step")];
     const concise = [
-      "Make sure the accepted bridge is the intended recipient.",
-      "The baton records who carries the introduction next.",
-      "Approval is not custody. Only independent FINALity moves the route.",
+      "The bridge has already consented to make the introduction.",
+      "Exactly 1 NIM goes directly to the mission destination, never to the bridge.",
+      "Approval is not delivery. Only independent FINAL proves ARRIVED.",
     ];
     steps.forEach((step, index) => setText(step.querySelector("small"), concise[index] || clean(step.querySelector("small")?.textContent)));
 
     const warning = [...hero.querySelectorAll(".warning")].find((node) => /transaction hash|verification state|FINALity/i.test(clean(node.textContent)));
-    if (warning && !warning.querySelector("a,button")) setText(warning, "Approval is not custody. Only independent FINALity moves the route.");
+    if (warning && !warning.querySelector("a,button")) setText(warning, "Approval is not delivery. Only independent FINAL proves the destination received the 1 NIM.");
 
     const actions = [...hero.querySelectorAll(".button-row")].find((row) => /Send|Pass|NIM/i.test(clean(row.textContent)));
     const rule = hero.querySelector(".hc-proof-rule");
