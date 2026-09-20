@@ -192,21 +192,18 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(html).toContain("DEMO MODE — no wallet or network writes");
     expect(js).toContain('query.get("demo") === "1"');
   });
-  it("recovers an already-recorded handoff without offering a second payment", () => {
-    expect(js).toContain("Recheck existing handoff");
-    expect(js).toContain("async function recheckExistingHandoff");
-    expect(js).toContain("/reconcile");
-    expect(js).toContain("No second payment was requested.");
-    const start = js.indexOf("async function recheckExistingHandoff");
-    const end = js.indexOf("\n  function wireHomeButtons", start);
-    const recovery = start >= 0 && end >= 0 ? js.slice(start, end) : "";
-    expect(recovery).not.toContain("sendBasicTransactionWithData");
-    expect(recovery).not.toContain("AUTHORIZE_PASS");
-    expect(recovery).not.toContain("pass-intent");
+  it("keeps an unresolved handoff locked while finality continues automatically", () => {
+    expect(js).toContain("Finalizing automatically — no action needed");
+    expect(js).toContain('handoffEvent("verification-continues-in-background"');
+    expect(js).toContain("You can safely close this screen; do not send again.");
+    expect(js).not.toContain("Recheck existing handoff");
+    expect(js).not.toContain("async function recheckExistingHandoff");
+    expect(js).not.toContain('id="recheck-button"');
   });
-  it("keeps the accepted bridge in one continuous session until FINAL", () => {
-    expect(js).toContain('mission.viewer_role === "INVITEE" && invitationStatus === "ACCEPTED"');
-    expect(js).toContain("Accepted — waiting for FINAL");
+  it("keeps accepted participants in one continuous read-only session until FINAL", () => {
+    expect(js).toContain('mission.viewer_role === "INVITEE"');
+    expect(js).toContain('(mission.current_holder?.is_viewer === true && action === "WAIT")');
+    expect(js).toContain("Finalizing automatically — no action needed");
     expect(js).toContain("received the 1 NIM. Your bridge step is complete.");
     expect(js).toContain("Your bridge step is complete once FINAL lands.");
     expect(js).not.toContain("You now carry this letter — choose the next bridge.");
