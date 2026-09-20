@@ -601,10 +601,10 @@ export class PgMissionRepository implements MissionRepository {
         return { mission: missionFromRow(missionRow), invitation: invitationFromRow(invitationRow) };
       }
       if (invitationRow.status !== "ACCEPTED") {
-        throw new MissionValidationError("INVITATION_NOT_ACCEPTED", "Only an accepted invitation can finalize a hop");
+        throw new MissionValidationError("INVITATION_NOT_ACCEPTED", "Only an accepted bridge can authorize final delivery");
       }
-      if (invitationRow.candidate_wallet_normalized !== input.recipientWallet) {
-        throw new MissionValidationError("WRONG_FINAL_RECIPIENT", "Final recipient does not match the accepted bridge wallet");
+      if (input.recipientHmac !== missionRow.target_wallet_hmac) {
+        throw new MissionValidationError("WRONG_FINAL_RECIPIENT", "Final recipient must be the mission destination");
       }
       if (missionRow.current_sequence + 1 !== input.sequence) {
         throw new MissionValidationError("FINALIZATION_SEQUENCE_RACE", "Mission sequence changed before finalization");
@@ -639,21 +639,34 @@ export class PgMissionRepository implements MissionRepository {
         ]
       );
 
-      // DB-level no-route-loop guard: a wallet may not become a finalized
-      // participant twice in one mission. Only the finalized recipient is a
-      // "first final" participant; the current holder was inserted on creation
-      // (or on a previous hop) and that is the same record.
+      // Record both human roles without pretending the bridge received the
+      // payment. The bridge participated in the verified introduction; the
+      // target is the finalized transaction recipient.
       try {
+        if (invitationRow.candidate_wallet_normalized) {
+          await client.query(
+            `INSERT INTO participants (mission_id, wallet_normalized, display_label, display_name_opt_in, first_final_sequence)
+             VALUES ($1, $2, $3, $4, $5)
+             ON CONFLICT (mission_id, wallet_normalized) DO UPDATE
+               SET first_final_sequence = COALESCE(participants.first_final_sequence, EXCLUDED.first_final_sequence)`,
+            [
+              input.missionId,
+              invitationRow.candidate_wallet_normalized,
+              invitationRow.candidate_display_label,
+              invitationRow.candidate_display_label !== null,
+              input.sequence,
+            ]
+          );
+        }
         await client.query(
           `INSERT INTO participants (mission_id, wallet_normalized, display_label, display_name_opt_in, first_final_sequence)
-           VALUES ($1, $2, $3, $4, $5)
+           VALUES ($1, $2, $3, FALSE, $4)
            ON CONFLICT (mission_id, wallet_normalized) DO UPDATE
              SET first_final_sequence = COALESCE(participants.first_final_sequence, EXCLUDED.first_final_sequence)`,
           [
             input.missionId,
             input.recipientWallet,
-            invitationRow.candidate_display_label,
-            invitationRow.candidate_display_label !== null,
+            missionRow.target_label,
             input.sequence,
           ]
         );
