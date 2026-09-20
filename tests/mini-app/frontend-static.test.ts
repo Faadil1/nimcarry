@@ -111,6 +111,7 @@ describe("static Mini App skeleton", () => {
     expect(js).toContain('from "/nimiq-provider.js"');
     expect(js).toContain("getNimiqProvider");
     expect(js).toContain("classifyNimiqAccounts");
+expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(js).toContain("isHtlcNimiqAccountType");
     expect(compat).toContain('import { getNimiqProvider } from "/nimiq-provider.js"');
     expect(provider).toContain('const ACCOUNT_TYPES_URL = "/network/account-types"');
