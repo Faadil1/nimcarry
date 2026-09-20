@@ -202,6 +202,12 @@ describe("PgRelayStore", () => {
     });
     await relay.flush();
 
+    // pg-mem does not reproduce every production ON DELETE CASCADE edge, so
+    // model the administrative cleanup explicitly while deliberately keeping
+    // this already-loaded relay instance stale in memory.
+    await pool.query("DELETE FROM hops WHERE mission_id = $1", [removed.id]);
+    await pool.query("DELETE FROM pass_intents WHERE mission_id = $1", [removed.id]);
+    await pool.query("DELETE FROM invitations WHERE mission_id = $1", [removed.id]);
     await pool.query("DELETE FROM missions WHERE id = $1", [removed.id]);
 
     const { mission: live, creator: liveCreator, candidate: liveCandidate } = await seededMission();
