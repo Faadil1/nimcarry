@@ -11,10 +11,26 @@ const REQUIRED_RUNTIME_CONFIG = [
 const DEFAULT_TESTNET_RPC_URL = "https://rpc.testnet.nimiqwatch.com";
 const TESTNET_HEAD_TIMEOUT_MS = 2500;
 const TESTNET_HEAD_ATTEMPTS = 2;
+const ACCOUNT_CLASSIFICATION_MAX = 12;
+const NIMIQ_ADDRESS_RE = /^NQ[0-9A-Z]{34}$/;
 
 function validHeight(value) {
   const height = Number(value);
   return Number.isInteger(height) && height >= 0 ? height : undefined;
+}
+
+function normalizeNimiqAddress(value) {
+  const compact = String(value ?? "").replace(/\s+/g, "").toUpperCase();
+  return NIMIQ_ADDRESS_RE.test(compact) ? compact : null;
+}
+
+function normalizeAccountType(value) {
+  const type = String(value ?? "").trim().toLowerCase().replace(/[\s_-]+/g, "");
+  if (type === "basic" || type === "basicaccount" || type === "0") return "basic";
+  if (type === "htlc" || type === "hashedtimelockcontract" || type === "2") return "htlc";
+  if (type === "vesting" || type === "vestingcontract" || type === "1") return "vesting";
+  if (type === "staking" || type === "stakingcontract" || type === "3") return "staking";
+  return type || "unknown";
 }
 
 function configuredTestnetRpcUrls(env) {
@@ -65,6 +81,120 @@ async function readIndependentTestnetHead(env) {
     }
   }
   throw lastError || new Error("TESTNET_HEAD_UNAVAILABLE");
+}
+
+
+async function rpcAccountByAddress(rpcUrl, address) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TESTNET_HEAD_TIMEOUT_MS);
+  try {
+    const response = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", method: "getAccountByAddress", params: [address], id: 1 }),
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error(`HTTP_${response.status}`);
+    const body = await response.json();
+    if (body?.error) throw new Error("RPC_ERROR");
+    const raw = body?.result && typeof body.result === "object" && "data" in body.result
+      ? body.result.data
+      : body?.result;
+    if (!raw || typeof raw !== "object") {
+      return { address, type: "unknown", sender: null };
+    }
+    const extra = raw.accountAdditionalFields && typeof raw.accountAdditionalFields === "object"
+      ? raw.accountAdditionalFields
+      : raw;
+    const senderRaw = raw.sender ?? extra.sender ?? raw.senderAddress ?? extra.senderAddress ?? null;
+    return {
+      address,
+      type: normalizeAccountType(raw.type ?? extra.type),
+      sender: senderRaw ? normalizeNimiqAddress(senderRaw) : null,
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function readIndependentTestnetAccount(env, address) {
+  const urls = configuredTestnetRpcUrls(env);
+  let lastError = null;
+  for (let attempt = 0; attempt < TESTNET_HEAD_ATTEMPTS; attempt += 1) {
+    for (const rpcUrl of urls) {
+      try {
+        return await rpcAccountByAddress(rpcUrl, address);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+  }
+  throw lastError || new Error("TESTNET_ACCOUNT_LOOKUP_UNAVAILABLE");
+}
+
+async function accountTypesResponse(request, env) {
+  if (request.method.toUpperCase() !== "POST") {
+    return Response.json(
+      { error: "METHOD_NOT_ALLOWED", message: "Account classification is read-only and accepts POST JSON only." },
+      { status: 405, headers: { "cache-control": "no-store", allow: "POST" } }
+    );
+  }
+
+  let body = null;
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json(
+      { error: "INVALID_JSON", message: "Expected JSON body with an addresses array." },
+      { status: 400, headers: { "cache-control": "no-store" } }
+    );
+  }
+
+  const rawAddresses = Array.isArray(body?.addresses) ? body.addresses : [];
+  if (rawAddresses.length < 1 || rawAddresses.length > ACCOUNT_CLASSIFICATION_MAX) {
+    return Response.json(
+      { error: "INVALID_ADDRESSES", message: `Provide 1-${ACCOUNT_CLASSIFICATION_MAX} Nimiq addresses.` },
+      { status: 400, headers: { "cache-control": "no-store" } }
+    );
+  }
+
+  const addresses = [];
+  for (const raw of rawAddresses) {
+    const address = normalizeNimiqAddress(raw);
+    if (!address) {
+      return Response.json(
+        { error: "INVALID_ADDRESS", message: "Every account-classification input must be a valid NQ address." },
+        { status: 400, headers: { "cache-control": "no-store" } }
+      );
+    }
+    if (!addresses.includes(address)) addresses.push(address);
+  }
+
+  try {
+    const accounts = [];
+    for (const address of addresses) {
+      accounts.push(await readIndependentTestnetAccount(env, address));
+    }
+    return Response.json(
+      {
+        network: "TESTNET",
+        accounts,
+        independently_observed: true,
+        writes_performed: false,
+      },
+      { headers: { "cache-control": "no-store" } }
+    );
+  } catch {
+    return Response.json(
+      {
+        error: "TESTNET_ACCOUNT_CLASSIFICATION_UNAVAILABLE",
+        message: "NimCarry could not independently classify the exposed Nimiq Pay accounts. No payment was requested.",
+        writes_performed: false,
+      },
+      { status: 503, headers: { "cache-control": "no-store" } }
+    );
+  }
 }
 
 async function testnetHeadResponse(request, env) {
@@ -204,6 +334,9 @@ export default {
 
     if (url.pathname === "/network/testnet-head") {
       return testnetHeadResponse(request, env);
+    }
+    if (url.pathname === "/network/account-types") {
+      return accountTypesResponse(request, env);
     }
 
     if (!shouldReachBackend(request, url)) {

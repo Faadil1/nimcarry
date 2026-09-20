@@ -1,4 +1,4 @@
-import { getNimiqProvider } from "/nimiq-provider.js";
+import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType } from "/nimiq-provider.js";
 
 const params = new URLSearchParams(location.search);
 const missionId = params.get("mission") || "";
@@ -16,7 +16,7 @@ const short = (value) => {
 };
 const safeMissionPath = missionId ? `/mission/${encodeURIComponent(missionId)}` : "/";
 const returnPath = requestedReturn.startsWith(safeMissionPath) ? requestedReturn : safeMissionPath;
-cancel.href = returnPath;
+cancel.href = "/";
 
 function randomToken(prefix) {
   if (typeof crypto.randomUUID === "function") return `${prefix}-${crypto.randomUUID()}`;
@@ -62,8 +62,13 @@ async function boot() {
 
   try {
     const nimiq = await getNimiqProvider();
-    const accounts = await nimiq.listAccounts();
-    if (!Array.isArray(accounts) || accounts.length === 0) throw new Error("RECOVERY_NO_ACCOUNTS: Nimiq Pay shared no accounts.");
+    const exposedAccounts = await nimiq.listAccounts();
+    if (!Array.isArray(exposedAccounts) || exposedAccounts.length === 0) throw new Error("RECOVERY_NO_ACCOUNTS: Nimiq Pay shared no accounts.");
+    const classified = await classifyNimiqAccounts(exposedAccounts);
+    const accounts = classified
+      .filter((account) => isBasicNimiqAccountType(account.type))
+      .map((account) => account.address);
+    if (accounts.length === 0) throw new Error("RECOVERY_NO_BASIC_ACCOUNTS: Nimiq Pay exposed only technical/non-basic accounts.");
 
     accountsEl.innerHTML = accounts.map((account, index) => `
       <label class="wallet-option">

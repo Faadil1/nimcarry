@@ -108,8 +108,13 @@ describe("static Mini App skeleton", () => {
     expect(html).toContain('<script type="module" src="/app.js"></script>');
     expect(provider).toContain('import { init } from "/vendor/nimiq-mini-app-sdk.js"');
     expect(provider).toContain("init({ timeout: 6000 })");
-    expect(js).toContain('import { getNimiqProvider } from "/nimiq-provider.js"');
+    expect(js).toContain('from "/nimiq-provider.js"');
+    expect(js).toContain("getNimiqProvider");
+    expect(js).toContain("classifyNimiqAccounts");
+    expect(js).toContain("isHtlcNimiqAccountType");
     expect(compat).toContain('import { getNimiqProvider } from "/nimiq-provider.js"');
+    expect(provider).toContain('const ACCOUNT_TYPES_URL = "/network/account-types"');
+    expect(provider).toContain("export async function classifyNimiqAccounts");
     expect(js).not.toContain("window.nimiq.listAccounts");
     expect(compat).not.toContain("window.nimiq.sign");
     expect(sdk).toContain("function init(options)");

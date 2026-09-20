@@ -3,6 +3,7 @@ import { init } from "/vendor/nimiq-mini-app-sdk.js";
 let providerPromise;
 
 const TESTNET_HEAD_URL = "/network/testnet-head";
+const ACCOUNT_TYPES_URL = "/network/account-types";
 const MAX_TESTNET_HEIGHT_DRIFT = 300;
 const PREFLIGHT_TIMEOUT_MS = 5000;
 
@@ -31,6 +32,58 @@ function validHeight(value) {
 
 function looksLikeTxHash(value) {
   return typeof value === "string" && /^[0-9a-f]{64}$/i.test(value);
+}
+
+export function nimiqAddressKey(value) {
+  return String(value ?? "").replace(/\s+/g, "").toUpperCase();
+}
+
+export function isBasicNimiqAccountType(type) {
+  return String(type ?? "").trim().toLowerCase() === "basic";
+}
+
+export function isHtlcNimiqAccountType(type) {
+  return String(type ?? "").trim().toLowerCase() === "htlc";
+}
+
+export async function classifyNimiqAccounts(accounts) {
+  const unique = [];
+  const seen = new Set();
+  for (const account of Array.isArray(accounts) ? accounts : []) {
+    const key = nimiqAddressKey(account);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    unique.push(account);
+  }
+  if (unique.length === 0) return [];
+
+  const response = await fetch(ACCOUNT_TYPES_URL, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ addresses: unique }),
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+  const body = await response.json().catch(() => null);
+  if (!response.ok || body?.independently_observed !== true || !Array.isArray(body?.accounts)) {
+    throw new Error(
+      body?.message ||
+      "NIMIQ_ACCOUNT_CLASSIFICATION_UNAVAILABLE: could not classify Nimiq Pay accounts on TESTNET. No payment was requested."
+    );
+  }
+
+  const byKey = new Map(body.accounts.map((account) => [nimiqAddressKey(account?.address), account]));
+  return unique.map((address) => {
+    const record = byKey.get(nimiqAddressKey(address));
+    if (!record) {
+      throw new Error("NIMIQ_ACCOUNT_CLASSIFICATION_INCOMPLETE: one exposed account could not be classified. No payment was requested.");
+    }
+    return {
+      address,
+      type: String(record.type || "unknown").toLowerCase(),
+      sender: record.sender || null,
+    };
+  });
 }
 
 async function readCanonicalTestnetHeight() {

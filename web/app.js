@@ -1,4 +1,4 @@
-import { getNimiqProvider } from "/nimiq-provider.js";
+import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtlcNimiqAccountType, nimiqAddressKey } from "/nimiq-provider.js";
 
 (() => {
   "use strict";
@@ -205,20 +205,34 @@ import { getNimiqProvider } from "/nimiq-provider.js";
       throw new Error("PAYMENT_SOURCE_CONTRACT_MISMATCH: pass intent does not authorize its canonical holder.");
     }
 
-    if (!uniqueAccounts.some((account) => walletKey(account) === expectedKey)) {
-      throw new Error("PAYMENT_SOURCE_HOLDER_MISSING: the canonical holder wallet is no longer available in this Nimiq Pay session. No payment was requested.");
+    const classified = await classifyNimiqAccounts(uniqueAccounts);
+    const basicAccounts = classified.filter((account) => isBasicNimiqAccountType(account.type));
+    const htlcAccounts = classified.filter((account) => isHtlcNimiqAccountType(account.type));
+    const unknownAccounts = classified.filter(
+      (account) => !isBasicNimiqAccountType(account.type) && !isHtlcNimiqAccountType(account.type)
+    );
+
+    if (!basicAccounts.some((account) => walletKey(account.address) === expectedKey)) {
+      throw new Error("PAYMENT_SOURCE_HOLDER_MISSING: the canonical holder basic wallet is no longer available in this Nimiq Pay session. No payment was requested.");
     }
-    const unauthorized = uniqueAccounts.filter((account) => !allowedKeys.has(walletKey(account)));
-    if (unauthorized.length > 0) {
+
+    const unauthorizedBasic = basicAccounts.filter((account) => !allowedKeys.has(walletKey(account.address)));
+    const unauthorizedHtlc = htlcAccounts.filter(
+      (account) => !account.sender || !allowedKeys.has(nimiqAddressKey(account.sender))
+    );
+    const unsafeAccounts = [...unauthorizedBasic, ...unauthorizedHtlc, ...unknownAccounts];
+    if (unsafeAccounts.length > 0) {
       throw new Error(
-        `PAYMENT_SOURCE_UNVERIFIED: Nimiq Pay exposes ${unauthorized.map(short).join(", ")} but that wallet was not verified on the same NimCarry profile when this pass was authorized. NimCarry stopped before requesting 1 NIM. Link that wallet to your profile, then authorize a fresh pass.`
+        `PAYMENT_SOURCE_UNVERIFIED: Nimiq Pay exposes ${unsafeAccounts.map((account) => `${short(account.address)} (${account.type})`).join(", ")} that is not a verified basic wallet or a verified wallet's HTLC rail in this pass snapshot. NimCarry stopped before requesting 1 NIM. Link the basic wallet to your profile, then authorize a fresh pass.`
       );
     }
 
     passDiagnostic("payment_source_preflight_completed", {
-      account_count: uniqueAccounts.length,
-      authorized_account_count: allowed.length,
-      multiwallet_verified: uniqueAccounts.length > 1,
+      exposed_account_count: classified.length,
+      basic_account_count: basicAccounts.length,
+      authorized_basic_account_count: basicAccounts.filter((account) => allowedKeys.has(walletKey(account.address))).length,
+      verified_htlc_rail_count: htlcAccounts.length,
+      multiwallet_verified: basicAccounts.length > 1,
     });
     return nimiq;
   }
