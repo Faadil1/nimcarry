@@ -247,6 +247,7 @@ export class ReachMissionService {
   private toPublicDestinationClaim(mission: MissionRecord, claim: DestinationClaimRecord): PublicDestinationClaim {
     return {
       mission_id: mission.id,
+      sender_label: mission.creatorDisplayLabel,
       target_label: mission.targetLabel,
       mission_note: mission.missionNote,
       status: claim.status,
