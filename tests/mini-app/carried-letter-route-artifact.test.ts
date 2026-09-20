@@ -37,7 +37,7 @@ describe("NimCarry V2 route as carried-letter artifact", () => {
   it("proves the artifact in the full mobile and desktop judge path", () => {
     expect(smoke).toContain('page.locator(".clv2-route-ledger-head")');
     expect(smoke).toContain('page.locator(".clv2-hop-stamp")');
-    expect(smoke).toContain("Expected at least 2 verified letter-back postmarks");
+    expect(smoke).toContain("Expected exactly 1 verified delivery postmark");
   });
 
   it("keeps the legacy craft observer from recreating removed V2 route mottos", () => {
