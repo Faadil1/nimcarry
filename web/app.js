@@ -309,12 +309,17 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     if (mission.status !== "ACTIVE") return false;
 
     const invitationStatus = String(mission.invitation?.status || "").toUpperCase();
+    const action = mission.primary_action || derivePrimaryAction(mission);
     const holderWaitingForAcceptance =
       mission.current_holder?.is_viewer === true && invitationStatus === "INVITED";
-    const acceptedBridgeWaitingForFinal =
-      mission.viewer_role === "INVITEE" && invitationStatus === "ACCEPTED";
+    const acceptedParticipantWaitingForFinal =
+      invitationStatus === "ACCEPTED" &&
+      (
+        mission.viewer_role === "INVITEE" ||
+        (mission.current_holder?.is_viewer === true && action === "WAIT")
+      );
 
-    return holderWaitingForAcceptance || acceptedBridgeWaitingForFinal;
+    return holderWaitingForAcceptance || acceptedParticipantWaitingForFinal;
   }
 
   async function refreshWatchedMission() {
@@ -424,30 +429,10 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
   function homeButtons(action, m) {
     if (m.status === "ARRIVED") return `<button id="route-button" class="button green">View completed route</button><button id="new-button" class="button ghost">Start your own mission</button>`;
     if (action === "CREATE_INVITATION" || action === "REROUTE") return `<button id="invite-button" class="button primary">${action === "REROUTE" ? "Choose another bridge" : "Choose next bridge"}</button><button id="route-button" class="button ghost">Follow route</button>`;
-    if (action === "WAIT" && m.viewer_role === "INVITEE" && m.invitation?.status === "ACCEPTED") return `<button class="button primary" disabled>Accepted — waiting for FINAL</button><button id="route-button" class="button ghost">Follow route</button>`;
-    if (action === "WAIT" && m.invitation?.status === "ACCEPTED") return `<button data-busy-lock="1" id="recheck-button" class="button primary">Recheck existing handoff</button><button id="route-button" class="button ghost">Follow route</button>`;
+    if (action === "WAIT" && m.invitation?.status === "ACCEPTED") return `<button class="button primary" disabled>Finalizing automatically — no action needed</button><button id="route-button" class="button ghost">Follow route</button>`;
     if (action === "WAIT") return `<button class="button primary" disabled>Waiting for response</button><button id="route-button" class="button ghost">Follow route</button>`;
     if (action === "PASS_1_NIM") return `<button id="pass-button" class="button primary">Pass 1 NIM</button><button id="route-button" class="button ghost">Follow route</button>`;
     return `<button id="route-button" class="button ghost">View route</button>`;
-  }
-
-  async function recheckExistingHandoff(missionId) {
-    if (state.busy) return;
-    setBusy(true);
-    notice("Rechecking the existing handoff on TESTNET…");
-    try {
-      const result = await api(`/missions/${encodeURIComponent(missionId)}/reconcile`, { method: "POST", body: {} });
-      const status = String(result?.hop?.status || result?.mission?.status || "PENDING").toUpperCase();
-      const final = status === "FINAL" || status === "CONFIRMED" || result?.mission?.status === "ARRIVED";
-      notice(final
-        ? "Existing handoff verified FINAL. No second payment was requested."
-        : "Existing handoff is not FINAL yet. No second payment was requested.");
-      await renderHome();
-    } catch (error) {
-      notice(`${error?.message || String(error)} — no second payment was requested.`, true);
-    } finally {
-      setBusy(false);
-    }
   }
 
   function wireHomeButtons(action, m) {
@@ -455,7 +440,6 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     document.querySelector("#new-button")?.addEventListener("click", () => navigate("/create"));
     document.querySelector("#pass-button")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(m.mission_id)}/pass`));
     document.querySelector("#invite-button")?.addEventListener("click", () => openInviteDialog(m));
-    document.querySelector("#recheck-button")?.addEventListener("click", () => recheckExistingHandoff(m.mission_id));
   }
 
   async function renderCreate() {
@@ -671,7 +655,13 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       handoffEvent("verification-pending", { status: "PENDING" });
       notice("Transaction claimed. Waiting for independent FINAL verification…");
       passPhase = "finality_verification";
-      await pollFinality(missionId);
+      const verification = await pollFinality(missionId);
+      if (verification?.pending === true) {
+        handoffEvent("verification-continues-in-background", { status: "PENDING" });
+        notice("Payment submitted. NimCarry is finalizing it automatically in the background. You can safely close this screen; do not send again.");
+        navigate(`/mission/${encodeURIComponent(missionId)}`);
+        return;
+      }
       handoffEvent("final", { status: "FINAL" });
       await new Promise((r) => setTimeout(r, 500));
       navigate(`/mission/${encodeURIComponent(missionId)}/route`);
@@ -704,7 +694,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       await new Promise((resolve) => setTimeout(resolve, 1800));
     }
     handoffEvent("verification-delayed", { status: "PENDING" });
-    throw new Error("VERIFICATION_STILL_PENDING: transaction may still finalize. Re-open this mission to continue reconciliation; do not reroute.");
+    return { pending: true };
   }
 
   async function renderRoute() {
