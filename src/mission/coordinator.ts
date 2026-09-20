@@ -58,10 +58,17 @@ export class ReachMissionCoordinator {
     if (invitation.missionId !== mission.id || invitation.sequence !== mission.currentSequence + 1) {
       throw new MissionValidationError("INVITATION_SEQUENCE_MISMATCH", "Invitation is not the mission's next canonical hop");
     }
+    if (
+      invitation.acceptedAt !== null &&
+      invitation.passDeadlineAt !== null &&
+      now >= invitation.passDeadlineAt
+    ) {
+      throw new MissionValidationError("PASS_DEADLINE_EXPIRED", "Accepted bridge pass deadline has expired");
+    }
     if (invitation.status !== "ACCEPTED" || !invitation.candidateWalletNormalized) {
       throw new MissionValidationError("INVITATION_NOT_ACCEPTED", "Next bridge must accept before a pass can be authorized");
     }
-    if (invitation.passDeadlineAt === null || now >= invitation.passDeadlineAt) {
+    if (invitation.passDeadlineAt === null) {
       throw new MissionValidationError("PASS_DEADLINE_EXPIRED", "Accepted bridge pass deadline has expired");
     }
     if (this.walletAlreadyInFinalRoute(mission.id, invitation.candidateWalletNormalized)) {

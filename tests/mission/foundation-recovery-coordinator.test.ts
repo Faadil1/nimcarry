@@ -77,6 +77,27 @@ async function acceptedMission(dir: string, targetWallet = wallet()) {
 }
 
 describe("durable foundation recovery", () => {
+  it("reports an expired previously accepted handoff as PASS_DEADLINE_EXPIRED", async () => {
+    const f = await acceptedMission(tempDir());
+    const state = JSON.parse(readFileSync(f.missionPath, "utf8")) as { invitations: Array<{ status: string; acceptedAt: number | null; passDeadlineAt: number | null }> };
+    state.invitations[0].status = "EXPIRED";
+    state.invitations[0].acceptedAt = 3_000;
+    state.invitations[0].passDeadlineAt = 3_500;
+    writeFileSync(f.missionPath, JSON.stringify(state));
+    Object.assign((f.repo as unknown as { state: typeof state }).state.invitations[0], {
+      status: "EXPIRED",
+      acceptedAt: 3_000,
+      passDeadlineAt: 3_500,
+    });
+
+    await expect(f.coordinator.authorizePass({
+      missionId: f.mission.id,
+      invitationId: f.invitationId,
+      auth: auth(f.creator, "AUTHORIZE_PASS", f.mission.id, f.invitationId, 1),
+      now: 4_000,
+    })).rejects.toMatchObject({ reason: "PASS_DEADLINE_EXPIRED" });
+  });
+
   it("reuses a still-valid matching pass intent", async () => {
     const f = await acceptedMission(tempDir());
     const first = await f.coordinator.authorizePass({ missionId: f.mission.id, invitationId: f.invitationId, auth: auth(f.creator, "AUTHORIZE_PASS", f.mission.id, f.invitationId, 1), now: 4_000 });
