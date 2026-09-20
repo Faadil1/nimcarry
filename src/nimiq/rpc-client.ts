@@ -53,6 +53,33 @@ function normalizeRecipientData(value: unknown): string | undefined {
   return raw;
 }
 
+function rpcFieldKey(value: unknown): string {
+  return String(value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function deepRpcField(root: unknown, names: string[], maxDepth = 4): unknown {
+  const wanted = new Set(names.map(rpcFieldKey));
+  const queue: Array<{ value: unknown; depth: number }> = [{ value: root, depth: 0 }];
+  const seen = new Set<object>();
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (!current.value || typeof current.value !== "object") continue;
+    const object = current.value as Record<string, unknown>;
+    if (seen.has(object)) continue;
+    seen.add(object);
+
+    for (const [key, child] of Object.entries(object)) {
+      if (wanted.has(rpcFieldKey(key)) && child !== undefined && child !== null) return child;
+    }
+    if (current.depth >= maxDepth) continue;
+    for (const child of Object.values(object)) {
+      if (child && typeof child === "object") queue.push({ value: child, depth: current.depth + 1 });
+    }
+  }
+  return undefined;
+}
+
 function rpcRecipientData(tx: Record<string, any>): string | undefined {
   return normalizeRecipientData(tx.recipientData ?? tx.data ?? undefined);
 }
@@ -139,19 +166,17 @@ export class HttpNimiqRpcClient implements NimiqRpcClient {
     const result = await this.rpc<unknown>("getAccountByAddress", [address]);
     if (!result || typeof result !== "object") return null;
     const account = result as Record<string, any>;
-    const extra = account.accountAdditionalFields && typeof account.accountAdditionalFields === "object"
-      ? account.accountAdditionalFields as Record<string, any>
-      : account;
-    const type = String(account.type ?? extra.type ?? "").toLowerCase();
+    const typeRaw = deepRpcField(account, ["type", "accountType"]);
+    const type = String(typeRaw ?? "").toLowerCase();
     if (!account.address || !type) return null;
     const lookup: NimiqAccountLookup = {
       address: String(account.address),
       balance: Number(account.balance ?? 0),
       type,
     };
-    const sender = account.sender ?? extra.sender ?? account.senderAddress ?? extra.senderAddress;
-    const recipient = account.recipient ?? extra.recipient ?? account.recipientAddress ?? extra.recipientAddress;
-    const totalAmount = account.totalAmount ?? extra.totalAmount ?? account.total_amount ?? extra.total_amount;
+    const sender = deepRpcField(account, ["sender", "senderAddress", "htlcSender"]);
+    const recipient = deepRpcField(account, ["recipient", "recipientAddress", "htlcRecipient"]);
+    const totalAmount = deepRpcField(account, ["totalAmount", "total_amount", "htlcTotalAmount"]);
     if (sender !== undefined && sender !== null) lookup.sender = String(sender);
     if (recipient !== undefined && recipient !== null) lookup.recipient = String(recipient);
     if (totalAmount !== undefined && totalAmount !== null && Number.isFinite(Number(totalAmount))) {
