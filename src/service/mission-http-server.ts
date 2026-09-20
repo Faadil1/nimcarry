@@ -768,7 +768,11 @@ async function buildMissionView(
   const viewerIsRecoveryHolder = resolution.viewer !== null && (
     resolution.viewer === record.creatorWalletNormalized || resolution.viewer === record.currentHolderWalletNormalized
   );
-  if (invitation === undefined && viewerIsRecoveryHolder) {
+  if (invitation === undefined && record.status === "ARRIVED" && record.currentSequence > 0) {
+    // Preserve the completed bridge's identity/continuity after direct arrival.
+    // composeMissionView still redacts invitation details for unrelated viewers.
+    invitation = await deps.repository.getInvitationForSequence(missionId, record.currentSequence);
+  } else if (invitation === undefined && viewerIsRecoveryHolder) {
     invitation = await deps.repository.getInvitationForSequence(missionId, record.currentSequence + 1);
   }
   const route = deps.relay.getHistory(missionId);
