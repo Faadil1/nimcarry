@@ -88,7 +88,7 @@
       };
     }
 
-    if (/pass_deadline_expired|pass_intent_expired|authorized pass intent has expired/.test(lower)) {
+    if (/pass_deadline_expired|pass_intent_expired|authorized pass intent has expired|invitation_not_accepted/.test(lower)) {
       return {
         kind: "expired",
         eyebrow: "The handoff window closed",
