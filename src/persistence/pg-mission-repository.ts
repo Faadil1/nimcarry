@@ -418,7 +418,7 @@ export class PgMissionRepository implements MissionRepository {
     // quirks around the SQL column name `sequence` while preserving the same
     // canonical uniqueness constraint in Postgres.
     const result = await this.pool.query<InvitationRow>(
-      "SELECT * FROM invitations WHERE mission_id = $1 ORDER BY sequence ASC",
+      "SELECT * FROM invitations WHERE CAST(mission_id AS TEXT) = $1 ORDER BY sequence ASC",
       [missionId]
     );
     const row = result.rows.find((candidate) => Number(candidate.sequence) === sequence);
