@@ -155,6 +155,33 @@ export class ReachMissionCoordinator {
     };
   }
 
+  /**
+   * Background-safe reconciliation sweep. Each mission is isolated so one
+   * temporarily unavailable RPC or one invalid observation cannot prevent other
+   * pending missions from advancing. No wallet action or new payment is ever
+   * initiated here.
+   */
+  async reconcilePending(): Promise<{ checked: number; arrived: number; errors: number }> {
+    const missionIds = this.relay.getPendingReconciliationBatonIds();
+    let arrived = 0;
+    let errors = 0;
+
+    for (const missionId of missionIds) {
+      try {
+        const result = await this.reconcile(missionId);
+        if (result.mission.status === "ARRIVED") arrived += 1;
+      } catch (error) {
+        errors += 1;
+        console.error(
+          `NimCarry background reconciliation failed for ${missionId}:`,
+          error instanceof Error ? error.message : String(error)
+        );
+      }
+    }
+
+    return { checked: missionIds.length, arrived, errors };
+  }
+
   private async applyNextFinalizedHop(missionId: string): Promise<PublicHop | null> {
     const mission = await this.missions.getMissionRecord(missionId);
     if (mission.status !== "ACTIVE") return null;
