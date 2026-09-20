@@ -630,7 +630,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
         if (!retryable) throw error;
         transientFailures += 1;
         handoffEvent("verification-delayed", { status: "PENDING", transient_failures: transientFailures });
-        notice("Verification temporarily unavailable — retrying the independent chain check. Do not resend 1 NIM.");
+        notice("Verification temporarily unavailable — retrying the independent chain check. Custody has not changed yet. Do not resend 1 NIM.");
       }
       await new Promise((resolve) => setTimeout(resolve, 1800));
     }
