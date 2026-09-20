@@ -251,6 +251,34 @@ describe("CanonicalRelayService: full W0 -> W5 relay through intent/broadcast/re
     await expect(service.reconcile(BATON)).resolves.toBeNull();
   });
 
+  it("exposes only active unresolved missions to the background reconciler", async () => {
+    const rpc = new FakeRpcClient();
+    const service = new CanonicalRelayService(new RelayStore(), rpc);
+    const baton = "background-reconcile";
+
+    const intent = service.initiatePass(baton, "W0", "W1");
+    expect(service.listReconciliationCandidates()).toEqual([baton]);
+
+    const txHash = randomHash();
+    service.recordBroadcast(baton, txHash);
+    expect(service.listReconciliationCandidates()).toEqual([baton]);
+
+    const blockNumber = NIMIQ_POLICY.genesisBlockNumber + 1;
+    rpc.seeTx({
+      hash: txHash,
+      from: "W0",
+      to: "W1",
+      value: ONE_NIM_IN_LUNA,
+      blockNumber,
+      confirmations: 1,
+      recipientData: batonDataTag(baton, intent.sequence),
+    });
+    rpc.setHeadBlockNumber(blockNumber + NIMIQ_POLICY.blocksPerBatch);
+
+    await expect(service.reconcile(baton)).resolves.toMatchObject({ status: "FINAL" });
+    expect(service.listReconciliationCandidates()).toEqual([]);
+  });
+
   it("rejects cross-baton transaction replay when reusing the same tx hash on a second baton", () => {
     const store = new RelayStore();
     const service = new CanonicalRelayService(store, new FakeRpcClient());
