@@ -324,6 +324,58 @@ export class PgMissionRepository implements MissionRepository {
     });
   }
 
+  async createMissionWithDestinationClaim(mission: MissionRecord, claim: DestinationClaimRecord): Promise<{ mission: MissionRecord; claim: DestinationClaimRecord }> {
+    if (claim.missionId !== mission.id) {
+      throw new MissionValidationError("DESTINATION_CLAIM_MISMATCH", "Destination claim must belong to the mission being created");
+    }
+    return this.withTransaction(async (client) => {
+      try {
+        await client.query(
+          `INSERT INTO missions
+            (id, creator_wallet_normalized, creator_display_label,
+             current_holder_wallet_normalized, target_label, target_wallet_ciphertext,
+             target_wallet_hmac, target_consent_confirmed, mission_note, status,
+             visibility, finalized_hop_count, current_sequence, created_at, arrived_at,
+             cancelled_at, updated_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+          [
+            mission.id,
+            mission.creatorWalletNormalized,
+            mission.creatorDisplayLabel,
+            mission.currentHolderWalletNormalized,
+            mission.targetLabel,
+            null,
+            null,
+            false,
+            mission.missionNote,
+            mission.status,
+            mission.visibility,
+            mission.finalizedHopCount,
+            mission.currentSequence,
+            epoch(mission.createdAt),
+            null,
+            null,
+            epoch(mission.updatedAt),
+          ]
+        );
+        await client.query(
+          `INSERT INTO participants (mission_id, wallet_normalized, display_label, first_final_sequence)
+           VALUES ($1, $2, $3, NULL)`,
+          [mission.id, mission.creatorWalletNormalized, mission.creatorDisplayLabel]
+        );
+        await client.query(
+          `INSERT INTO destination_claims
+            (id, mission_id, claim_token_hash, status, created_at, expires_at, bound_wallet_normalized, bound_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+          [claim.id, claim.missionId, claim.claimTokenHash, claim.status, epoch(claim.createdAt), epoch(claim.expiresAt), null, null]
+        );
+      } catch (error) {
+        throw mapPgErrorToMission(error, `createMissionWithDestinationClaim failed for ${mission.id}`);
+      }
+      return { mission, claim };
+    });
+  }
+
   async createDestinationClaim(record: DestinationClaimRecord): Promise<DestinationClaimRecord> {
     try {
       await this.pool.query(
