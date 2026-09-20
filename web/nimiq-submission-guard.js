@@ -5,8 +5,6 @@
   if (!notice || new URLSearchParams(location.search).get("demo") === "1") return;
 
   const HOLD_MS = 130 * 60 * 1000;
-  const POLL_MS = 2500;
-  const POLL_LIMIT_MS = 90 * 1000;
   let recovering = false;
   let lastHandledMessage = "";
 
@@ -15,8 +13,8 @@
     return match ? decodeURIComponent(match[1]) : null;
   };
   const markerKey = (id) => `nimcarry.unproven-submission.${id}`;
+  const missionPath = (id) => `/mission/${encodeURIComponent(id)}`;
   const routePath = (id) => `/mission/${encodeURIComponent(id)}/route`;
-  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   function readMarker(id) {
     if (!id) return null;
@@ -75,34 +73,44 @@
   async function recoverUntilFinal(id, { quiet = false, providerDetail = "" } = {}) {
     if (!id || recovering) return false;
     recovering = true;
-    const started = Date.now();
-    if (!quiet) setNotice(`NIMIQ_PAY_SUBMISSION_UNPROVEN: wallet approval returned no provable transaction hash. NimCarry is checking the Nimiq chain independently. Do not resend the baton yet.${providerDetail}`, true);
+    if (!quiet) {
+      setNotice(
+        `SEND_STATUS_PENDING: Nimiq Pay did not return a provable transaction hash. NimCarry will verify this existing send attempt in the background. Do not resend 1 NIM.${providerDetail}`,
+        false
+      );
+    }
     try {
-      while (Date.now() - started < POLL_LIMIT_MS) {
-        const result = await reconcile(id);
-        const mission = result?.mission;
-        const hopStatus = result?.hop?.status;
-        if (mission?.status === "ARRIVED" || hopStatus === "FINAL" || hopStatus === "CONFIRMED") {
-          clearMarker(id);
-          location.assign(routePath(id));
-          return true;
-        }
-        if (hopStatus === "INVALID") {
-          clearMarker(id);
-          setNotice(
-            "NO_BROADCAST_CONFIRMED: the previous handoff validity window ended without an independently verified matching transaction. Custody did not change. Return to the mission and prepare a fresh handoff.",
-            true
-          );
-          return false;
-        }
-        await sleep(POLL_MS);
+      // One opportunistic check only. The canonical server-side maintenance
+      // loop owns continued reconciliation, including no-hash discovery.
+      const result = await reconcile(id);
+      const mission = result?.mission;
+      const hopStatus = result?.hop?.status;
+      if (mission?.status === "ARRIVED" || hopStatus === "FINAL" || hopStatus === "CONFIRMED") {
+        clearMarker(id);
+        location.assign(routePath(id));
+        return true;
       }
-      const marker = readMarker(id) || writeMarker(id);
-      const until = marker?.hold_until ? new Date(marker.hold_until).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "the original intent expires";
-      setNotice(`SUBMISSION_RECHECK_REQUIRED: no FINAL matching handoff was found yet. NimCarry will not allow a second send from this device until chain recovery succeeds or the original intent safety window expires (about ${until}).`, true);
+      if (hopStatus === "INVALID") {
+        clearMarker(id);
+        setNotice(
+          "NO_BROADCAST_CONFIRMED: the previous handoff validity window ended without an independently verified matching transaction. Custody did not change. Return to the mission and prepare a fresh handoff.",
+          true
+        );
+        return false;
+      }
+      setNotice(
+        "SEND_STATUS_PENDING: No FINAL proof yet. NimCarry will keep checking this existing send attempt in the background. Do not resend 1 NIM.",
+        false
+      );
+      location.assign(missionPath(id));
       return false;
     } catch (error) {
-      setNotice(`VERIFICATION_DELAYED: ${error?.message || String(error)}. Custody has not changed. Do not resend the baton.`, true);
+      console.info("[NimCarry submission recovery] foreground check unavailable; server background reconciliation remains authoritative");
+      setNotice(
+        "SEND_STATUS_PENDING: Verification is temporarily unavailable. NimCarry will keep checking the existing send attempt in the background. Do not resend 1 NIM.",
+        false
+      );
+      location.assign(missionPath(id));
       return false;
     } finally {
       recovering = false;

@@ -9,7 +9,7 @@ This file is intentionally operational. A new conversation should be able to rea
 
 Current main baseline:
 
-- SHA: `5d31d5bf3234f267a55aee5e3f5435165b9478aa`
+- SHA: `af758e1a3db9e02f8a84dd9440d24653825b90ff`
 - PR #114 **Move FINAL reconciliation into the background** is merged.
 - Main checks after merge: CI #1494 **SUCCESS**, Judge Full Flow #195 **SUCCESS**, Judge Window #80 **SUCCESS**.
 - Product behavior: one-time human bridge; sender pays the target directly; long-running FINAL reconciliation is server-owned.
@@ -50,7 +50,7 @@ Implemented in the code branch for this handover:
 - while open, Mission Home watches the sender's accepted/pending state and reflects ARRIVED when the backend advances;
 - retries remain read/reconcile operations only and never authorize or send a second payment.
 
-Status: **merged with CI/Judge gates green; real close/reopen TESTNET validation is still required before calling this production-proven.**
+Status: **merged with CI/Judge gates green; live validation continues. The latest run was blocked by an ambiguous no-hash Nimiq Pay submission before the intended close/reopen proof could be completed.**
 
 Required live validation:
 
@@ -61,6 +61,29 @@ Required live validation:
 5. reopen and confirm the mission reached ARRIVED automatically;
 6. verify no second payment control is offered at any point;
 7. repeat the UI verification on desktop as well as mobile.
+
+
+### Latest live attempt — ambiguous Nimiq Pay submission
+
+A fresh mobile run at approximately 18:52 local time created mission `d9ae9ec2-5eab-485e-b19a-31b8a96e700a` with Grace accepted and David as the direct destination.
+
+The pass intent was durably created, but Nimiq Pay did **not** return a provable transaction hash. The browser guard attempted one of its legacy foreground recovery loops and then surfaced:
+
+`VERIFICATION_DELAYED: Load failed`
+
+Read-only PostgreSQL inspection at 18:57 showed:
+
+- mission: `ACTIVE`;
+- Grace invitation: `ACCEPTED`;
+- active intent sequence: `1`;
+- intent recipient: David's wallet;
+- hop row: **none**;
+- recorded transaction hash: **none**;
+- finalized hop count: `0`.
+
+Therefore this run is **inconclusive about whether Nimiq Pay actually broadcast a transaction**. It does not justify a resend. The canonical no-hash recovery path may still discover an exact committed transaction independently.
+
+It also exposed a concrete UX truthfulness defect: the recovery card said **“The transaction is already claimed”** even though durable state had no recorded hop/hash. The next patch changes this to evidence-safe language and hands continued recovery to the already-merged server background reconciler instead of keeping a hidden 90-second client recovery loop.
 
 ## 3. Product Council result
 

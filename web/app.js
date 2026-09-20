@@ -432,8 +432,8 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
   function homeButtons(action, m) {
     if (m.status === "ARRIVED") return `<button id="route-button" class="button green">View completed route</button><button id="new-button" class="button ghost">Start your own mission</button>`;
     if (action === "CREATE_INVITATION" || action === "REROUTE") return `<button id="invite-button" class="button primary">${action === "REROUTE" ? "Choose another bridge" : "Choose next bridge"}</button><button id="route-button" class="button ghost">Follow route</button>`;
-    if (action === "WAIT" && m.viewer_role === "INVITEE" && m.invitation?.status === "ACCEPTED") return `<button class="button primary" disabled>Accepted — finalizing delivery</button><button id="route-button" class="button ghost">Follow route</button>`;
-    if (action === "WAIT" && m.invitation?.status === "ACCEPTED") return `<button class="button primary" disabled>Payment sent — finalizing</button><button id="route-button" class="button ghost">Follow route</button>`;
+    if (action === "WAIT" && m.viewer_role === "INVITEE" && m.invitation?.status === "ACCEPTED") return `<button class="button primary" disabled>Accepted — waiting for delivery</button><button id="route-button" class="button ghost">Follow route</button>`;
+    if (action === "WAIT" && m.invitation?.status === "ACCEPTED") return `<button class="button primary" disabled>Checking existing send — no action needed</button><button id="route-button" class="button ghost">Follow route</button>`;
     if (action === "WAIT") return `<button class="button primary" disabled>Waiting for response</button><button id="route-button" class="button ghost">Follow route</button>`;
     if (action === "PASS_1_NIM") return `<button id="pass-button" class="button primary">Pass 1 NIM</button><button id="route-button" class="button ghost">Follow route</button>`;
     return `<button id="route-button" class="button ghost">View route</button>`;

@@ -195,7 +195,7 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
   it("backgrounds an already-recorded handoff without offering a second payment", () => {
     expect(js).not.toContain("Recheck existing handoff");
     expect(js).not.toContain("async function recheckExistingHandoff");
-    expect(js).toContain("Payment sent — finalizing");
+    expect(js).toContain("Checking existing send — no action needed");
     expect(js).toContain("finalizing in the background");
     expect(js).toContain("You can safely close this page. Do not resend 1 NIM.");
     expect(js).toContain("/reconcile");
@@ -204,7 +204,7 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
   });
   it("keeps the accepted bridge in one continuous session until FINAL", () => {
     expect(js).toContain('mission.viewer_role === "INVITEE" && invitationStatus === "ACCEPTED"');
-    expect(js).toContain("Accepted — finalizing delivery");
+    expect(js).toContain("Accepted — waiting for delivery");
     expect(js).toContain("received the 1 NIM. Your bridge step is complete.");
     expect(js).toContain("Your bridge step is complete once FINAL lands.");
     expect(js).not.toContain("You now carry this letter — choose the next bridge.");

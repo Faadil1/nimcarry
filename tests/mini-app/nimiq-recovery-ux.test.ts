@@ -19,11 +19,13 @@ describe("Nimiq Pay fail-closed recovery UX", () => {
     expect(js).not.toContain("sessionStorage.setItem");
   });
 
-  it("keeps ambiguous submission fail-closed and blocks blind resend guidance", () => {
-    expect(js).toContain("Don’t send a second baton yet.");
-    expect(js).toContain("The route stays with the last verified holder unless FINAL is independently observed.");
-    expect(js).toContain("Approval ≠ broadcast ≠ FINAL");
-    expect(js).toContain("Do not resend the baton.");
+  it("keeps ambiguous submission fail-closed without claiming a broadcast that is not proven", () => {
+    expect(js).toContain("Your send is not proven yet. Do not resend it.");
+    expect(js).toContain("did not return enough evidence for NimCarry to prove a transaction hash");
+    expect(js).toContain("The server will keep checking the chain independently in the background");
+    expect(js).toContain("Approval ≠ broadcast ≠ FINAL · background verification owns recovery");
+    expect(js).toContain("Your send may still be processing. Do not resend it.");
+    expect(js).toContain("does not yet have proof of a transaction hash");
   });
 
   it("explains when a full validity-window recheck proves no broadcast", () => {

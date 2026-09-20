@@ -128,11 +128,11 @@
       return {
         kind: "pending",
         eyebrow: "Verification connection interrupted",
-        title: "The transaction is already claimed. Do not resend it.",
-        body: "The independent FINAL check briefly lost its connection. NimCarry keeps the recorded handoff locked and will retry verification; custody stays with the last verified holder until FINAL.",
-        primary: ["Check verified route", routePath()],
-        secondary: ["Back to mission", missionPath()],
-        rule: "Network read failure ≠ failed payment · never duplicate the baton",
+        title: "Your send may still be processing. Do not resend it.",
+        body: "NimCarry has an authorized payment intent, but this screen does not yet have proof of a transaction hash. Background reconciliation will keep checking for an exact matching transaction; only independent FINAL completes delivery.",
+        primary: ["Back to mission", missionPath()],
+        secondary: ["Check verified route", routePath()],
+        rule: "Uncertain submission ≠ failed payment · never duplicate a send",
       };
     }
 
@@ -200,11 +200,11 @@
       return {
         kind: "ambiguous",
         eyebrow: "Submission not proven",
-        title: "Don’t send a second baton yet.",
-        body: "Nimiq Pay did not return enough evidence for NimCarry to prove this handoff. NimCarry checks the chain independently. The route stays with the last verified holder unless FINAL is independently observed.",
-        primary: ["Check verified route", routePath()],
+        title: "Your send is not proven yet. Do not resend it.",
+        body: "Nimiq Pay did not return enough evidence for NimCarry to prove a transaction hash. The server will keep checking the chain independently in the background; the route stays with the last verified holder unless FINAL is independently observed.",
+        primary: ["Back to mission", missionPath()],
         secondary: ["Run provider check", providerCheckPath()],
-        rule: "Approval ≠ broadcast ≠ FINAL",
+        rule: "Approval ≠ broadcast ≠ FINAL · background verification owns recovery",
       };
     }
 

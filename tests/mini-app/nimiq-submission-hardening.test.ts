@@ -30,10 +30,10 @@ describe("Nimiq Pay ambiguous-submission hardening", () => {
 
   it("wires a fail-closed browser guard without creating a second transaction path", () => {
     expect(html).toContain('src="/nimiq-submission-guard.js"');
-    expect(guard).toContain("NIMIQ_PAY_SUBMISSION_UNPROVEN");
+    expect(guard).toContain("SEND_STATUS_PENDING");
     expect(guard).toContain("SUBMISSION_RECHECK_REQUIRED");
     expect(guard).toContain("/reconcile");
-    expect(guard).toContain("Do not resend the baton");
+    expect(guard).toContain("Do not resend 1 NIM");
     expect(guard).not.toContain("sendBasicTransactionWithData");
     expect(guard).not.toContain("nimiq.sign");
   });
@@ -47,6 +47,14 @@ describe("Nimiq Pay ambiguous-submission hardening", () => {
     expect(app).toContain("Do not resend 1 NIM");
     expect(app).toContain('handoffEvent("verification-backgrounded"');
     expect(app).not.toContain("VERIFICATION_STILL_PENDING");
+  });
+
+  it("delegates continued ambiguous-submission recovery to the server after one opportunistic check", () => {
+    expect(guard).toContain("One opportunistic check only");
+    expect(guard).toContain("server background reconciliation remains authoritative");
+    expect(guard).toContain("location.assign(missionPath(id))");
+    expect(guard).not.toContain("POLL_LIMIT_MS");
+    expect(guard).not.toContain("while (Date.now()");
   });
 
   it("releases the browser hold only after the backend returns a terminal INVALID handoff", () => {
