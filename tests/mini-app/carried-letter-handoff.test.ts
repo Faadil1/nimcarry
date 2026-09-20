@@ -19,6 +19,13 @@ describe("NimCarry V2 warm-wax handoff ceremony", () => {
     expect(app).toContain('sendBasicTransactionWithData({ recipient: intent.recipient, value: ONE_NIM, fee: 0, data: intent.recipient_data })');
   });
 
+  it("does not offer a 1 NIM send from an expired or unaccepted pass screen", () => {
+    expect(app).toContain('const passReady = inv?.status === "ACCEPTED" && !passWindowExpired');
+    expect(app).toContain("This pass can’t be reused.");
+    expect(app).toContain("No new payment should be requested from this screen.");
+    expect(app).toContain('id="mission-return"');
+  });
+
   it("keeps FINAL as the only successful exit from polling", () => {
     expect(app).toContain('status === "FINAL" || status === "CONFIRMED" || result?.mission?.status === "ARRIVED"');
     expect(app).toContain("VERIFICATION_STILL_PENDING");
