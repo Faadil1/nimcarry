@@ -98,6 +98,7 @@ export class ReachMissionCoordinator {
           const renewed = this.relay.initiatePass(mission.id, signer, targetWallet, {
             requireOpaqueTag: true,
             authorizedPaymentWallets: input.authorizedPaymentWallets,
+            invitationId: invitation.id,
           });
           if (!renewed.recipientData) {
             throw new MissionValidationError("MISSING_HOP_COMMITMENT", "Reach Mission pass authorization must include an opaque on-chain commitment");
@@ -114,6 +115,7 @@ export class ReachMissionCoordinator {
     const intent = this.relay.initiatePass(mission.id, signer, targetWallet, {
       requireOpaqueTag: true,
       authorizedPaymentWallets: input.authorizedPaymentWallets,
+      invitationId: invitation.id,
     });
     if (!intent.recipientData) {
       throw new MissionValidationError("MISSING_HOP_COMMITMENT", "Reach Mission pass authorization must include an opaque on-chain commitment");
