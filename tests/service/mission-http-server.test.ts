@@ -17,6 +17,7 @@ import { CanonicalRelayService } from "../../src/service/canonical-relay-service
 import { MemoryIdempotencyStore } from "../../src/service/idempotency.js";
 import { MemoryRateLimiter } from "../../src/service/rate-limiter.js";
 import { createMissionHttpServer } from "../../src/service/mission-http-server.js";
+import { MemoryUserDirectory, PRIVACY_NOTICE_VERSION, profileTokenHash } from "../../src/users/user-directory.js";
 
 class FakeRpcClient implements NimiqRpcClient {
   tx: NimiqTxLookup | null = null;
@@ -51,6 +52,7 @@ let baseUrl: string;
 let close: () => Promise<void>;
 let rpc: FakeRpcClient;
 let repository: FileMissionRepository;
+let userDirectory: MemoryUserDirectory;
 
 type Response = { status: number; headers: Headers; body: any };
 
@@ -361,6 +363,7 @@ describe("Reach Mission route-view privacy", () => {
     const relay = new CanonicalRelayService(new FileRelayStore(relayPath), rpc);
     const coordinator = new ReachMissionCoordinator(missions, repository, relay, PROTECTOR);
     const authorizer = new NimiqWalletAuthorizer(repository, "https://carry.one");
+    userDirectory = new MemoryUserDirectory();
     const server = createMissionHttpServer({
       coordinator,
       missions,
@@ -371,6 +374,7 @@ describe("Reach Mission route-view privacy", () => {
       canonicalOrigin: "https://carry.one",
       idempotency: new MemoryIdempotencyStore(),
       limiter: new MemoryRateLimiter(),
+      userDirectory,
     });
     baseUrl = await listen(server);
     close = () => new Promise((resolve) => server.close(() => resolve()));
@@ -405,6 +409,46 @@ describe("Reach Mission route-view privacy", () => {
     });
     expect(valid.status).toBe(200);
     expect(valid.body.current_holder.is_viewer).toBe(true);
+  });
+
+  it("uses a verified profile session as read-only fallback after a route token disappears", async () => {
+    const creator = wallet();
+    const target = wallet();
+    const createRes = await createMissionViaApi(creator, target.address, "profile-route-recovery");
+    const missionId = createRes.body.mission_id;
+
+    const profileToken = randomBytes(32).toString("base64url");
+    const profile = await userDirectory.register({
+      email: "route-recovery@example.com",
+      displayName: "Route recovery",
+      tokenHash: profileTokenHash(profileToken),
+      privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
+      privacyConsentAt: Date.now(),
+    });
+    await userDirectory.linkVerifiedWallet(profile.id, creator.address);
+
+    const recovered = await request("GET", `/missions/${missionId}`, undefined, {
+      Authorization: "Bearer invalid-after-runtime-restart",
+      "X-NimCarry-User-Token": profileToken,
+    });
+    expect(recovered.status).toBe(200);
+    expect(recovered.body.viewer_role).toBe("CREATOR");
+    expect(recovered.body.current_holder.is_viewer).toBe(true);
+
+    const strangerToken = randomBytes(32).toString("base64url");
+    const stranger = await userDirectory.register({
+      email: "route-stranger@example.com",
+      displayName: "Stranger",
+      tokenHash: profileTokenHash(strangerToken),
+      privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
+      privacyConsentAt: Date.now(),
+    });
+    await userDirectory.linkVerifiedWallet(stranger.id, wallet().address);
+    const denied = await request("GET", `/missions/${missionId}`, undefined, {
+      "X-NimCarry-User-Token": strangerToken,
+    });
+    expect(denied.status).toBe(401);
+    expect(denied.body.error).toBe("ROUTE_VIEW_CAPABILITY_REQUIRED");
   });
 
   it("rejects a capability that is bound to another mission with 403", async () => {
