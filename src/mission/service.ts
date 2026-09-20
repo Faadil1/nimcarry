@@ -186,11 +186,10 @@ export class ReachMissionService {
       cancelledAt: null,
       updatedAt: now,
     };
-    const mission = await this.repository.createMission(missionRecord);
     const claimToken = randomBytes(32).toString("base64url");
     const claimRecord: DestinationClaimRecord = {
       id: randomUUID(),
-      missionId: mission.id,
+      missionId: missionRecord.id,
       claimTokenHash: hashToken(claimToken),
       status: "PENDING",
       createdAt: now,
@@ -198,10 +197,10 @@ export class ReachMissionService {
       boundWalletNormalized: null,
       boundAt: null,
     };
-    const claim = await this.repository.createDestinationClaim(claimRecord);
+    const created = await this.repository.createMissionWithDestinationClaim(missionRecord, claimRecord);
     return {
-      mission: toPublicMission(mission, now),
-      claim: this.toPublicDestinationClaim(mission, claim),
+      mission: toPublicMission(created.mission, now),
+      claim: this.toPublicDestinationClaim(created.mission, created.claim),
       claimToken,
     };
   }
