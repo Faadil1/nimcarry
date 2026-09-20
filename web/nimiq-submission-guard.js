@@ -131,7 +131,10 @@
       event.stopImmediatePropagation();
       void reconcile(id)
         .then(() => location.reload())
-        .catch((error) => setNotice(`VERIFICATION_DELAYED: ${error?.message || String(error)}`, true));
+        .catch(() => setNotice(
+          "SEND_STATUS_PENDING: Verification is temporarily unavailable. NimCarry will keep checking this existing send attempt automatically. Do not resend 1 NIM.",
+          false
+        ));
       return;
     }
 
