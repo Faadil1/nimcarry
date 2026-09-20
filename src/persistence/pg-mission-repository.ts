@@ -412,11 +412,17 @@ export class PgMissionRepository implements MissionRepository {
   }
 
   async getInvitationForSequence(missionId: string, sequence: number): Promise<InvitationRecord | undefined> {
+    // Fetch the mission-scoped invitation set and compare the integer sequence
+    // in application code. Besides being harmless for the bounded per-mission
+    // invitation history, this avoids adapter-specific parameter comparison
+    // quirks around the SQL column name `sequence` while preserving the same
+    // canonical uniqueness constraint in Postgres.
     const result = await this.pool.query<InvitationRow>(
-      "SELECT * FROM invitations WHERE mission_id = $1 AND sequence = $2",
-      [missionId, sequence]
+      "SELECT * FROM invitations WHERE mission_id = $1 ORDER BY sequence ASC",
+      [missionId]
     );
-    return result.rows.length === 0 ? undefined : invitationFromRow(result.rows[0]);
+    const row = result.rows.find((candidate) => Number(candidate.sequence) === sequence);
+    return row ? invitationFromRow(row) : undefined;
   }
 
   async acceptInvitation(id: string, wallet: string, now: number, passDeadlineAt: number, candidateDisplayLabel: string | null = null): Promise<InvitationRecord> {
