@@ -320,6 +320,10 @@ export class PgMissionRepository implements MissionRepository {
         `UPDATE missions SET status='CANCELLED', cancelled_at=$2, updated_at=$2 WHERE id=$1 RETURNING *`,
         [id, epoch(now)]
       );
+      await client.query(
+        "UPDATE destination_claims SET status='CANCELLED' WHERE mission_id=$1 AND status='PENDING'",
+        [id]
+      );
       return missionFromRow(updated.rows[0]);
     });
   }
