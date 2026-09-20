@@ -88,6 +88,28 @@ export class CanonicalRelayService {
     return Boolean(hop?.txHash);
   }
 
+  /**
+   * Return the durable set of missions that still need independent chain
+   * reconciliation. Active intents survive process restarts through the
+   * persistent relay store, so a server-side maintenance loop can keep
+   * resolving no-hash wallet submissions and PENDING/INCLUDED hops even when
+   * every browser is closed.
+   */
+  listReconciliationCandidates(): string[] {
+    const snapshot = this.store.snapshot();
+    const candidates = snapshot.intents
+      .filter((intent) => {
+        const hop = snapshot.hops.find(
+          (candidate) =>
+            candidate.batonId === intent.batonId &&
+            candidate.sequence === intent.sequence
+        );
+        return !hop || hop.status === "PENDING" || hop.status === "INCLUDED";
+      })
+      .map((intent) => intent.batonId);
+    return [...new Set(candidates)];
+  }
+
   private recordObservedBroadcast(intent: PassIntent, txHash: string): Hop {
     const existingHop = this.store.findHopByTxHash(txHash);
     if (existingHop && (existingHop.batonId !== intent.batonId || existingHop.sequence !== intent.sequence)) {
