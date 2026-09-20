@@ -10,6 +10,8 @@ export type MissionAction =
   | "ACCEPT_INVITATION"
   | "WITHDRAW_INVITATION"
   | "AUTHORIZE_PASS"
+  | "AUTHORIZE_DELIVERY"
+  | "BIND_DESTINATION"
   | "CANCEL_MISSION"
   | "VIEW_ROUTE";
 
@@ -28,9 +30,9 @@ export interface MissionRecord {
   creatorDisplayLabel: string | null;
   currentHolderWalletNormalized: string;
   targetLabel: string;
-  targetWalletCiphertext: string;
-  targetWalletHmac: string;
-  /** Cycle-II MVP requires a known destination that explicitly consented to be the target. */
+  targetWalletCiphertext: string | null;
+  targetWalletHmac: string | null;
+  /** True once the destination endpoint is resolved and consent/binding is complete. */
   targetConsentConfirmed: boolean;
   missionNote: string;
   status: MissionStatus;
@@ -41,6 +43,28 @@ export interface MissionRecord {
   arrivedAt: number | null;
   cancelledAt: number | null;
   updatedAt: number;
+}
+
+export type DestinationClaimStatus = "PENDING" | "BOUND" | "EXPIRED" | "CANCELLED";
+
+export interface DestinationClaimRecord {
+  id: string;
+  missionId: string;
+  claimTokenHash: string;
+  status: DestinationClaimStatus;
+  createdAt: number;
+  expiresAt: number;
+  boundWalletNormalized: string | null;
+  boundAt: number | null;
+}
+
+export interface PublicDestinationClaim {
+  mission_id: string;
+  target_label: string;
+  mission_note: string;
+  status: DestinationClaimStatus;
+  expires_at: string;
+  bound: boolean;
 }
 
 export interface InvitationRecord {
@@ -116,6 +140,7 @@ export interface PublicInvitation {
 export interface MissionStoreSnapshot {
   missions: MissionRecord[];
   invitations: InvitationRecord[];
+  destinationClaims?: DestinationClaimRecord[];
   challenges: AuthChallengeRecord[];
   auditEvents?: AuditEventRecord[];
 }
