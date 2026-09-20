@@ -667,7 +667,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       } else {
         handoffEvent("verification-backgrounded", { status: "PENDING" });
         navigate(`/mission/${encodeURIComponent(missionId)}`);
-        notice("Payment sent — finalizing in the background. You can safely close this page. Do not send again.");
+        notice("Payment sent — finalizing in the background. You can safely close this page. Do not resend 1 NIM.");
       }
     } catch (error) {
       const classification = passFailureClass(passPhase, error);
@@ -689,7 +689,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       const retryable = /VERIFICATION_DELAYED|Load failed|Failed to fetch|network|transport|timeout|temporar|connection|offline|unavailable/i.test(message);
       if (!retryable) throw error;
       handoffEvent("verification-delayed", { status: "PENDING", background: true });
-      notice("Verification is temporarily unavailable. NimCarry will keep checking in the background. Do not send again.");
+      notice("Verification is temporarily unavailable. NimCarry will keep checking in the background. Do not resend 1 NIM.");
       return { final: false, result: null };
     }
   }
