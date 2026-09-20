@@ -174,12 +174,6 @@ describe("secure shared vertical slice", () => {
     expect(invited.status).toBe(201);
     const token = invited.body.invite_token as string;
     const invitationId = invited.body.invitation.id as string;
-    console.log("DIRECT_IDS_DEBUG", JSON.stringify({
-      missionId,
-      responseMissionId: invited.body.mission_id,
-      invitationMissionId: invited.body.invitation.mission_id,
-      invitationSequence: invited.body.invitation.sequence,
-    }));
 
     const acceptChallenge = await challenge(bridge, "ACCEPT_INVITATION", {
       mission_id: missionId,
@@ -252,7 +246,6 @@ describe("secure shared vertical slice", () => {
       [invitationId]
     );
     expect(finalizedInvitation.rows).toHaveLength(1);
-    console.log("DIRECT_FINAL_INVITE_DEBUG", JSON.stringify(finalizedInvitation.rows[0]));
     expect(finalizedInvitation.rows[0]).toMatchObject({
       status: "COMPLETED",
       candidate_label: "Bridge B",
@@ -261,13 +254,6 @@ describe("secure shared vertical slice", () => {
       sequence: 1,
     });
 
-    const rawSequenceInvitation = await pool.query<{ mission_id: string; sequence: number; status: string; candidate_label: string | null; candidate_display_label: string | null }>(
-      "SELECT mission_id, sequence, status, candidate_label, candidate_display_label FROM invitations WHERE mission_id = $1 AND sequence = $2",
-      [missionId, 1]
-    );
-    console.log("DIRECT_RAW_SEQ_INVITE_DEBUG", JSON.stringify(rawSequenceInvitation.rows));
-    const repositoryInvitation = await repository.getInvitationForSequence(missionId, 1);
-    console.log("DIRECT_REPO_INVITE_DEBUG", JSON.stringify(repositoryInvitation));
 
     const bridgeView = await request("GET", `/missions/${missionId}`, undefined, {
       Authorization: `Bearer ${accepted.body.view_token}`,
@@ -276,11 +262,6 @@ describe("secure shared vertical slice", () => {
     expect(bridgeView.body.viewer_role).toBe("PARTICIPANT");
     expect(bridgeView.body.status).toBe("ARRIVED");
     expect(bridgeView.body.route).toHaveLength(1);
-    console.log("DIRECT_ROUTE_DEBUG", JSON.stringify({
-      invitation: bridgeView.body.invitation,
-      viewer_role: bridgeView.body.viewer_role,
-      route: bridgeView.body.route[0],
-    }));
     expect(bridgeView.body.route[0].status).toBe("CONFIRMED");
     expect(bridgeView.body.route[0].confirmed_at).toBeTruthy();
     expect(bridgeView.body.route[0].bridge).not.toBeNull();
