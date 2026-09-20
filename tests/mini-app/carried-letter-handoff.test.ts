@@ -26,10 +26,11 @@ describe("NimCarry V2 warm-wax handoff ceremony", () => {
     expect(app).toContain('id="mission-return"');
   });
 
-  it("keeps FINAL as the only successful exit from polling", () => {
+  it("keeps FINAL as the only successful exit while handing long verification to the background reconciler", () => {
     expect(app).toContain('status === "FINAL" || status === "CONFIRMED" || result?.mission?.status === "ARRIVED"');
-    expect(app).toContain("VERIFICATION_STILL_PENDING");
-    expect(app).toContain("Custody has not changed yet.");
+    expect(app).toContain("return { pending: true }");
+    expect(app).toContain('handoffEvent("verification-continues-in-background"');
+    expect(app).toContain("You can safely close this screen; do not send again.");
   });
 
   it("turns authorization, provider reference, independent verification and finality into distinct human states", () => {
