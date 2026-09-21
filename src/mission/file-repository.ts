@@ -225,6 +225,23 @@ export class FileMissionRepository implements MissionRepository {
     });
   }
 
+  async revokePendingDestinationClaim(missionId: string, now: number): Promise<number> {
+    return this.exclusive(() => {
+      let count = 0;
+      for (const claim of this.state.destinationClaims) {
+        if (claim.missionId !== missionId || claim.status !== "PENDING") continue;
+        claim.status = "REVOKED";
+        claim.closedAt = now;
+        count += 1;
+      }
+      if (count > 0) {
+        this.mission(missionId).updatedAt = now;
+        this.persist();
+      }
+      return count;
+    });
+  }
+
   async createInvitation(record: InvitationRecord): Promise<InvitationRecord> {
     return this.exclusive(() => {
       const mission = this.mission(record.missionId);
