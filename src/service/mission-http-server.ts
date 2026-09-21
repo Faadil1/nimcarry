@@ -531,6 +531,65 @@ async function declineInvitation(deps: MissionHttpDeps, req: IncomingMessage, to
   return { status: 200, body: invitation };
 }
 
+// ---- Destination Claims ----
+
+async function handleDestinationClaim(
+  deps: MissionHttpDeps,
+  req: IncomingMessage,
+  res: ServerResponse,
+  url: URL,
+  segments: string[]
+) {
+  if (segments.length < 2) return notFound(req, res, url);
+  const token = asOpaqueToken(decodeURIComponent(segments[1]), "token");
+  const tail = segments[2];
+
+  if (req.method === "GET" && !tail) {
+    if (!checkReadLimit(deps, req, res)) return;
+    const result = await deps.missions.getDestinationClaimByToken(token);
+    return send(res, 200, {
+      claim: result.claim,
+      mission: {
+        mission_id: result.mission.id,
+        target_label: result.mission.target_label,
+        mission_note: result.mission.mission_note,
+        status: result.mission.status,
+        target_wallet_bound: result.mission.target_wallet_bound,
+      },
+    });
+  }
+
+  if (req.method === "POST" && tail === "claim") {
+    return sendMutation(deps, req, res, () => acceptDestinationClaim(deps, req, token));
+  }
+
+  return notFound(req, res, url);
+}
+
+async function acceptDestinationClaim(deps: MissionHttpDeps, req: IncomingMessage, token: string) {
+  const obj = await jsonBody(req);
+  const envelope = parseSignedEnvelope(obj);
+  rejectUnknownKeys(obj, ["challenge_id", "public_key", "signature"]);
+
+  const auth = await verifyEnvelope(deps, envelope);
+  const result = await deps.missions.claimDestination({ token, auth });
+
+  const issued = routeViewCapabilityStore(deps).issue({
+    missionId: result.mission.id,
+    holderWallet: normalizeNimiqAddress(auth.wallet),
+  });
+
+  return {
+    status: 200,
+    body: {
+      claim: result.claim,
+      mission: await viewMission(deps, req, result.mission.id, normalizeNimiqAddress(auth.wallet)),
+      view_token: issued.token,
+      view_token_expires_at: new Date(issued.expiresAt).toISOString(),
+    },
+  };
+}
+
 // ---- Auth ----
 
 async function handleChallenge(deps: MissionHttpDeps, req: IncomingMessage, res: ServerResponse) {
