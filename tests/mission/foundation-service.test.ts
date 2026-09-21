@@ -92,6 +92,35 @@ describe("Destination Claim foundation", () => {
     expect((await repo.snapshot()).destinationClaims).toHaveLength(1);
   });
 
+  it("reissues a lost private claim by revoking the old bearer link", async () => {
+    const { service } = fixture();
+    const creator = wallet();
+    const destination = wallet();
+    const mission = await service.createMission({
+      auth: auth(creator, "CREATE_MISSION"),
+      targetLabel: "David",
+      missionNote: "Recover an unshared private claim.",
+      now: 500,
+    });
+    const first = await service.createDestinationClaim({ missionId: mission.id, creatorWallet: creator, now: 600 });
+
+    await expect(service.reissueDestinationClaim({
+      missionId: mission.id,
+      auth: auth(destination, "CREATE_DESTINATION_CLAIM", mission.id),
+      now: 650,
+    })).rejects.toMatchObject({ reason: "NOT_MISSION_AUTHORITY" });
+
+    const second = await service.reissueDestinationClaim({
+      missionId: mission.id,
+      auth: auth(creator, "CREATE_DESTINATION_CLAIM", mission.id),
+      now: 700,
+    });
+    expect(second.claimToken).not.toBe(first.claimToken);
+    expect(second.claim.status).toBe("PENDING");
+    expect((await service.getDestinationClaimByToken(first.claimToken, 701)).claim.status).toBe("REVOKED");
+    expect((await service.getDestinationClaimByToken(second.claimToken, 701)).claim.status).toBe("PENDING");
+  });
+
   it("expires an untouched destination claim without binding a wallet or moving custody", async () => {
     const { service } = fixture();
     const creator = wallet();
