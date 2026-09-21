@@ -4,7 +4,7 @@ export const BROADCAST_CAPABILITY_TTL_MS = 15 * 60 * 1000;
 
 export interface BroadcastCapabilityBinding {
   missionId: string;
-  invitationId: string;
+  invitationId: string | null;
   sequence: number;
   intentNonce: string;
   holderWallet: string;
