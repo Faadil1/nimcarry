@@ -2,11 +2,13 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { MissionRepository } from "./repository.js";
 import {
   MissionValidationError,
+  type DestinationClaimRecord,
   type InvitationRecord,
   type MissionAction,
   type MissionActivity,
   type MissionRecord,
   type MissionVisibility,
+  type PublicDestinationClaim,
   type PublicInvitation,
   type PublicMission,
   type VerifiedWalletAction,
@@ -14,6 +16,7 @@ import {
 import { normalizeNimiqAddress, TargetWalletProtector, walletFingerprint } from "./target-wallet-crypto.js";
 
 export const INVITATION_TTL_MS = 12 * 60 * 60 * 1000;
+export const DESTINATION_CLAIM_TTL_MS = 24 * 60 * 60 * 1000;
 export const ACCEPTED_PASS_DEADLINE_MS = 60 * 60 * 1000;
 export const MISSION_STALL_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 
@@ -59,6 +62,7 @@ export function toPublicMission(record: MissionRecord, now = Date.now()): Public
     current_holder: walletFingerprint(record.currentHolderWalletNormalized),
     target_label: record.targetLabel,
     target_consent_confirmed: record.targetConsentConfirmed,
+    target_wallet_bound: record.targetWalletHmac !== null && record.targetWalletCiphertext !== null,
     mission_note: record.missionNote,
     status: record.status,
     activity,
@@ -70,6 +74,16 @@ export function toPublicMission(record: MissionRecord, now = Date.now()): Public
     arrived_at: record.arrivedAt === null ? null : new Date(record.arrivedAt).toISOString(),
     route_following_available: record.status !== "CANCELLED",
     stalled_restart_available: activity === "STALLED",
+  };
+}
+
+export function toPublicDestinationClaim(record: DestinationClaimRecord): PublicDestinationClaim {
+  return {
+    id: record.id,
+    mission_id: record.missionId,
+    status: record.status,
+    expires_at: new Date(record.expiresAt).toISOString(),
+    claimed_at: record.claimedAt === null ? null : new Date(record.claimedAt).toISOString(),
   };
 }
 
@@ -108,37 +122,48 @@ export class ReachMissionService {
   async createMission(input: {
     auth: VerifiedWalletAction;
     targetLabel: string;
-    targetWallet: string;
-    /** Cycle-II policy: target is known and has explicitly consented to be this mission's destination. */
+    /** Optional. Omit it to let the destination bind their own wallet through a private claim. */
+    targetWallet?: string;
+    /** Required only when a destination wallet is supplied at creation. */
     targetConsentConfirmed?: boolean;
-    /** This is the human purpose/ask shown to bridges and the destination, not a generic memo. */
+    /** This is the human purpose/ask shown to the destination/optional bridge, not a generic memo. */
     missionNote: string;
     creatorDisplayLabel?: string;
     visibility?: MissionVisibility;
     now?: number;
   }): Promise<PublicMission> {
     assertAction(input.auth, "CREATE_MISSION");
-    if (input.targetConsentConfirmed !== true) {
-      throw new MissionValidationError(
-        "TARGET_CONSENT_REQUIRED",
-        "Cycle-II missions require a known destination that explicitly consented to be targeted"
-      );
-    }
     const now = input.now ?? Date.now();
     const creator = normalizeNimiqAddress(input.auth.wallet);
-    const target = this.protector.protect(input.targetWallet);
-    if (creator === target.normalized) {
-      throw new MissionValidationError("TARGET_IS_CREATOR", "A mission destination must differ from its creator");
+
+    let targetWalletCiphertext: string | null = null;
+    let targetWalletHmac: string | null = null;
+    let targetConsentConfirmed = false;
+    if (input.targetWallet) {
+      if (input.targetConsentConfirmed !== true) {
+        throw new MissionValidationError(
+          "TARGET_CONSENT_REQUIRED",
+          "A pre-bound destination wallet requires explicit destination consent"
+        );
+      }
+      const target = this.protector.protect(input.targetWallet);
+      if (creator === target.normalized) {
+        throw new MissionValidationError("TARGET_IS_CREATOR", "A mission destination must differ from its creator");
+      }
+      targetWalletCiphertext = target.ciphertext;
+      targetWalletHmac = target.hmac;
+      targetConsentConfirmed = true;
     }
+
     const record: MissionRecord = {
       id: randomUUID(),
       creatorWalletNormalized: creator,
       creatorDisplayLabel: input.creatorDisplayLabel?.trim() || null,
       currentHolderWalletNormalized: creator,
       targetLabel: boundedText(input.targetLabel, 1, 60, "targetLabel"),
-      targetWalletCiphertext: target.ciphertext,
-      targetWalletHmac: target.hmac,
-      targetConsentConfirmed: true,
+      targetWalletCiphertext,
+      targetWalletHmac,
+      targetConsentConfirmed,
       missionNote: boundedText(input.missionNote, 1, 180, "missionNote"),
       status: "ACTIVE",
       visibility: input.visibility ?? "UNLISTED",
@@ -150,6 +175,106 @@ export class ReachMissionService {
       updatedAt: now,
     };
     return toPublicMission(await this.repository.createMission(record), now);
+  }
+
+  async createDestinationClaim(input: {
+    missionId: string;
+    creatorWallet: string;
+    now?: number;
+  }): Promise<{ claim: PublicDestinationClaim; claimToken: string }> {
+    const mission = await this.requireMission(input.missionId);
+    const creator = normalizeNimiqAddress(input.creatorWallet);
+    if (mission.creatorWalletNormalized !== creator) {
+      throw new MissionValidationError("NOT_MISSION_AUTHORITY", "Only the mission creator can open the destination claim");
+    }
+    if (mission.targetWalletHmac !== null || mission.targetWalletCiphertext !== null) {
+      throw new MissionValidationError("TARGET_ALREADY_BOUND", "This mission already has a destination wallet");
+    }
+    const existing = await this.repository.getDestinationClaimForMission(mission.id);
+    if (existing && existing.status === "PENDING" && (input.now ?? Date.now()) < existing.expiresAt) {
+      throw new MissionValidationError("DESTINATION_CLAIM_ALREADY_OPEN", "This mission already has an active destination claim");
+    }
+    const now = input.now ?? Date.now();
+    const token = randomBytes(32).toString("base64url");
+    const record: DestinationClaimRecord = {
+      id: randomUUID(),
+      missionId: mission.id,
+      claimTokenHash: hashToken(token),
+      status: "PENDING",
+      createdAt: now,
+      expiresAt: now + DESTINATION_CLAIM_TTL_MS,
+      claimedAt: null,
+      closedAt: null,
+      claimedWalletNormalized: null,
+    };
+    const created = await this.repository.createDestinationClaim(record);
+    return { claim: toPublicDestinationClaim(created), claimToken: token };
+  }
+
+  async getDestinationClaimByToken(token: string, now = Date.now()): Promise<{ claim: PublicDestinationClaim; mission: PublicMission }> {
+    const claim = await this.requireDestinationClaimToken(token);
+    if (claim.status === "PENDING" && now >= claim.expiresAt) {
+      await this.repository.expireDueDestinationClaims(now);
+      throw new MissionValidationError("DESTINATION_CLAIM_EXPIRED", "Destination claim has expired");
+    }
+    return { claim: toPublicDestinationClaim(claim), mission: toPublicMission(await this.requireMission(claim.missionId), now) };
+  }
+
+  async getDestinationClaimForMission(missionId: string): Promise<DestinationClaimRecord | undefined> {
+    return this.repository.getDestinationClaimForMission(missionId);
+  }
+
+  async claimDestination(input: {
+    token: string;
+    auth: VerifiedWalletAction;
+    now?: number;
+  }): Promise<{ claim: PublicDestinationClaim; mission: PublicMission }> {
+    const claim = await this.requireDestinationClaimToken(input.token);
+    assertAction(input.auth, "CLAIM_DESTINATION", { missionId: claim.missionId });
+    const now = input.now ?? Date.now();
+    if (claim.status === "CLAIMED" && claim.claimedWalletNormalized) {
+      const wallet = normalizeNimiqAddress(input.auth.wallet);
+      if (wallet !== claim.claimedWalletNormalized) {
+        throw new MissionValidationError("DESTINATION_CLAIM_TAKEN", "This destination claim was already accepted by another wallet");
+      }
+      return {
+        claim: toPublicDestinationClaim(claim),
+        mission: toPublicMission(await this.requireMission(claim.missionId), now),
+      };
+    }
+    if (claim.status !== "PENDING") {
+      throw new MissionValidationError("DESTINATION_CLAIM_CLOSED", `Destination claim is ${claim.status}`);
+    }
+    if (now >= claim.expiresAt) {
+      await this.repository.expireDueDestinationClaims(now);
+      throw new MissionValidationError("DESTINATION_CLAIM_EXPIRED", "Destination claim has expired");
+    }
+    const mission = await this.requireMission(claim.missionId);
+    if (mission.status !== "ACTIVE") throw new MissionValidationError("MISSION_NOT_ACTIVE", `Mission ${mission.id} is ${mission.status}`);
+    const wallet = normalizeNimiqAddress(input.auth.wallet);
+    if (wallet === mission.creatorWalletNormalized) {
+      throw new MissionValidationError("TARGET_IS_CREATOR", "The creator cannot claim their own destination");
+    }
+    if (this.routeWalletGuard(mission.id, wallet)) {
+      throw new MissionValidationError("ROUTE_WALLET_REUSE", "A finalized route participant cannot become the destination again");
+    }
+    const protectedTarget = this.protector.protect(wallet);
+    const result = await this.repository.claimDestination({
+      claimId: claim.id,
+      missionId: mission.id,
+      walletNormalized: wallet,
+      targetWalletCiphertext: protectedTarget.ciphertext,
+      targetWalletHmac: protectedTarget.hmac,
+      now,
+    });
+    return {
+      claim: toPublicDestinationClaim(result.claim),
+      mission: toPublicMission(result.mission, now),
+    };
+  }
+
+  async expireDueDestinationClaims(now = Date.now()): Promise<number> {
+    return this.repository.expireDueDestinationClaims(now);
   }
 
   async getMission(id: string, now = Date.now()): Promise<PublicMission> {
@@ -177,6 +302,12 @@ export class ReachMissionService {
     now?: number;
   }): Promise<{ invitation: PublicInvitation; inviteToken: string }> {
     const mission = await this.requireMission(input.missionId);
+    if (mission.targetWalletHmac === null || mission.targetWalletCiphertext === null) {
+      throw new MissionValidationError(
+        "TARGET_NOT_BOUND",
+        "Bind the destination wallet through the private claim before adding an optional bridge"
+      );
+    }
     const sequence = mission.currentSequence + 1;
     assertAction(input.auth, "CREATE_INVITATION", { missionId: mission.id, sequence });
     const signer = normalizeNimiqAddress(input.auth.wallet);
@@ -336,6 +467,14 @@ export class ReachMissionService {
 
   async expireDueInvitations(now = Date.now()): Promise<number> {
     return this.repository.expireDueInvitations(now);
+  }
+
+  private async requireDestinationClaimToken(token: string): Promise<DestinationClaimRecord> {
+    const claim = await this.repository.getDestinationClaimByTokenHash(hashToken(token));
+    if (!claim) {
+      throw new MissionValidationError("DESTINATION_CLAIM_NOT_FOUND", "Destination claim link is invalid or no longer recognized");
+    }
+    return claim;
   }
 
   private async requireMission(id: string): Promise<MissionRecord> {
