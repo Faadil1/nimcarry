@@ -51,6 +51,7 @@
 
   function routeProgressIndex(card, path) {
     if (path === "/create") return 0;
+    if (/^\/c\//.test(path)) return 1;
     if (/^\/i\//.test(path)) return 2;
     if (/\/pass$/.test(path)) return 3;
 
@@ -66,9 +67,9 @@
 
     if (status === "ARRIVED") return 4;
     if (/\/route$/.test(path)) {
-      if (primaryAction === "PASS_1_NIM" || invitationStatus === "ACCEPTED") return 3;
+      if (primaryAction === "PASS_1_NIM" || primaryAction === "SEND_1_NIM" || invitationStatus === "ACCEPTED") return 3;
       if (invitationStatus === "INVITED") return 2;
-      if (primaryAction === "CREATE_INVITATION" || primaryAction === "REROUTE") return 1;
+      if (primaryAction === "SHARE_CLAIM" || primaryAction === "CREATE_INVITATION" || primaryAction === "REROUTE") return 1;
       return 3;
     }
 
@@ -76,7 +77,7 @@
       // Mission Home is state-driven. After an invitation is sent, the next
       // unresolved human act is acceptance (3). Once accepted, the next act is
       // the verified pass (4). ARRIVED above always resolves to step 5.
-      if (primaryAction === "PASS_1_NIM" || invitationStatus === "ACCEPTED") return 3;
+      if (primaryAction === "PASS_1_NIM" || primaryAction === "SEND_1_NIM" || invitationStatus === "ACCEPTED") return 3;
       if (invitationStatus === "INVITED") return 2;
       return 1;
     }
@@ -92,7 +93,12 @@
     const current = routeProgressIndex(card, path);
     if (current < 0) return;
 
-    const labels = ["Create", "Invite", "Accept", "Pass", "Arrive"];
+    const directFlow =
+      /^\/c\//.test(path) ||
+      ["SHARE_CLAIM", "SEND_1_NIM"].includes(String(card.dataset.primaryAction || "").toUpperCase());
+    const labels = directFlow
+      ? ["Create", "Claim", "Authorize", "Send", "Arrive"]
+      : ["Create", "Invite", "Accept", "Send", "Arrive"];
     const flow = node("div", "wi-flow");
     flow.setAttribute("aria-label", "NimCarry five-step route");
     labels.forEach((label, index) => {
@@ -226,7 +232,7 @@
 
     const summary = node("div", "wi-receipt-summary");
     summary.append(
-      receiptMetric(String(steps.length), steps.length === 1 ? "verified bridge" : "verified bridges"),
+      receiptMetric(String(steps.length), steps.length === 1 ? "verified delivery" : "verified deliveries"),
       receiptMetric("1 NIM", "direct to destination"),
       receiptMetric("FINAL", "arrival proof")
     );
@@ -239,7 +245,7 @@
       steps.forEach((step) => {
         const item = node("div", "wi-receipt-hop");
         const carrierMark = step.dataset.carrierMark || "";
-        const who = (step.querySelector("strong")?.textContent || "Verified bridge").trim();
+        const who = (step.querySelector("strong")?.textContent || "Direct delivery").trim();
         const detail = (step.querySelector("small")?.textContent || "FINAL").trim();
         item.append(node("strong", carrierMark ? "wi-carrier-mark" : "", who), node("small", "", detail));
         routeList.appendChild(item);
@@ -247,7 +253,7 @@
     }
     receipt.appendChild(routeList);
 
-    const statement = node("p", "wi-receipt-statement", "Each displayed bridge assisted a direct destination delivery that reached independent FINAL. Private destination wallet data stays hidden from this receipt.");
+    const statement = node("p", "wi-receipt-statement", "Each displayed row is a destination delivery that reached independent FINAL. When an introducer appears, they supplied consent and context — never custody. Private destination wallet data stays hidden from this receipt.");
     receipt.appendChild(statement);
 
     const actions = node("div", "button-row");
@@ -258,7 +264,7 @@
         "NimCarry — ARRIVED",
         `${steps.length} verified FINAL handoff${steps.length === 1 ? "" : "s"}`,
         "1 NIM custody baton per handoff",
-        ...steps.map((step) => `${(step.querySelector("strong")?.textContent || "Verified bridge").trim()} — ${(step.querySelector("small")?.textContent || "FINAL").trim()}`),
+        ...steps.map((step) => `${(step.querySelector("strong")?.textContent || "Direct delivery").trim()} — ${(step.querySelector("small")?.textContent || "FINAL").trim()}`),
       ];
       try { await navigator.clipboard.writeText(lines.join("\n")); } catch (error) { console.warn("NimCarry receipt copy failed", error); }
     });
