@@ -95,15 +95,15 @@ Implemented in the code branch for this handover:
 
 Status: **server-owned reconciliation is live-validated for both no-hash fail-closed recovery and hash-recorded close-before-FINAL arrival. PR #119 fixes the separate sender rediscovery defect and is deployed with all automated gates green.**
 
-Remaining real-device validation requires **no new mission and no new payment**:
+Real-device validation is now **complete**:
 
-1. open the existing ARRIVED mission `c31534d0-9ecd-45b9-bf8d-e9457141d391` once through signed route-access recovery;
-2. confirm A reaches the existing ARRIVED receipt;
-3. close NimCarry completely;
-4. reopen NimCarry at home;
-5. confirm **Resume recent mission** appears;
-6. sign fresh `VIEW_ROUTE`;
-7. confirm the same ARRIVED receipt returns with no resend/recheck/payment control.
+- A fully closed and reopened NimCarry.
+- Home surfaced **Resume recent mission c31534d0…d391**.
+- Fresh signed `VIEW_ROUTE` recovery restored mission `c31534d0-9ecd-45b9-bf8d-e9457141d391`.
+- The mission remained **ARRIVED** with **1 FINAL** and the same verified Grace → David delivery proof.
+- No new mission, re-invite, recheck, or second payment was required.
+
+**Conclusion: PR #119 is live-validated. The reconciliation + close/reopen recovery workstream is complete.**
 
 ### Latest live attempt — terminal no-hash recovery
 
@@ -222,15 +222,19 @@ Do not add public destination requests, bridge search, bounty routing, reputatio
 
 ## 6. Immediate next implementation sequence
 
-1. **Persistent mission resume — final real-device UX gate**
-   - PR #119 merged as `50187e5e9387f47762a7ca011b9931ff91df769a` and Cloudflare production build succeeded.
-   - CI, Judge Window smoke, and guided mobile + tablet + desktop flow are green.
-   - Use existing ARRIVED mission `c31534d0-9ecd-45b9-bf8d-e9457141d391`; no new payment.
-   - Bootstrap its locator once through signed route-access recovery because it predates PR #119.
-   - Then full-close/reopen A and verify **Resume recent mission** restores the same ARRIVED receipt.
-   - Bearer VIEW_ROUTE access must remain session-only.
+1. **Destination Claim experiment — active next workstream**
+   - Persistent mission resume is live-validated and closed.
+   - Build the two-person path where the sender knows the person but not their wallet.
+   - Destination alone binds its own wallet through a private expiring claim.
+   - No escrow dependency for v1.
+   - No bridge required for the simplest legitimate completion.
+   - Sender pays the destination directly only after claim binding is valid.
+   - FINAL/ARRIVED and duplicate-payment invariants remain unchanged.
+   - All UI must pass mobile + tablet + desktop.
 
-2. **Destination Claim experiment — next implementation workstream after the resume gate**
+2. **Introduced Claim comparison — after the direct Claim path**
+   - Add an optional one-time introducer only when the relationship requires it.
+   - Compare completion, trust, comprehension, and friction against the two-person Claim flow.
    - No on-chain escrow dependency.
    - Sender can create a mission before knowing destination wallet.
    - Destination alone can bind the destination wallet.
