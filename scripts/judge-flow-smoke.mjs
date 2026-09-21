@@ -71,6 +71,7 @@ await mkdir(outputRoot, { recursive: true });
 
 const viewports = [
   { name: "mobile-375", width: 375, height: 812 },
+  { name: "tablet-768", width: 768, height: 1024 },
   { name: "desktop-1280", width: 1280, height: 900 },
 ];
 
@@ -148,6 +149,28 @@ async function run(viewport) {
     if (!/carried-letter-v2/.test(liveBodyClass || "")) throw new Error("Live site did not enter carried-letter visual system");
     if (/carried-letter-v2-demo/.test(liveBodyClass || "")) throw new Error("Live site leaked demo visual identity");
     captures.push(await captureState(page, viewport, "00-live-home", "home"));
+
+    // A full mini-app close drops sessionStorage. The home screen must still
+    // rediscover a non-secret mission locator from localStorage and route the
+    // user through fresh read-only VIEW_ROUTE recovery. Never persist bearer access.
+    activeStep = "persistent-resume-home";
+    const resumeMissionId = "11111111-1111-4111-8111-111111111111";
+    await page.evaluate((missionId) => {
+      sessionStorage.clear();
+      localStorage.setItem("nimcarry.recentMissions.v1", JSON.stringify([missionId]));
+    }, resumeMissionId);
+    await page.reload({ waitUntil: "networkidle", timeout: 20000 });
+    await page.locator("#nimiq-recovery-panel").waitFor({ state: "visible", timeout: 5000 });
+    const resumeCopy = await page.locator("#nimiq-recovery-panel").textContent();
+    if (!/Resume without creating a new mission/i.test(resumeCopy || "")) {
+      throw new Error(`Persistent mission locator did not surface safe resume UI: ${resumeCopy || "empty"}`);
+    }
+    const resumeHref = await page.locator("#nimiq-recovery-panel a").first().getAttribute("href");
+    if (!resumeHref?.includes("/route-access-recovery.html") || !resumeHref.includes(resumeMissionId)) {
+      throw new Error(`Resume UI did not require fresh VIEW_ROUTE recovery: ${resumeHref || "missing href"}`);
+    }
+    captures.push(await captureState(page, viewport, "00b-resume-home", "home"));
+    await page.evaluate(() => localStorage.removeItem("nimcarry.recentMissions.v1"));
 
     activeStep = "home";
     await page.goto(`${baseUrl}/?demo=1&tour=1&reset=1`, { waitUntil: "networkidle", timeout: 20000 });
@@ -292,4 +315,4 @@ await browser.close();
 if (localServer) await new Promise((resolve) => localServer.close(resolve));
 
 if (failed) process.exit(1);
-console.log(`NimCarry judge flow: PASS on mobile + desktop (${localWebRoot ? "PR local branch runtime" : "production"})`);
+console.log(`NimCarry judge flow: PASS on mobile + tablet + desktop (${localWebRoot ? "PR local branch runtime" : "production"})`);
