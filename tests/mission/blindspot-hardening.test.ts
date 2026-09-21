@@ -101,4 +101,63 @@ describe("Reach Mission blind-spot hardening", () => {
       now: 5_000,
     })).rejects.toMatchObject({ reason: expect.stringMatching(/MISSION_NOT_ACTIVE|NOT_CURRENT_HOLDER|WRONG_CURRENT_HOLDER/) });
   });
+
+  it("finalizes a two-person claimed destination without fabricating an invitation or bridge", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "nimcarry-claim-direct-"));
+    dirs.push(dir);
+    const repo = new FileMissionRepository(join(dir, "mission.json"));
+    const protector = new TargetWalletProtector(Buffer.alloc(32, 41), Buffer.alloc(32, 42));
+    const service = new ReachMissionService(repo, protector);
+    const rpc = new Rpc();
+    const relay = new CanonicalRelayService(new FileRelayStore(join(dir, "relay.json")), rpc);
+    const coordinator = new ReachMissionCoordinator(service, repo, relay, protector);
+    const creator = wallet();
+    const destination = wallet();
+
+    const mission = await service.createMission({
+      auth: auth(creator, "CREATE_MISSION"),
+      targetLabel: "David",
+      missionNote: "Direct private destination claim.",
+      now: 10_000,
+    });
+    const opened = await service.createDestinationClaim({
+      missionId: mission.id,
+      creatorWallet: creator,
+      now: 10_100,
+    });
+    await service.claimDestination({
+      token: opened.claimToken,
+      auth: auth(destination, "CLAIM_DESTINATION", mission.id),
+      now: 10_200,
+    });
+
+    const intent = await coordinator.authorizePass({
+      missionId: mission.id,
+      auth: auth(creator, "AUTHORIZE_PASS", mission.id, undefined, 1),
+      now: 10_300,
+    });
+    expect(intent.invitationId).toBeNull();
+    expect(intent.recipient).toBe(normalizeNimiqAddress(destination));
+
+    const txHash = "d".repeat(64);
+    const pending = await coordinator.recordBroadcast({ missionId: mission.id, txHash });
+    expect(pending.invitationId).toBeNull();
+
+    rpc.tx = {
+      hash: txHash,
+      from: normalizeNimiqAddress(creator),
+      to: normalizeNimiqAddress(destination),
+      value: ONE_NIM_IN_LUNA,
+      blockNumber: 3_032_020,
+      confirmations: 999,
+      recipientData: intent.recipientData!,
+    };
+
+    const reconciled = await coordinator.reconcile(mission.id);
+    expect(reconciled.mission.status).toBe("ARRIVED");
+    expect(reconciled.mission.current_sequence).toBe(1);
+    expect(reconciled.mission.finalized_hop_count).toBe(1);
+    expect((await repo.snapshot()).invitations).toHaveLength(0);
+    expect((await repo.snapshot()).destinationClaims[0].status).toBe("CLAIMED");
+  });
 });
