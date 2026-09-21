@@ -458,6 +458,21 @@ export class PgMissionRepository implements MissionRepository {
     });
   }
 
+  async revokePendingDestinationClaim(missionId: string, now: number): Promise<number> {
+    return this.withTransaction(async (client) => {
+      const updated = await client.query(
+        `UPDATE destination_claims
+           SET status='REVOKED', closed_at=$2
+         WHERE mission_id=$1 AND status='PENDING'`,
+        [missionId, epoch(now)]
+      );
+      if ((updated.rowCount ?? 0) > 0) {
+        await client.query("UPDATE missions SET updated_at=$2 WHERE id=$1", [missionId, epoch(now)]);
+      }
+      return updated.rowCount ?? 0;
+    });
+  }
+
   async cancelMissionPristine(id: string, signerWallet: string, now: number): Promise<MissionRecord> {
     return this.withTransaction(async (client) => {
       // Load the mission row-locked, then validate and update in the same
