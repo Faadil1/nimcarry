@@ -239,7 +239,8 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(js).toContain('mission.current_holder?.is_viewer === true && invitationStatus === "INVITED"');
     expect(js).toContain('mission.primary_action === "WAIT"');
     expect(js).toContain("senderWaitingForFinal");
-    expect(js).toContain("Bridge accepted the introduction. The direct delivery is ready.");
+    expect(js).toContain("Introducer accepted. The direct destination delivery is ready.");
+    expect(js).toContain("The destination still needs the private claim to bind their wallet.");
     expect(js).toContain("Delivered.");
     expect(js).toContain('addEventListener("focus", () => { void refreshWatchedMission(); })');
     expect(js).toContain('document.addEventListener("visibilitychange"');
@@ -306,7 +307,7 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
   });
 
   it("makes ARRIVED a human outcome plus privacy-safe proof rather than a transaction toast", () => {
-    expect(winning).toContain("Each displayed bridge assisted a direct destination delivery that reached independent FINAL.");
+    expect(winning).toContain("Each displayed row is a destination delivery that reached independent FINAL.");
     expect(winning).toContain("Private destination wallet data stays hidden from this receipt.");
     expect(finalHuman).toContain("It arrived because people carried it.");
     expect(finalHuman).toContain("craft-arrival.svg");
