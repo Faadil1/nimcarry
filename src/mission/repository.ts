@@ -25,6 +25,7 @@ export interface MissionRepository {
     now: number;
   }): Promise<{ mission: MissionRecord; claim: DestinationClaimRecord }>;
   expireDueDestinationClaims(now: number): Promise<number>;
+  revokePendingDestinationClaim(missionId: string, now: number): Promise<number>;
 
   createInvitation(record: InvitationRecord): Promise<InvitationRecord>;
   reissueInvitation(input: {
