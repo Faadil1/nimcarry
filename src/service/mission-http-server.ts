@@ -385,7 +385,10 @@ async function reissueInvitation(deps: MissionHttpDeps, req: IncomingMessage, mi
 async function authorizePass(deps: MissionHttpDeps, req: IncomingMessage, missionId: string) {
   const obj = await jsonBody(req);
   const envelope = parseSignedEnvelope(obj);
-  const invitationId = asUuid(obj.invitation_id, "invitation_id");
+  const invitationId =
+    obj.invitation_id === undefined || obj.invitation_id === null
+      ? undefined
+      : asUuid(obj.invitation_id, "invitation_id");
   rejectUnknownKeys(obj, ["challenge_id", "public_key", "signature", "invitation_id"]);
 
   const auth = await verifyEnvelope(deps, envelope);
@@ -401,12 +404,13 @@ async function authorizePass(deps: MissionHttpDeps, req: IncomingMessage, missio
   const intentExpiresAt = intent.createdAt + INTENT_VALIDITY_WINDOW_MS;
   const ttlMs = Math.min(BROADCAST_CAPABILITY_TTL_MS, intentExpiresAt - now);
   if (ttlMs <= 0) {
-    throw new MissionValidationError("PASS_INTENT_EXPIRED", "Authorized pass intent has expired; authorize the pass again");
+    throw new MissionValidationError("PASS_INTENT_EXPIRED", "Authorized delivery intent has expired; authorize the delivery again");
   }
+  const capabilityInvitationId = intent.invitationId ?? null;
   const issued = capabilityStore(deps).issue(
     {
       missionId,
-      invitationId,
+      invitationId: capabilityInvitationId,
       sequence: intent.sequence,
       intentNonce: intent.nonce,
       holderWallet: normalizeNimiqAddress(auth.wallet),
@@ -418,17 +422,20 @@ async function authorizePass(deps: MissionHttpDeps, req: IncomingMessage, missio
 
 async function broadcast(deps: MissionHttpDeps, req: IncomingMessage, missionId: string) {
   const obj = await jsonBody(req);
-  const invitationId = asUuid(obj.invitation_id, "invitation_id");
+  const invitationId =
+    obj.invitation_id === undefined || obj.invitation_id === null
+      ? undefined
+      : asUuid(obj.invitation_id, "invitation_id");
   const txHash = asTxHash(obj.tx_hash, "tx_hash");
   const capability = asOpaqueToken(obj.broadcast_capability, "broadcast_capability");
   rejectUnknownKeys(obj, ["invitation_id", "tx_hash", "broadcast_capability"]);
 
   const active = deps.relay.getActiveIntent(missionId);
-  if (!active) throw new MissionValidationError("NO_ACTIVE_PASS", "No authorized pass exists for this mission");
+  if (!active) throw new MissionValidationError("NO_ACTIVE_PASS", "No authorized delivery exists for this mission");
 
   capabilityStore(deps).consume(capability, {
     missionId,
-    invitationId,
+    invitationId: active.invitationId ?? null,
     sequence: active.sequence,
     intentNonce: active.nonce,
     holderWallet: normalizeNimiqAddress(active.currentHolder),
