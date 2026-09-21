@@ -211,6 +211,28 @@ export class ReachMissionService {
     return { claim: toPublicDestinationClaim(created), claimToken: token };
   }
 
+  async reissueDestinationClaim(input: {
+    missionId: string;
+    auth: VerifiedWalletAction;
+    now?: number;
+  }): Promise<{ claim: PublicDestinationClaim; claimToken: string }> {
+    assertAction(input.auth, "CREATE_DESTINATION_CLAIM", { missionId: input.missionId });
+    const mission = await this.requireMission(input.missionId);
+    const creator = normalizeNimiqAddress(input.auth.wallet);
+    if (mission.creatorWalletNormalized !== creator) {
+      throw new MissionValidationError("NOT_MISSION_AUTHORITY", "Only the mission creator can reissue the destination claim");
+    }
+    if (mission.status !== "ACTIVE") {
+      throw new MissionValidationError("MISSION_NOT_ACTIVE", `Mission ${mission.id} is ${mission.status}`);
+    }
+    if (mission.targetWalletHmac !== null || mission.targetWalletCiphertext !== null) {
+      throw new MissionValidationError("TARGET_ALREADY_BOUND", "The destination wallet is already bound and cannot be replaced");
+    }
+    const now = input.now ?? Date.now();
+    await this.repository.revokePendingDestinationClaim(mission.id, now);
+    return this.createDestinationClaim({ missionId: mission.id, creatorWallet: creator, now });
+  }
+
   async getDestinationClaimByToken(token: string, now = Date.now()): Promise<{ claim: PublicDestinationClaim; mission: PublicMission }> {
     const claim = await this.requireDestinationClaimToken(token);
     if (claim.status === "PENDING" && now >= claim.expiresAt) {
@@ -290,7 +312,9 @@ export class ReachMissionService {
     if (this.broadcastGuard(id)) {
       throw new MissionValidationError("BROADCAST_IN_FLIGHT", "Mission cannot be cancelled after a transaction broadcast");
     }
-    return toPublicMission(await this.repository.cancelMissionPristine(id, normalizeNimiqAddress(auth.wallet), now), now);
+    const cancelled = await this.repository.cancelMissionPristine(id, normalizeNimiqAddress(auth.wallet), now);
+    await this.repository.revokePendingDestinationClaim(id, now);
+    return toPublicMission(cancelled, now);
   }
 
   async createInvitation(input: {
