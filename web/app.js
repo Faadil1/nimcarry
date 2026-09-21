@@ -500,10 +500,30 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
   }
 
   async function shareDestinationClaim(mission) {
-    const claimUrl = sessionStorage.getItem(claimStorageKey(mission.mission_id));
+    let claimUrl = sessionStorage.getItem(claimStorageKey(mission.mission_id));
     if (!claimUrl) {
-      notice("CLAIM_LINK_NOT_IN_SESSION: this private bearer link is not persisted. Return to the creation session or create a fresh claim link.", true);
-      return;
+      setBusy(true);
+      notice("Creating a fresh private claim link. The previous unshared link will be revoked…");
+      try {
+        const auth = await signedAuth("CREATE_DESTINATION_CLAIM", { missionId: mission.mission_id });
+        const refreshed = await api(`/missions/${encodeURIComponent(mission.mission_id)}/destination-claim`, {
+          method: "POST",
+          body: { auth },
+        });
+        claimUrl = refreshed?.destination_claim_url || null;
+        if (!claimUrl) throw new Error("DESTINATION_CLAIM_CONTRACT_MISMATCH: fresh claim link was not returned.");
+        sessionStorage.setItem(claimStorageKey(mission.mission_id), claimUrl);
+        state.mission = {
+          ...state.mission,
+          destination_claim: refreshed.claim || state.mission?.destination_claim || null,
+        };
+        notice("Fresh private claim created. The previous pending link is revoked.");
+      } catch (error) {
+        notice(error.message, true);
+        return;
+      } finally {
+        setBusy(false);
+      }
     }
     const shareData = {
       title: `NimCarry delivery for ${mission.target_label || "you"}`,
