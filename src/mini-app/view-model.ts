@@ -10,7 +10,7 @@ export type MiniAppScreenId = (typeof FIVE_SCREEN_IDS)[number];
 export type UiMissionStatus = "ACTIVE" | "ARRIVED" | "CANCELLED";
 export type UiMissionActivity = "ACTIVE" | "STALLED" | "TERMINAL";
 export type UiInvitationStatus = "INVITED" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "WITHDRAWN" | "COMPLETED";
-export type UiPrimaryAction = "CREATE_INVITATION" | "WAIT" | "PASS_1_NIM" | "REROUTE" | "VIEW_ROUTE" | "START_NEW_ROUTE" | null;
+export type UiPrimaryAction = "SHARE_CLAIM" | "SEND_1_NIM" | "CREATE_INVITATION" | "WAIT" | "PASS_1_NIM" | "REROUTE" | "VIEW_ROUTE" | "START_NEW_ROUTE" | null;
 
 export interface UiWalletRef {
   display_label: string | null;
@@ -91,7 +91,7 @@ export function deriveMissionHomeModel(mission: UiMissionView | null): MissionHo
     return {
       eyebrow: "Mission reached",
       headline: "It made it.",
-      body: `${mission.finalized_hop_count} verified ${mission.finalized_hop_count === 1 ? "bridge" : "bridges"} carried the path to ${mission.target_label}.`,
+      body: `${mission.finalized_hop_count} independently verified ${mission.finalized_hop_count === 1 ? "delivery" : "deliveries"} reached ${mission.target_label}.`,
       primaryAction: mission.primary_action === "START_NEW_ROUTE" ? "START_NEW_ROUTE" : "VIEW_ROUTE",
       primaryLabel: mission.primary_action === "START_NEW_ROUTE" ? "Start your own mission" : "View completed route",
       statusLabel: "ARRIVED",
@@ -112,7 +112,7 @@ export function deriveMissionHomeModel(mission: UiMissionView | null): MissionHo
   const activity = mission.activity ?? "ACTIVE";
   const primaryLabel = actionLabel(mission.primary_action);
   return {
-    eyebrow: `${mission.finalized_hop_count} verified ${mission.finalized_hop_count === 1 ? "bridge" : "bridges"}`,
+    eyebrow: `${mission.finalized_hop_count} verified ${mission.finalized_hop_count === 1 ? "delivery" : "deliveries"}`,
     headline: mission.target_label,
     body: mission.mission_note,
     primaryAction: mission.primary_action,
@@ -123,7 +123,9 @@ export function deriveMissionHomeModel(mission: UiMissionView | null): MissionHo
 
 export function actionLabel(action: UiPrimaryAction): string | null {
   switch (action) {
-    case "CREATE_INVITATION": return "Choose next bridge";
+    case "SHARE_CLAIM": return "Share private claim";
+    case "SEND_1_NIM": return "Send 1 NIM";
+    case "CREATE_INVITATION": return "Add an introducer";
     case "WAIT": return "Waiting for response";
     case "PASS_1_NIM": return "Pass 1 NIM";
     case "REROUTE": return "Choose another bridge";
