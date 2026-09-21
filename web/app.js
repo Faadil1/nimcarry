@@ -668,6 +668,13 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       return;
     }
 
+    if (claim.status !== "PENDING") {
+      els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Private destination claim closed</div><h1 class="target-title">This claim can’t be used.</h1><p class="lede">Its status is ${esc(claim.status)}. No wallet was bound by this link and no NIM moved. Ask the sender for the current private claim.</p><div class="button-row"><button id="claim-home" class="button ghost">NimCarry home</button></div></section>`;
+      document.querySelector("#claim-home")?.addEventListener("click", () => navigate("/"));
+      els.screen.focus();
+      return;
+    }
+
     const expiresAt = claim.expires_at ? new Date(claim.expires_at).toLocaleString() : "soon";
     const deeplink = `nimiqpay://miniapp?url=${encodeURIComponent(location.href)}`;
     els.screen.innerHTML = `<section class="hero-card clv2-utility-surface" data-destination-claim-status="${esc(claim.status)}"><div class="kicker">Private destination claim</div><h1 class="target-title">This delivery is for ${esc(targetLabel)}.</h1><p class="lede">${esc(mission.mission_note || "A private NimCarry delivery is waiting.")}</p><div class="card" style="margin-top:16px"><div class="kicker">What claiming does</div><p>Your Nimiq signature binds <strong>your own wallet</strong> as this mission’s private destination. The sender cannot replace it afterward. No funds move when you claim.</p></div><div class="warning" style="margin-top:14px">This private claim expires ${esc(expiresAt)}. Only accept it if you are the intended destination.</div><div class="button-row"><button data-busy-lock="1" id="claim-destination" class="button primary">Bind my wallet as destination</button><a class="button green" href="${esc(deeplink)}">Open in Nimiq Pay</a><button id="claim-home" class="button ghost">Not mine</button></div></section>`;
