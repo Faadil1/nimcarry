@@ -60,11 +60,14 @@ describe("Destination Claim foundation", () => {
     expect(storedBefore.targetWalletCiphertext).toBeNull();
     expect(storedBefore.targetWalletHmac).toBeNull();
 
-    await expect(service.createInvitation({
+    const optionalIntroduction = await service.createInvitation({
       missionId: mission.id,
       auth: auth(creator, "CREATE_INVITATION", mission.id, undefined, 1),
+      candidateLabel: "Grace",
       now: 150,
-    })).rejects.toMatchObject({ reason: "TARGET_NOT_BOUND" });
+    });
+    expect(optionalIntroduction.invitation.status).toBe("INVITED");
+    expect((await service.getMissionRecord(mission.id)).currentSequence).toBe(0);
 
     const opened = await service.createDestinationClaim({ missionId: mission.id, creatorWallet: creator, now: 200 });
     expect(opened.claim.status).toBe("PENDING");
