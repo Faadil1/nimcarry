@@ -1,5 +1,5 @@
 project: NimCarry
-updated_at: "2026-09-21T07:05:00-04:00"
+updated_at: "2026-09-21T09:20:00-04:00"
 phase: DESTINATION_CLAIM_EXPERIMENT
 source_of_truth: true
 
@@ -338,11 +338,30 @@ implementation_state:
       - "Hash-recorded close-before-FINAL server reconciliation was subsequently validated by mission c31534d0-9ecd-45b9-bf8d-e9457141d391."
       - "No-hash and hash-recorded recovery paths are both now proven without duplicate payment."
 
+test_data_cleanup:
+  status: COMPLETED
+  performed_at: "2026-09-21"
+  scope:
+    - "Deleted all 13 missions whose creator_display_label was Faadil."
+    - "Mission-linked destination claims, invitations, pass intents, hops, auth challenges, audit events, and participants were removed by mission CASCADE rules."
+    - "The participant_users projection now has no rows for the deleted missions because its backing participant rows were deleted."
+    - "The Faadil user account and linked wallet/session identity records were intentionally preserved for continued testing."
+  verification:
+    remaining_faadil_missions: 0
+    remaining_known_test_destination_claims: 0
+    remaining_known_test_invitations: 0
+    remaining_known_test_pass_intents: 0
+    remaining_known_test_hops: 0
+    user_account_preserved: true
+  historical_note:
+    - "Evidence documents may still reference deleted test mission ids as historical proof artifacts."
+    - "Do not attempt to resume, reconcile, or repair those deleted missions."
+
 next_workstream:
   priority:
-    - "Do not resend on live mission d1ed137a-834a-4211-b12f-cf00dbde75cc: its direct transaction is already independently FINAL."
-    - "Wait for PR #122's automatic FINAL -> ARRIVED projection repair to land on the replacement Cloudflare container."
-    - "After ARRIVED is durable, close the Destination Claim technical proof gate and move to Claim vs Introduced Claim comparison."
+    - "The prior Faadil test missions were deleted at the user's request; do not attempt to resume or repair them."
+    - "New user testing can start from a clean mission dataset while keeping the existing Faadil account."
+    - "For future Destination Claim evidence, use fresh missions and keep the anti-resend / FINAL-only completion invariants."
     - "After direct Claim end-to-end proof, compare Claim vs Introduced Claim with real users before deciding whether social-route proof is core or a trust layer."
   implementation_constraints:
     - "No escrow/on-chain refund dependency for the first claim experiment."
