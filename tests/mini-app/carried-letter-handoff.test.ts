@@ -39,7 +39,8 @@ describe("NimCarry V2 warm-wax handoff ceremony", () => {
     expect(v2).toContain("Authorized, not carried.");
     expect(v2).toContain("Approved, not yet on the record.");
     expect(v2).toContain("Nimiq Pay returned a transaction reference. NimCarry is checking the independent record.");
-    expect(v2).toContain("A recorded reference is not delivery. The bridge never receives the 1 NIM.");
+    expect(v2).toContain("A recorded reference is not delivery. No bridge is involved.");
+    expect(v2).toContain("A recorded reference is not delivery. The introducer never receives the 1 NIM.");
     expect(v2).toContain("The wax is still warm.");
     expect(v2).toContain("The postmark landed. The destination received the verified 1 NIM delivery.");
     expect(v2).toContain("The bridge never takes custody. Only FINAL proves direct delivery to the destination.");
@@ -47,9 +48,11 @@ describe("NimCarry V2 warm-wax handoff ceremony", () => {
   });
 
   it("makes unproven or delayed states explicit without turning the bridge into a holder", () => {
-    expect(v2).toContain("The bridge never receives the 1 NIM.");
+    expect(v2).toContain("This is a direct sender-to-destination delivery; no bridge is involved.");
+    expect(v2).toContain("The introducer never receives the 1 NIM.");
     expect(v2).toContain("Delivery still unproven.");
-    expect(v2).toContain("The bridge never received the 1 NIM and no arrival is claimed.");
+    expect(v2).toContain("No bridge is involved and no arrival is claimed.");
+    expect(v2).toContain("The introducer never received the 1 NIM and no arrival is claimed.");
     expect(v2).toContain("NimCarry will not guess.");
   });
 

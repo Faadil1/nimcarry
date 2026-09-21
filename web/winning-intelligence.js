@@ -64,6 +64,9 @@
 
     const invitationStatus = String(card.dataset.invitationStatus || "").trim().toUpperCase();
     const primaryAction = String(card.dataset.primaryAction || "").trim().toUpperCase();
+    const destinationClaimStatus = String(card.dataset.destinationClaimStatus || "").trim().toUpperCase();
+    const targetWalletBound = String(card.dataset.targetWalletBound || "").trim().toLowerCase() === "true";
+    const directClaimFlow = !invitationStatus && targetWalletBound && destinationClaimStatus === "CLAIMED";
 
     if (status === "ARRIVED") return 4;
     if (/\/route$/.test(path)) {
@@ -74,9 +77,9 @@
     }
 
     if (/^\/mission\//.test(path)) {
-      // Mission Home is state-driven. After an invitation is sent, the next
-      // unresolved human act is acceptance (3). Once accepted, the next act is
-      // the verified pass (4). ARRIVED above always resolves to step 5.
+      // Mission Home is state-driven. Direct Claim stays on the direct send
+      // lane even while an existing send is being reconciled in WAIT.
+      if (directClaimFlow && primaryAction === "WAIT") return 3;
       if (primaryAction === "PASS_1_NIM" || primaryAction === "SEND_1_NIM" || invitationStatus === "ACCEPTED") return 3;
       if (invitationStatus === "INVITED") return 2;
       return 1;
@@ -95,7 +98,12 @@
 
     const directFlow =
       /^\/c\//.test(path) ||
-      ["SHARE_CLAIM", "SEND_1_NIM"].includes(String(card.dataset.primaryAction || "").toUpperCase());
+      ["SHARE_CLAIM", "SEND_1_NIM"].includes(String(card.dataset.primaryAction || "").toUpperCase()) ||
+      (
+        String(card.dataset.invitationStatus || "").trim() === "" &&
+        String(card.dataset.targetWalletBound || "").toLowerCase() === "true" &&
+        String(card.dataset.destinationClaimStatus || "").toUpperCase() === "CLAIMED"
+      );
     const labels = directFlow
       ? ["Create", "Claim", "Authorize", "Send", "Arrive"]
       : ["Create", "Invite", "Accept", "Send", "Arrive"];

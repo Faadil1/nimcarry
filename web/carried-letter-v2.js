@@ -527,13 +527,20 @@
   }
 
   function phaseCopy(phase, status) {
+    const direct = Boolean(screen.querySelector('[data-delivery-mode="direct"]'));
+    const noCustodyTruth = direct
+      ? "This is a direct sender-to-destination delivery; no bridge is involved."
+      : "The introducer never receives the 1 NIM.";
+    const finalTruth = direct
+      ? "The destination received the independently verified direct payment."
+      : "The introducer connected the people but never held the payment.";
     if (phase === "authorization-requested") {
       return {
         mode: "warm",
         kicker: "AUTHORIZE",
         title: "Authorize the handover.",
         body: "Nimiq Pay is binding this exact handover to you. Nothing has moved yet.",
-        truth: "The bridge never receives the 1 NIM.",
+        truth: noCustodyTruth,
       };
     }
     if (phase === "authorized") {
@@ -542,7 +549,7 @@
         kicker: "AUTHORIZED · NOT CARRIED",
         title: "Authorized, not carried.",
         body: "Your intent is locked. NimCarry still has no proof that the 1 NIM seal reached the record.",
-        truth: "The bridge never receives the 1 NIM.",
+        truth: noCustodyTruth,
       };
     }
     if (phase === "wallet-approval-opened") {
@@ -551,7 +558,7 @@
         kicker: "NIMIQ PAY",
         title: "Approve the seal transfer.",
         body: "Nimiq Pay is asking to send exactly 1 NIM. Approval still does not move custody.",
-        truth: "The bridge never receives the 1 NIM.",
+        truth: noCustodyTruth,
       };
     }
     if (phase === "broadcast-unproven") {
@@ -560,7 +567,7 @@
         kicker: "APPROVED · UNPROVEN",
         title: "Approved, not yet on the record.",
         body: "NimCarry did not receive a transaction reference it can independently verify.",
-        truth: "The bridge never receives the 1 NIM.",
+        truth: noCustodyTruth,
       };
     }
     if (phase === "provider-reference-returned") {
@@ -569,7 +576,7 @@
         kicker: "REFERENCE RETURNED · NOT FINAL",
         title: "The wax is still warm.",
         body: "Nimiq Pay returned a transaction reference. NimCarry is checking the independent record.",
-        truth: "The bridge never receives the 1 NIM. Delivery waits for independent FINAL.",
+        truth: direct ? "No bridge is involved. Delivery waits for independent FINAL." : "The introducer never receives the 1 NIM. Delivery waits for independent FINAL.",
       };
     }
     if (phase === "broadcast-claim-recorded") {
@@ -578,7 +585,7 @@
         kicker: "REFERENCE RECORDED · VERIFYING",
         title: "The wax is still warm.",
         body: "NimCarry recorded the transaction reference and is checking it independently against the authorized handover.",
-        truth: "A recorded reference is not delivery. The bridge never receives the 1 NIM.",
+        truth: direct ? "A recorded reference is not delivery. No bridge is involved." : "A recorded reference is not delivery. The introducer never receives the 1 NIM.",
       };
     }
     if (phase === "verification-pending") {
@@ -599,7 +606,7 @@
           kicker: isDemo ? "PRACTICE POSTMARK" : "FINAL · VERIFIED",
           title: "Delivered.",
           body: "The postmark landed. The destination received the verified 1 NIM delivery.",
-          truth: isDemo ? "Practice only — not on the record." : "The bridge introduced the route but never held the payment.",
+          truth: isDemo ? "Practice only — not on the record." : finalTruth,
         };
       }
       if (/INCLUDED/i.test(String(status || ""))) {
@@ -608,7 +615,7 @@
           kicker: "SEEN ON THE RECORD · NOT FINAL",
           title: "Seen, not settled.",
           body: "The handover is included but has not earned its postmark yet.",
-          truth: "The bridge never receives the 1 NIM.",
+          truth: noCustodyTruth,
         };
       }
       return {
@@ -616,7 +623,7 @@
         kicker: "VERIFYING",
         title: "The wax is still warm.",
         body: "NimCarry has a transaction reference, but the independent record has not confirmed it yet.",
-        truth: "The bridge never receives the 1 NIM.",
+        truth: noCustodyTruth,
       };
     }
     if (phase === "verification-delayed") {
@@ -634,7 +641,7 @@
         kicker: isDemo ? "PRACTICE POSTMARK" : "FINAL · VERIFIED",
         title: "Delivered.",
         body: "The postmark landed. The destination received the verified 1 NIM delivery.",
-        truth: isDemo ? "Practice only — not on the record." : "The bridge introduced the route but never held the payment.",
+        truth: isDemo ? "Practice only — not on the record." : finalTruth,
       };
     }
     if (phase === "error") {
@@ -643,7 +650,7 @@
         kicker: "NO VERIFIED POSTMARK",
         title: "Nothing moved.",
         body: "This delivery did not become a verified transfer to the destination.",
-        truth: "The bridge never received the 1 NIM and no arrival is claimed.",
+        truth: direct ? "No bridge is involved and no arrival is claimed." : "The introducer never received the 1 NIM and no arrival is claimed.",
       };
     }
     return null;
