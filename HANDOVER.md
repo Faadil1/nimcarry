@@ -34,6 +34,39 @@ Latest live test completed successfully:
 - Their completion messaging is role-specific: the sender sees the delivered route/receipt; the bridge sees that its bridge step is complete.
 - This run kept the sender client open until ARRIVED, so it does **not yet** prove the close-before-FINAL recovery gate.
 
+## 1A. Close-before-FINAL live proof — backend PASS, resume UX defect found
+
+A fresh real TESTNET run at approximately 23:19 local created mission `c31534d0-9ecd-45b9-bf8d-e9457141d391`.
+
+Durable production state:
+
+- target: David
+- bridge: Grace
+- creator: Faadil
+- tx: `dcb5f139f12f65a10b51871275dd797ecdea98bc8af1e3b17b3ea0fbdfbe27e4`
+- hop created/included: `2026-09-21T03:21:45.975Z`
+- FINAL / ARRIVED: `2026-09-21T03:22:50.427Z`
+- mission status: `ARRIVED`
+- finalized hop count: `1`
+- invitation: `COMPLETED`
+
+Faadil closed the sender app before FINAL. Grace's still-open bridge screen later showed ARRIVED, and Neon independently confirms the same FINAL/ARRIVED state. No second payment and no manual recheck occurred.
+
+**Conclusion: PR #114's server-owned close-before-FINAL reconciliation gate is passed.**
+
+A separate UX defect was discovered when Faadil reopened A: NimCarry returned to the generic home/new-mission surface rather than offering the completed mission.
+
+Root cause in the current frontend: home recovery discovers prior missions from `sessionStorage` keys named `carryone.view.<missionId>`. A full mini-app close can destroy this session-only locator. The durable mission is safe; the app simply loses discoverability of which mission to reopen.
+
+Required fix:
+
+- persist only a non-secret mission locator (mission ID plus minimal display metadata if useful);
+- **do not** persist the route-view bearer capability in localStorage;
+- on reopen, show a Resume/Recent mission action;
+- mint a fresh read-only `VIEW_ROUTE` capability after user authorization;
+- return directly to the existing mission/ARRIVED receipt;
+- verify mobile + tablet + desktop.
+
 ## 2. Automatic reconciliation workstream
 
 The live test exposed a client-owned finality defect:
@@ -56,7 +89,7 @@ Implemented in the code branch for this handover:
 - while open, Mission Home watches the sender's accepted/pending state and reflects ARRIVED when the backend advances;
 - retries remain read/reconcile operations only and never authorize or send a second payment.
 
-Status: **merged with CI/Judge gates green. The no-hash recovery path has now been live-validated to terminate fail-closed as INVALID with no second payment. The remaining proof is the hash-recorded close/reopen → automatic ARRIVED path.**
+Status: **merged with CI/Judge gates green. Both no-hash fail-closed recovery and hash-recorded close-before-FINAL server reconciliation are now live-validated. The remaining issue is sender mission rediscovery/resume UX after a full app close.**
 
 Required live validation:
 
