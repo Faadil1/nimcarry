@@ -38,6 +38,7 @@ const snapshot: MissionStoreSnapshot = {
       declinedAt: null, withdrawnAt: null, completedAt: 5, closedAt: 5,
     },
   ],
+  destinationClaims: [],
   challenges: [],
 };
 
