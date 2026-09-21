@@ -206,7 +206,10 @@ async function run(viewport) {
       sessionStorage.clear();
       localStorage.setItem("nimcarry.recentMissions.v1", JSON.stringify([missionId]));
     }, resumeMissionId);
-    await page.reload({ waitUntil: "networkidle", timeout: 20000 });
+    // The preceding Destination Claim check leaves us on /c/:token. A real
+    // reopen lands on NimCarry home, so navigate home explicitly while keeping
+    // the non-secret locator and the cleared session storage.
+    await page.goto(`${baseUrl}/`, { waitUntil: "networkidle", timeout: 20000 });
     await page.locator("#nimiq-recovery-panel").waitFor({ state: "visible", timeout: 5000 });
     const resumeCopy = await page.locator("#nimiq-recovery-panel").textContent();
     if (!/Resume without creating a new mission/i.test(resumeCopy || "")) {
