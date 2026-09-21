@@ -620,6 +620,65 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     document.querySelector("#copy-invite").addEventListener("click", async () => { await navigator.clipboard.writeText(inviteUrl); notice("Invite link copied."); });
   }
 
+  async function renderDestinationClaim() {
+    const token = destinationClaimTokenFromPath();
+    if (!token) return navigate("/");
+    let payload;
+    try {
+      payload = await api(`/c/${encodeURIComponent(token)}`);
+    } catch (error) {
+      notice(error.message, true);
+      els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Private destination claim</div><h1 class="target-title">This claim is unavailable.</h1><p class="lede">The link may be invalid or expired. No wallet was bound and no funds moved.</p><div class="button-row"><button id="claim-home" class="button ghost">NimCarry home</button></div></section>`;
+      document.querySelector("#claim-home")?.addEventListener("click", () => navigate("/"));
+      return;
+    }
+
+    const claim = payload?.claim;
+    const mission = payload?.mission;
+    const targetLabel = mission?.target_label || "Destination";
+    if (!claim || !mission?.mission_id) {
+      notice("DESTINATION_CLAIM_CONTRACT_MISMATCH: claim response is incomplete.", true);
+      return;
+    }
+
+    if (claim.status === "CLAIMED" || mission.target_wallet_bound) {
+      els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Destination claim completed</div><h1 class="target-title">Your wallet is already bound.</h1><p class="lede">${esc(targetLabel)} is now the private destination for this mission. Binding a wallet did not move any NIM.</p><div class="button-row"><button id="claim-home" class="button ghost">NimCarry home</button></div></section>`;
+      document.querySelector("#claim-home")?.addEventListener("click", () => navigate("/"));
+      els.screen.focus();
+      return;
+    }
+
+    const expiresAt = claim.expires_at ? new Date(claim.expires_at).toLocaleString() : "soon";
+    const deeplink = `nimiqpay://miniapp?url=${encodeURIComponent(location.href)}`;
+    els.screen.innerHTML = `<section class="hero-card clv2-utility-surface" data-destination-claim-status="${esc(claim.status)}"><div class="kicker">Private destination claim</div><h1 class="target-title">This delivery is for ${esc(targetLabel)}.</h1><p class="lede">${esc(mission.mission_note || "A private NimCarry delivery is waiting.")}</p><div class="card" style="margin-top:16px"><div class="kicker">What claiming does</div><p>Your Nimiq signature binds <strong>your own wallet</strong> as this mission’s private destination. The sender cannot replace it afterward. No funds move when you claim.</p></div><div class="warning" style="margin-top:14px">This private claim expires ${esc(expiresAt)}. Only accept it if you are the intended destination.</div><div class="button-row"><button data-busy-lock="1" id="claim-destination" class="button primary">Bind my wallet as destination</button><a class="button green" href="${esc(deeplink)}">Open in Nimiq Pay</a><button id="claim-home" class="button ghost">Not mine</button></div></section>`;
+    document.querySelector("#claim-destination")?.addEventListener("click", () => acceptDestinationClaim(token, mission.mission_id));
+    document.querySelector("#claim-home")?.addEventListener("click", () => navigate("/"));
+    els.screen.focus();
+  }
+
+  async function acceptDestinationClaim(token, missionId) {
+    if (state.busy) return;
+    setBusy(true);
+    notice("Binding your wallet to this destination claim…");
+    try {
+      const auth = await signedAuth("CLAIM_DESTINATION", { missionId, sequence: 0 });
+      const claimed = await api(`/c/${encodeURIComponent(token)}/claim`, { method: "POST", body: { auth } });
+      if (!claimed?.mission?.mission_id || !claimed?.view_token) {
+        throw new Error("DESTINATION_CLAIM_CONTRACT_MISMATCH: signed claim did not return mission access.");
+      }
+      sessionStorage.setItem(`carryone.view.${claimed.mission.mission_id}`, claimed.view_token);
+      rememberMissionLocator(claimed.mission.mission_id);
+      state.mission = claimed.mission;
+      state.invitation = claimed.mission.invitation || null;
+      notice("Destination wallet bound. No NIM moved. The sender can now deliver directly after independent wallet authorization.");
+      navigate(`/mission/${encodeURIComponent(claimed.mission.mission_id)}`);
+    } catch (error) {
+      notice(error.message, true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function renderInvitation() {
     const token = inviteTokenFromPath(); state.inviteToken = token; let invitation;
     try { if (state.demo) invitation = demoLoad()?.invitation || { mission_id: "demo", invitation_id: "demo-invite", sequence: 1, status: "INVITED", target_label: state.mission?.target_label || "Destination", mission_note: state.mission?.mission_note || "Move this closer.", why_you: "You know someone closer to the destination.", finalized_hop_count: 0 }; else invitation = await api(`/i/${encodeURIComponent(token)}`); state.invitation = invitation; }
