@@ -96,9 +96,11 @@ export class ReachMissionCoordinator {
         );
       }
       const claim = await this.missions.getDestinationClaimForMission(mission.id);
-      if (!claim || claim.status !== "CLAIMED" || !claim.claimedWalletNormalized) {
+      if (claim && (claim.status !== "CLAIMED" || !claim.claimedWalletNormalized)) {
         throw new MissionValidationError("DESTINATION_NOT_CLAIMED", "Destination must accept the private claim before direct delivery");
       }
+      // No claim row means the destination wallet was already known and
+      // explicitly consented at creation. That is also a valid two-person path.
     }
 
     const targetWallet = normalizeNimiqAddress(this.protector.decrypt(mission.targetWalletCiphertext));
@@ -167,8 +169,8 @@ export class ReachMissionCoordinator {
       }
     } else {
       const claim = await this.missions.getDestinationClaimForMission(input.missionId);
-      if (!claim || claim.status !== "CLAIMED") {
-        throw new MissionValidationError("DESTINATION_NOT_CLAIMED", "Direct broadcast requires a claimed destination");
+      if (claim && claim.status !== "CLAIMED") {
+        throw new MissionValidationError("DESTINATION_NOT_CLAIMED", "Direct broadcast requires the private destination claim to be accepted");
       }
     }
 
@@ -252,10 +254,10 @@ export class ReachMissionCoordinator {
       });
     } else {
       const claim = await this.repository.getDestinationClaimForMission(missionId);
-      if (!claim || claim.status !== "CLAIMED" || !claim.claimedWalletNormalized) {
+      if (claim && (claim.status !== "CLAIMED" || !claim.claimedWalletNormalized)) {
         throw new MissionValidationError(
           "FINAL_HOP_WITHOUT_DESTINATION_CLAIM",
-          "A direct finalized delivery requires a claimed destination"
+          "A claim-based direct delivery requires its destination claim"
         );
       }
       await this.repository.completeDirectFinalHop({
