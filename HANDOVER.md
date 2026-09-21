@@ -13,6 +13,7 @@ Current main baseline:
 - PR #114 **Move FINAL reconciliation into the background** is merged.
 - PR #117 **Hand ambiguous Nimiq Pay submissions to background reconciliation** is merged as `bad96d463064e418ec47a949acd792224d8fde24`.
 - PR #117 gates: CI #1575 **SUCCESS**, Judge Full Flow #220 **SUCCESS**; guided-flow coverage exercised mobile + desktop.
+- Cloudflare production build for PR #117 is **SUCCESS**. Vercel status is not the production gate for NimCarry.
 - Product behavior: one-time human bridge; sender pays the target directly; long-running FINAL reconciliation is server-owned.
 - The prior custody-chain model and manual-recheck happy path are obsolete.
 
@@ -51,44 +52,56 @@ Implemented in the code branch for this handover:
 - while open, Mission Home watches the sender's accepted/pending state and reflects ARRIVED when the backend advances;
 - retries remain read/reconcile operations only and never authorize or send a second payment.
 
-Status: **merged with CI/Judge gates green; live validation continues. The latest run was blocked by an ambiguous no-hash Nimiq Pay submission before the intended close/reopen proof could be completed.**
+Status: **merged with CI/Judge gates green. The no-hash recovery path has now been live-validated to terminate fail-closed as INVALID with no second payment. The remaining proof is the hash-recorded close/reopen → automatic ARRIVED path.**
 
 Required live validation:
 
 1. create a fresh real TESTNET mission;
-2. broadcast the one payment;
+2. broadcast the one payment and confirm a tx hash is durably recorded;
 3. close the client while the hop is still pending/included;
 4. wait without pressing any manual recheck;
 5. reopen and confirm the mission reached ARRIVED automatically;
 6. verify no second payment control is offered at any point;
-7. repeat the UI verification on desktop as well as mobile.
+7. verify mobile + tablet + desktop.
 
-
-### Latest live attempt — ambiguous Nimiq Pay submission
+### Latest live attempt — terminal no-hash recovery
 
 A fresh mobile run at approximately 18:52 local time created mission `d9ae9ec2-5eab-485e-b19a-31b8a96e700a` with Grace accepted and David as the direct destination.
 
-The pass intent was durably created, but Nimiq Pay did **not** return a provable transaction hash. The browser guard attempted one of its legacy foreground recovery loops and then surfaced:
+The pass intent was durably created, but Nimiq Pay did **not** return a provable transaction hash. The foreground UI later surfaced:
 
 `VERIFICATION_DELAYED: Load failed`
 
-Read-only PostgreSQL inspection at 18:57 showed:
+At 19:52:05 local, read-only PostgreSQL inspection still showed:
 
 - mission: `ACTIVE`;
 - Grace invitation: `ACCEPTED`;
 - active intent sequence: `1`;
-- intent recipient: David's wallet;
 - hop row: **none**;
 - recorded transaction hash: **none**;
 - finalized hop count: `0`.
 
-Therefore this run is **inconclusive about whether Nimiq Pay actually broadcast a transaction**. It does not justify a resend. The canonical no-hash recovery path may still discover an exact committed transaction independently.
+PR #117 was already live on the canonical Cloudflare production runtime by then. It had been deployed successfully by Cloudflare after merge and owns the server-side no-hash recovery path.
 
-It also exposed a concrete UX truthfulness defect: the recovery card said **“The transaction is already claimed”** even though durable state had no recorded hop/hash.
+A new read-only PostgreSQL verification at **21:03:39 local** now shows:
 
-PR #117 is now merged. It removes the hidden 90-second ambiguous-submission polling loop, performs at most one opportunistic foreground reconciliation, hands continued recovery to the server background reconciler, keeps the local no-resend safety hold, and uses evidence-safe copy that does not claim a broadcast before a transaction hash/hop is proven.
+- mission: `ACTIVE`;
+- Grace invitation: `EXPIRED`;
+- pass intent sequence: `1`;
+- hop sequence: `1`;
+- hop status: **`INVALID`**;
+- transaction hash: **none**;
+- finalized hop count: `0`;
+- ARRIVED: **no**;
+- custody change: **none**.
 
-A second read-only database check at about 19:07 local still showed the mission ACTIVE with the same accepted invitation and active intent, but **no hop and no recorded transaction hash**. Therefore the current mission remains unresolved; do not resend it unless canonical reconciliation eventually proves the old attempt terminal INVALID.
+Therefore the ambiguous submission has now reached a **terminal fail-closed outcome**. No matching broadcast was discovered, no second 1 NIM payment was made, and custody never moved.
+
+Important evidence caveat: the persisted `invalidated_at` value is written from the hop's original `createdAt` in the current PostgreSQL adapter, so it is **not a reliable timestamp for when the INVALID transition actually occurred**. We can prove the transition happened sometime after the 19:52:05 inspection and before the 21:03:39 inspection, but not its exact second from the current row alone.
+
+This closes the no-hash validation gate for PR #117. The next real gate is specifically:
+
+`hash recorded -> close NimCarry before FINAL -> server reconciliation -> ARRIVED -> reopen with no resend/recheck path`
 
 ## 3. Product Council result
 
@@ -168,15 +181,15 @@ Do not add public destination requests, bridge search, bounty routing, reputatio
 
 ## 6. Immediate next implementation sequence
 
-1. **Automatic reconciliation + ambiguous-submission recovery — merged, awaiting decisive live validation**
+1. **Automatic reconciliation — one live gate remains**
    - PR #114 merged as `5d31d5bf3234f267a55aee5e3f5435165b9478aa`.
    - PR #117 merged as `bad96d463064e418ec47a949acd792224d8fde24`.
-   - PR #117 CI and mobile+desktop guided-flow smoke are green.
-   - Server-side maintenance reconciles unresolved active intents, including no-hash intents that may be discovered from the exact opaque commitment.
+   - Both relevant Cloudflare production builds succeeded.
+   - No-hash attempt `d9ae9ec2-5eab-485e-b19a-31b8a96e700a` is now terminal `INVALID` with no tx hash, no FINAL, and no duplicate payment.
    - Browser no longer owns long-running FINAL or ambiguous-submission recovery loops.
    - Manual recheck is removed from the happy path.
-   - Current mission `d9ae9ec2-5eab-485e-b19a-31b8a96e700a` remains unresolved with no recorded hop/hash; do not resend.
-   - Next proof gate is a fresh real hash-recorded close/reopen TESTNET run plus live mobile/tablet/desktop acceptance.
+   - Remaining proof gate: a fresh real TESTNET payment with a durably recorded hash, then close/reopen before FINAL and confirm automatic ARRIVED with no resend control.
+   - Live acceptance must cover mobile, tablet, and desktop.
 
 2. **Destination Claim experiment — next implementation workstream**
    - No on-chain escrow dependency.
