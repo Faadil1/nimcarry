@@ -1,12 +1,12 @@
 project: NimCarry
-updated_at: "2026-09-21T04:12:00-04:00"
+updated_at: "2026-09-21T07:05:00-04:00"
 phase: DESTINATION_CLAIM_EXPERIMENT
 source_of_truth: true
 
 repository:
   full_name: Faadil1/nimcarry
-  baseline_main_sha: b35674c5ceea116e576e6f9eeedc6aee1415e6ef
-  baseline_summary: "PR #120 Destination Claim v1 is deployed; PR #121 fixes direct-Claim pending UI truth/provenance after the first real run. Both Cloudflare production builds and CI/smoke/responsive gates are green."
+  baseline_main_sha: 724f0d88877e32b2048a4e6eb9f6254b51f0de97
+  baseline_summary: "PR #122 is merged and Cloudflare-deployed to repair durable FINAL relay state that can outlive a missed mission ARRIVED projection; the first real Destination Claim payment is independently FINAL but its mission row is still awaiting automatic projection repair."
 
 latest_live_validation:
   mission_id: c31534d0-9ecd-45b9-bf8d-e9457141d391
@@ -201,11 +201,16 @@ implementation_state:
       target_wallet_bound: true
       direct_intent_created_at: "2026-09-21T08:00:12.142Z"
       direct_intent_sequence: 1
-      direct_intent_tx_hash_recorded: false
-      hop_recorded: false
+      direct_intent_tx_hash_recorded: true
+      transaction_hash: 393e98c2cb9db0bf9bc5f40dca835f76f43262630d4bfc0a326aea02286b596e
+      hop_recorded: true
+      hop_status: FINAL
+      hop_included_at: "2026-09-21T10:50:16.621Z"
+      hop_finalized_at: "2026-09-21T10:51:02.963Z"
       mission_status: ACTIVE
       finalized_hop_count: 0
-      last_read_only_check: "2026-09-21T08:11:40.727Z"
+      mission_projection_status: STRANDED_FINAL_AWAITING_AUTOMATIC_REPAIR
+      last_read_only_check: "2026-09-21T11:04:47.174Z"
       validated:
         - "Sender can create a real mission without entering the destination wallet."
         - "Destination can sign CLAIM_DESTINATION and bind its own wallet."
@@ -213,8 +218,10 @@ implementation_state:
         - "Sender then receives the direct Send 1 NIM to David action."
         - "Direct relay provenance correctly uses invitation_id = NULL."
       not_yet_validated:
-        - "The attempted payment has no provable tx hash and no hop yet."
-        - "No FINAL/ARRIVED is claimed for this mission."
+        - "ARRIVED mission projection is not yet durable even though relay FINAL is proven."
+      newly_validated:
+        - "The original no-hash send was independently recovered as a real broadcast without a resend."
+        - "The direct sender-to-David transaction reached independent FINAL with invitation_id = NULL."
       safety:
         - "Do not resend 1 NIM while this existing intent can still reconcile."
         - "Do not replace the mission to force a successful demo."
@@ -234,6 +241,22 @@ implementation_state:
       - "If a matching transaction is discovered, verify INCLUDED -> FINAL -> ARRIVED with no fabricated bridge."
       - "If no broadcast exists, verify the stale no-hash path terminates fail-closed without custody movement."
     evidence_doc: "docs/evidence/DESTINATION-CLAIM-LIVE-2026-09-21.md"
+
+  final_projection_repair:
+    status: DEPLOYED_AWAITING_LIVE_REPAIR
+    merged_pr: 122
+    merge_sha: 724f0d88877e32b2048a4e6eb9f6254b51f0de97
+    cloudflare_production_build: SUCCESS
+    production_smoke: SUCCESS
+    production_ci: SUCCESS
+    trigger_mission: d1ed137a-834a-4211-b12f-cf00dbde75cc
+    behavior:
+      - "Background/startup reconciliation now includes durable FINAL relay rows whose active intent has already disappeared."
+      - "Projection uses the same idempotent coordinator reconcile path and creates no payment."
+      - "Mission view blocks duplicate send/reroute whenever relay FINAL is ahead of the mission row."
+    remaining_gate:
+      - "Confirm the deployed replacement container projects mission d1ed137a-834a-4211-b12f-cf00dbde75cc to ARRIVED automatically."
+      - "Until then, do not resend 1 NIM."
 
   persistent_mission_resume:
     status: LIVE_VALIDATED_COMPLETE
@@ -317,9 +340,9 @@ implementation_state:
 
 next_workstream:
   priority:
-    - "Do not resend on live mission d1ed137a-834a-4211-b12f-cf00dbde75cc; wait for the existing no-hash intent to reconcile or fail closed."
-    - "Use that mission to finish the real Destination Claim evidence gate if a matching transaction reaches FINAL/ARRIVED."
-    - "If it terminates no-broadcast/INVALID, run the next real payment only after the current intent is terminal."
+    - "Do not resend on live mission d1ed137a-834a-4211-b12f-cf00dbde75cc: its direct transaction is already independently FINAL."
+    - "Wait for PR #122's automatic FINAL -> ARRIVED projection repair to land on the replacement Cloudflare container."
+    - "After ARRIVED is durable, close the Destination Claim technical proof gate and move to Claim vs Introduced Claim comparison."
     - "After direct Claim end-to-end proof, compare Claim vs Introduced Claim with real users before deciding whether social-route proof is core or a trust layer."
   implementation_constraints:
     - "No escrow/on-chain refund dependency for the first claim experiment."
