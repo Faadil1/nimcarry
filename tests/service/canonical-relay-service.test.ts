@@ -319,6 +319,7 @@ describe("CanonicalRelayService: full W0 -> W5 relay through intent/broadcast/re
     await expect(service.reconcile(pendingBaton)).resolves.toMatchObject({ status: "FINAL" });
 
     expect(service.getPendingReconciliationBatonIds()).toEqual([noHashBaton]);
+    expect(service.getFinalizedProjectionBatonIds()).toEqual([pendingBaton]);
   });
 
 });

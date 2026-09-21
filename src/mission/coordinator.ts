@@ -7,6 +7,14 @@ import { normalizeNimiqAddress, TargetWalletProtector } from "./target-wallet-cr
 import { MissionValidationError, type PublicMission, type VerifiedWalletAction } from "./types.js";
 
 export class ReachMissionCoordinator {
+  /**
+   * FINAL relay rows are durable forever, but once a mission is observed
+   * projected/closed we do not need to re-read it on every 15s maintenance
+   * tick. The set intentionally resets on process restart so startup performs
+   * a fresh crash-window repair scan.
+   */
+  private readonly projectionSettled = new Set<string>();
+
   constructor(
     private readonly missions: ReachMissionService,
     private readonly repository: MissionRepository,
@@ -204,15 +212,40 @@ export class ReachMissionCoordinator {
    * initiated here.
    */
   async reconcilePending(): Promise<{ checked: number; arrived: number; errors: number }> {
-    const missionIds = this.relay.getPendingReconciliationBatonIds();
+    const pendingIds = new Set(this.relay.getPendingReconciliationBatonIds());
+    const finalizedCandidates = this.relay
+      .getFinalizedProjectionBatonIds()
+      .filter((missionId) => !this.projectionSettled.has(missionId));
+    const missionIds = [...new Set([...pendingIds, ...finalizedCandidates])];
+
+    let checked = 0;
     let arrived = 0;
     let errors = 0;
 
     for (const missionId of missionIds) {
       try {
+        // For a FINAL-only repair candidate, skip already-projected historical
+        // missions after one read. Pending intents always continue through the
+        // normal chain reconciliation path.
+        if (!pendingIds.has(missionId)) {
+          const mission = await this.missions.getMissionRecord(missionId);
+          if (mission.status !== "ACTIVE") {
+            this.projectionSettled.add(missionId);
+            continue;
+          }
+        }
+
+        checked += 1;
         const result = await this.reconcile(missionId);
-        if (result.mission.status === "ARRIVED") arrived += 1;
+        if (result.mission.status === "ARRIVED") {
+          arrived += 1;
+          this.projectionSettled.add(missionId);
+        } else if (!pendingIds.has(missionId) && result.mission.status !== "ACTIVE") {
+          this.projectionSettled.add(missionId);
+        }
       } catch (error) {
+        // Do not settle a failed FINAL projection. A transient repository
+        // failure must be retried by the next background sweep.
         errors += 1;
         console.error(
           `NimCarry background reconciliation failed for ${missionId}:`,
@@ -221,7 +254,7 @@ export class ReachMissionCoordinator {
       }
     }
 
-    return { checked: missionIds.length, arrived, errors };
+    return { checked, arrived, errors };
   }
 
   private async applyNextFinalizedHop(missionId: string): Promise<PublicHop | null> {

@@ -16,9 +16,11 @@ describe("server-owned background reconciliation wiring", () => {
     expect(helper).not.toContain("initiatePass(");
   });
 
-  it("sweeps pending missions through the same canonical reconcile path", () => {
+  it("sweeps unresolved intents and stranded FINAL projections through the canonical reconcile path", () => {
     expect(coordinatorSource).toContain("async reconcilePending()");
     expect(coordinatorSource).toContain("this.relay.getPendingReconciliationBatonIds()");
+    expect(coordinatorSource).toContain("getFinalizedProjectionBatonIds()");
+    expect(coordinatorSource).toContain("projectionSettled");
     expect(coordinatorSource).toContain("await this.reconcile(missionId)");
     const start = coordinatorSource.indexOf("async reconcilePending()");
     const end = coordinatorSource.indexOf("\n  private async applyNextFinalizedHop", start);

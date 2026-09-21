@@ -36,6 +36,48 @@ describe("mission primary action for accepted pass intents", () => {
     expect(view({ hasActiveIntent: true, activeIntentStale: true, activeIntentHasBroadcast: false, viewer: B }).primary_action).toBe("WAIT");
   });
 
+  it("never offers another send when relay FINAL is ahead of the mission projection", () => {
+    const directRoute = [{
+      baton_id: mission.id,
+      sequence: 1,
+      invitation_id: null,
+      current_holder: A,
+      recipient: B,
+      tx_hash: "f".repeat(64),
+      status: "CONFIRMED" as const,
+      created_at: "2026-09-21T10:50:16.621Z",
+      confirmed_at: "2026-09-21T10:51:02.963Z",
+    }];
+    const directMission = {
+      ...mission,
+      targetWalletHmac: protector.hmac(B),
+      currentSequence: 0,
+      finalizedHopCount: 0,
+      status: "ACTIVE" as const,
+    };
+    const view = composeMissionView({
+      mission: directMission,
+      invitation: null,
+      destinationClaim: {
+        id: "claim-1",
+        missionId: mission.id,
+        claimTokenHash: "hash",
+        status: "CLAIMED",
+        createdAt: 1,
+        expiresAt: 99_999,
+        claimedAt: 2,
+        closedAt: 2,
+        claimedWalletNormalized: B,
+      },
+      route: directRoute,
+      protector,
+      viewer: A,
+      hasActiveIntent: false,
+      now: 3,
+    });
+    expect(view.primary_action).toBe("WAIT");
+  });
+
   it("shows the accepted display label only to viewers with full invitation context", () => {
     expect(view({ hasActiveIntent: false, viewer: A }).invitation?.candidate_display_label).toBe("Bridge B");
     expect(view({ hasActiveIntent: false, viewer: B }).invitation?.candidate_display_label).toBe("Bridge B");
