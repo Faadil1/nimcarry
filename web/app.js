@@ -392,7 +392,9 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       ) {
         notice(`${latest?.target_label || "The destination"} claimed the private delivery. You can now send the 1 NIM directly.`);
       } else if (invitationStatus === "ACCEPTED" && latest?.current_holder?.is_viewer === true) {
-        notice("Bridge accepted the introduction. The direct delivery is ready.");
+        notice(latest?.target_wallet_bound
+          ? "Introducer accepted. The direct destination delivery is ready."
+          : "Introducer accepted. The destination still needs the private claim to bind their wallet.");
       } else if (invitationStatus === "DECLINED") {
         notice("Bridge declined the invitation. The letter stayed with you.");
       } else if (previousFingerprint) {
@@ -481,8 +483,13 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
   }
   function homeButtons(action, m) {
     if (m.status === "ARRIVED") return `<button id="route-button" class="button green">View completed route</button><button id="new-button" class="button ghost">Start your own mission</button>`;
-    if (action === "SHARE_CLAIM") return `<button id="claim-share-button" class="button primary">Share private claim</button><button id="route-button" class="button ghost">View mission</button>`;
-    if (action === "SEND_1_NIM") return `<button id="pass-button" class="button primary">Send 1 NIM to ${esc(m.target_label || "destination")}</button><button id="route-button" class="button ghost">View mission</button>`;
+    if (action === "SHARE_CLAIM") {
+      const introduction = m.invitation
+        ? `<button class="button ghost" disabled>${m.invitation.status === "ACCEPTED" ? "Introducer accepted" : "Introduction pending"}</button>`
+        : `<button id="invite-button" class="button ghost">Add an introducer</button>`;
+      return `<button id="claim-share-button" class="button primary">Share private claim</button>${introduction}<button id="route-button" class="button ghost">View mission</button>`;
+    }
+    if (action === "SEND_1_NIM") return `<button id="pass-button" class="button primary">Send 1 NIM to ${esc(m.target_label || "destination")}</button><button id="invite-button" class="button ghost">Add an introducer instead</button><button id="route-button" class="button ghost">View mission</button>`;
     if (action === "CREATE_INVITATION" || action === "REROUTE") return `<button id="invite-button" class="button primary">${action === "REROUTE" ? "Choose another bridge" : "Add an introducer"}</button><button id="pass-button" class="button ghost">Send directly instead</button><button id="route-button" class="button ghost">Follow route</button>`;
     if (action === "WAIT" && m.viewer_role === "INVITEE" && m.invitation?.status === "ACCEPTED") return `<button class="button primary" disabled>Accepted — waiting for delivery</button><button id="route-button" class="button ghost">Follow route</button>`;
     if (action === "WAIT" && m.invitation?.status === "ACCEPTED") return `<button class="button primary" disabled>Checking existing send — no action needed</button><button id="route-button" class="button ghost">Follow route</button>`;
@@ -773,7 +780,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       (!m?.destination_claim || m?.destination_claim?.status === "CLAIMED");
     const passDeadline = inv?.pass_deadline_at ? Date.parse(inv.pass_deadline_at) : NaN;
     const passWindowExpired = Number.isFinite(passDeadline) && Date.now() >= passDeadline;
-    const introducedReady = inv?.status === "ACCEPTED" && !passWindowExpired;
+    const introducedReady = m?.target_wallet_bound === true && inv?.status === "ACCEPTED" && !passWindowExpired;
     const passReady = directClaimReady || introducedReady;
 
     if (!passReady) {
