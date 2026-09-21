@@ -96,9 +96,15 @@
     if (!hero || hero.dataset.clv2Home === "1") return;
 
     const kicker = clean(hero.querySelector(".kicker")?.textContent);
-    if (!/destination-bound human routing|private introduction/i.test(kicker)) return;
+    const destinationFirst = /human-resolved delivery/i.test(kicker);
+    if (!/destination-bound human routing|private introduction|human-resolved delivery/i.test(kicker)) return;
     hero.dataset.clv2Home = "1";
     hero.classList.add("clv2-home");
+
+    // The Destination Claim workstream owns the new destination-first copy.
+    // Keep the visual-system class/geometry, but do not overwrite that product
+    // language with the older bridge-first letter metaphor.
+    if (destinationFirst) return;
 
     hero.querySelectorAll(
       ".promise-strip,.hc-home-proofline,.hc-use-cases,.hc-home-story,.wi-scenario,.wi-baton-note,.tw-thesis-line,.mp-audience,.mp-use-cases,.tw-orbit,.tw-route-instrument"
