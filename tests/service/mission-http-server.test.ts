@@ -141,7 +141,7 @@ describe("Reach Mission HTTP bindings", () => {
     expect(createRes.status).toBe(201);
     const missionView = createRes.body;
     expect(missionView.viewer_role).toBe("CREATOR");
-    expect(missionView.primary_action).toBe("CREATE_INVITATION");
+    expect(missionView.primary_action).toBe("SEND_1_NIM");
     expect(missionView.status).toBe("ACTIVE");
     expect(JSON.stringify(missionView)).not.toContain(target.address.replaceAll(" ", ""));
     const missionId = missionView.mission_id;
@@ -272,6 +272,93 @@ describe("Reach Mission HTTP bindings", () => {
     expect(bridgeAfterFinal.status).toBe(200);
     expect(bridgeAfterFinal.body.viewer_role).toBe("PARTICIPANT");
     expect(bridgeAfterFinal.body.status).toBe("ARRIVED");
+  });
+
+  it("runs the two-person Destination Claim flow without an invitation or bridge", async () => {
+    const creator = wallet();
+    const destination = wallet();
+
+    const createCh = await challenge(creator.address, "CREATE_MISSION");
+    const created = await request("POST", "/missions", {
+      ...envelope(createCh, creator),
+      target_label: "David",
+      mission_note: "Private delivery to David without knowing his wallet yet.",
+      creator_display_label: "Faadil",
+      visibility: "UNLISTED",
+    }, { "Idempotency-Key": "claim-create-e2e" });
+
+    expect(created.status).toBe(201);
+    expect(created.body.target_wallet_bound).toBe(false);
+    expect(created.body.primary_action).toBe("SHARE_CLAIM");
+    expect(created.body.destination_claim_url).toMatch(/^https:\/\/carry\.one\/c\//);
+    const missionId = created.body.mission_id;
+    const claimToken = new URL(created.body.destination_claim_url).pathname.split("/").pop();
+    expect(claimToken).toBeTruthy();
+
+    const claimView = await request("GET", `/c/${claimToken}`);
+    expect(claimView.status).toBe(200);
+    expect(claimView.body.claim.status).toBe("PENDING");
+    expect(claimView.body.mission.target_wallet_bound).toBe(false);
+    expect(JSON.stringify(claimView.body)).not.toContain(destination.address.replaceAll(" ", ""));
+
+    const claimCh = await challenge(destination.address, "CLAIM_DESTINATION", { mission_id: missionId });
+    const claimed = await request("POST", `/c/${claimToken}/claim`, {
+      ...envelope(claimCh, destination),
+    }, { "Idempotency-Key": "claim-bind-e2e" });
+    expect(claimed.status).toBe(200);
+    expect(claimed.body.claim.status).toBe("CLAIMED");
+    expect(claimed.body.mission.target_wallet_bound).toBe(true);
+    expect(claimed.body.mission.viewer_role).toBe("TARGET");
+    expect(claimed.body.view_token).toMatch(/^[A-Za-z0-9_-]{32,}$/);
+
+    const creatorReady = await request("GET", `/missions/${missionId}`, undefined, {
+      Authorization: `Bearer ${created.body.view_token}`,
+    });
+    expect(creatorReady.status).toBe(200);
+    expect(creatorReady.body.destination_claim.status).toBe("CLAIMED");
+    expect(creatorReady.body.primary_action).toBe("SEND_1_NIM");
+    expect(creatorReady.body.invitation).toBeNull();
+
+    const passCh = await challenge(creator.address, "AUTHORIZE_PASS", {
+      mission_id: missionId,
+      sequence: 1,
+    });
+    const passRes = await request("POST", `/missions/${missionId}/pass-intent`, {
+      ...envelope(passCh, creator),
+    }, { "Idempotency-Key": "claim-pass-e2e" });
+    expect(passRes.status).toBe(200);
+    expect(passRes.body.recipient).toBe(destination.address);
+    expect(passRes.body.sequence).toBe(1);
+    expect(passRes.body.broadcast_capability).toMatch(/^[A-Za-z0-9_-]{32,}$/);
+
+    const txHash = randomBytes(32).toString("hex");
+    const broadcast = await request("POST", `/missions/${missionId}/broadcast`, {
+      tx_hash: txHash,
+      broadcast_capability: passRes.body.broadcast_capability,
+    }, { "Idempotency-Key": "claim-broadcast-e2e" });
+    expect(broadcast.status).toBe(201);
+    expect(broadcast.body.invitation_id).toBeNull();
+
+    rpc.tx = {
+      hash: txHash,
+      from: creator.address,
+      to: destination.address,
+      value: ONE_NIM_IN_LUNA,
+      blockNumber: 3_032_020,
+      confirmations: 999,
+      recipientData: passRes.body.recipient_data,
+    };
+
+    const reconciled = await request("POST", `/missions/${missionId}/reconcile`, {}, {
+      Authorization: `Bearer ${created.body.view_token}`,
+      "Idempotency-Key": "claim-reconcile-e2e",
+    });
+    expect(reconciled.status).toBe(200);
+    expect(reconciled.body.mission.status).toBe("ARRIVED");
+    expect(reconciled.body.mission.finalized_hop_count).toBe(1);
+    expect(reconciled.body.mission.route).toHaveLength(1);
+    expect(reconciled.body.mission.route[0].bridge).toBeNull();
+    expect(reconciled.body.mission.route[0].recipient.display_label).toBe("David");
   });
 
   it("rejects broadcast claims that do not present a capability", async () => {
