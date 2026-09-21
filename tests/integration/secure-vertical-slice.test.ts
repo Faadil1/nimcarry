@@ -78,9 +78,23 @@ describe("secure shared vertical slice", () => {
 
     const pool = new PgMemPool();
     await pool.exec(FOUNDATION_SQL);
-    // pg-mem fixture: production migration 006 adds constraints using
-    // cardinality(text[]), which pg-mem does not implement.
+    // pg-mem fixture: project only the schema pieces added by migrations 006/007
+    // that this known-wallet vertical slice reads. Full migration semantics are
+    // covered separately against PostgreSQL/Neon.
     await pool.exec("ALTER TABLE pass_intents ADD COLUMN authorized_payment_wallets text[]");
+    await pool.exec(`
+      CREATE TABLE destination_claims (
+        id uuid PRIMARY KEY,
+        mission_id uuid NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+        claim_token_hash text NOT NULL UNIQUE,
+        status text NOT NULL,
+        created_at timestamptz NOT NULL,
+        expires_at timestamptz NOT NULL,
+        claimed_at timestamptz,
+        closed_at timestamptz,
+        claimed_wallet_normalized text
+      )
+    `);
     const stores = await createRepositoryStores(
       { CARRY_ONE_REPOSITORY: "postgres", CARRY_ONE_DATABASE_URL: "test://vertical" },
       () => pool
