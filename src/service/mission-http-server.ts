@@ -52,6 +52,7 @@ const MISSION_ACTIONS = [
   "WITHDRAW_INVITATION",
   "AUTHORIZE_PASS",
   "CANCEL_MISSION",
+  "CLAIM_DESTINATION",
   "VIEW_ROUTE",
 ] as const;
 
@@ -189,6 +190,9 @@ async function handleRequest(deps: MissionHttpDeps, req: IncomingMessage, res: S
   if (segments[0] === "i") {
     return handleInvitation(deps, req, res, url, segments);
   }
+  if (segments[0] === "c") {
+    return handleDestinationClaim(deps, req, res, url, segments);
+  }
   return notFound(req, res, url);
 }
 
@@ -245,8 +249,14 @@ async function createMission(deps: MissionHttpDeps, req: IncomingMessage): Promi
   const obj = await jsonBody(req);
   const envelope = parseSignedEnvelope(obj);
   const targetLabel = boundedText(obj.target_label, "target_label", 1, 60);
-  const targetWallet = asAddress(obj.target_wallet, "target_wallet");
-  const targetConsentConfirmed = asBoolean(obj.target_consent_confirmed, "target_consent_confirmed");
+  const targetWallet =
+    obj.target_wallet === undefined || obj.target_wallet === null || obj.target_wallet === ""
+      ? undefined
+      : asAddress(obj.target_wallet, "target_wallet");
+  const targetConsentConfirmed =
+    obj.target_consent_confirmed === undefined || obj.target_consent_confirmed === null
+      ? false
+      : asBoolean(obj.target_consent_confirmed, "target_consent_confirmed");
   const missionNote = boundedText(obj.mission_note, "mission_note", 1, 180);
   const visibility = asOptionalEnum(obj.visibility, ["UNLISTED", "PRIVATE", "PUBLIC"], "visibility") ?? "UNLISTED";
   const creatorDisplayLabel =
@@ -277,10 +287,24 @@ async function createMission(deps: MissionHttpDeps, req: IncomingMessage): Promi
   });
   const creatorWallet = normalizeNimiqAddress(auth.wallet);
   const viewCapability = routeViewCapabilityStore(deps).issue({ missionId: mission.id, holderWallet: creatorWallet });
+
+  let destinationClaim: unknown = null;
+  let claimUrl: string | null = null;
+  if (!targetWallet) {
+    const createdClaim = await deps.missions.createDestinationClaim({
+      missionId: mission.id,
+      creatorWallet,
+    });
+    destinationClaim = createdClaim.claim;
+    claimUrl = new URL(`/c/${encodeURIComponent(createdClaim.claimToken)}`, deps.canonicalOrigin).toString();
+  }
+
   return {
     status: 201,
     body: {
       ...(await viewMission(deps, req, mission.id, creatorWallet)),
+      destination_claim: destinationClaim,
+      destination_claim_url: claimUrl,
       view_token: viewCapability.token,
       view_token_expires_at: new Date(viewCapability.expiresAt).toISOString(),
     },
