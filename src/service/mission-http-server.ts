@@ -865,14 +865,10 @@ async function buildMissionView(
       .sort((a, b) => b.sequence - a.sequence)[0];
 
     if (latestFinalHop?.invitation_id) {
-      // The relay row carries the exact invitation that authorized this
-      // delivery. Use that durable FK instead of reconstructing provenance from
-      // (mission_id, sequence), which can be fragile across adapters/read paths.
+      // The relay row carries the exact invitation that authorized an
+      // introduced delivery. Null means the delivery was direct.
       invitation = await deps.repository.getInvitation(latestFinalHop.invitation_id);
-    } else if (latestFinalHop) {
-      // Legacy persisted hops pre-date invitation_id on the relay model.
-      invitation = await deps.repository.getInvitationForSequence(missionId, latestFinalHop.sequence);
-    } else if (viewerIsRecoveryHolder) {
+    } else if (viewerIsRecoveryHolder && !latestFinalHop) {
       invitation = await deps.repository.getInvitationForSequence(missionId, record.currentSequence + 1);
     }
   }
@@ -885,20 +881,19 @@ async function buildMissionView(
         // the same canonical row used to derive the viewer role and avoids a
         // second read racing the FINAL projection. Fall back to a direct
         // sequence lookup for historical route entries.
+        // invitation_id is provenance, not decoration. A null FK is the
+        // canonical direct-delivery signal and must never be reconstructed into
+        // a bridge from another invitation that happened to share a sequence.
+        if (!hop.invitation_id) return;
         const historicalInvitation =
           invitation?.id === hop.invitation_id
             ? invitation
-            : hop.invitation_id
-              ? await deps.repository.getInvitation(hop.invitation_id)
-              : invitation?.sequence === hop.sequence
-                ? invitation
-                : await deps.repository.getInvitationForSequence(missionId, hop.sequence);
-        finalizedBridgeMarks[hop.sequence] = historicalInvitation
-          ? {
-              label: historicalInvitation.candidateDisplayLabel ?? historicalInvitation.candidateLabel,
-              wallet: historicalInvitation.candidateWalletNormalized,
-            }
-          : { label: null, wallet: null };
+            : await deps.repository.getInvitation(hop.invitation_id);
+        if (!historicalInvitation) return;
+        finalizedBridgeMarks[hop.sequence] = {
+          label: historicalInvitation.candidateDisplayLabel ?? historicalInvitation.candidateLabel,
+          wallet: historicalInvitation.candidateWalletNormalized,
+        };
       })
   );
   const activeIntent = deps.relay.getActiveIntent(missionId);
@@ -1007,7 +1002,7 @@ const AUTH_REASONS = new Set([
   "ROUTE_VIEW_CAPABILITY_REQUIRED",
   "VIEWER_AUTH_REQUIRED",
 ]);
-const NOT_FOUND_REASONS = new Set(["MISSION_NOT_FOUND", "INVITATION_NOT_FOUND"]);
+const NOT_FOUND_REASONS = new Set(["MISSION_NOT_FOUND", "INVITATION_NOT_FOUND", "DESTINATION_CLAIM_NOT_FOUND"]);
 const FORBIDDEN_REASONS = new Set([
   "WRONG_CURRENT_HOLDER",
   "NOT_MISSION_AUTHORITY",
