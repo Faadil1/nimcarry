@@ -460,16 +460,18 @@ export class PgMissionRepository implements MissionRepository {
 
   async revokePendingDestinationClaim(missionId: string, now: number): Promise<number> {
     return this.withTransaction(async (client) => {
-      const updated = await client.query(
+      const updated = await client.query<{ id: string }>(
         `UPDATE destination_claims
            SET status='REVOKED', closed_at=$2
-         WHERE mission_id=$1 AND status='PENDING'`,
+         WHERE mission_id=$1 AND status='PENDING'
+         RETURNING id`,
         [missionId, epoch(now)]
       );
-      if ((updated.rowCount ?? 0) > 0) {
+      const count = updated.rows.length;
+      if (count > 0) {
         await client.query("UPDATE missions SET updated_at=$2 WHERE id=$1", [missionId, epoch(now)]);
       }
-      return updated.rowCount ?? 0;
+      return count;
     });
   }
 
