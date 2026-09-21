@@ -190,11 +190,18 @@ function derivePrimaryAction(
   viewerIsCurrentHolder: boolean,
   hasActiveIntent: boolean,
   activeIntentStale: boolean,
-  activeIntentHasBroadcast: boolean
+  activeIntentHasBroadcast: boolean,
+  hasUnprojectedFinal: boolean
 ): PrimaryAction | null {
   if (status === "CANCELLED") return null;
   if (status === "ARRIVED") {
     return ["CREATOR", "HOLDER", "PARTICIPANT", "TARGET"].includes(viewerRole) ? "START_NEW_ROUTE" : "VIEW_ROUTE";
+  }
+  // A durable relay FINAL is stronger evidence than a lagging mission row.
+  // Never expose another send/reroute while the idempotent mission projection
+  // is catching up to independently verified finality.
+  if (hasUnprojectedFinal) {
+    return viewerIsCurrentHolder || viewerRole === "INVITEE" ? "WAIT" : (viewerRole === "UNLISTED_VIEWER" ? null : "VIEW_ROUTE");
   }
   if (activity === "STALLED") {
     return ["CREATOR", "HOLDER", "PARTICIPANT"].includes(viewerRole) ? "REROUTE" : "VIEW_ROUTE";
@@ -254,6 +261,9 @@ export function composeMissionView(input: {
     : null;
   const targetWalletBound = input.mission.targetWalletHmac !== null && input.mission.targetWalletCiphertext !== null;
   const viewerIsCurrentHolder = sameWallet(input.viewer, input.mission.currentHolderWalletNormalized);
+  const hasUnprojectedFinal = input.route.some(
+    (hop) => hop.status === "CONFIRMED" && hop.sequence === input.mission.currentSequence + 1
+  );
   const primaryAction = derivePrimaryAction(
     input.mission.status,
     activity,
@@ -265,7 +275,8 @@ export function composeMissionView(input: {
     viewerIsCurrentHolder,
     input.hasActiveIntent,
     input.activeIntentStale ?? false,
-    input.activeIntentHasBroadcast ?? false
+    input.activeIntentHasBroadcast ?? false,
+    hasUnprojectedFinal
   );
 
   return {
