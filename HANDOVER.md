@@ -9,13 +9,14 @@ This file is intentionally operational. A new conversation should be able to rea
 
 Current main baseline:
 
-- Product/runtime baseline: `2bfb3730f06052e52456193a029400000d716732` (PR #120).
+- Product/runtime baseline: `b35674c5ceea116e576e6f9eeedc6aee1415e6ef` (PR #121 on top of PR #120).
 - PR #114 **Move FINAL reconciliation into the background** is merged.
 - PR #117 **Hand ambiguous Nimiq Pay submissions to background reconciliation** is merged as `bad96d463064e418ec47a949acd792224d8fde24`.
 - PR #119 **Resume missions safely after a full app close** is merged as `50187e5e9387f47762a7ca011b9931ff91df769a`.
 - PR #120 **Add non-custodial Destination Claim v1** is merged as `2bfb3730f06052e52456193a029400000d716732`.
+- PR #121 **Keep direct Destination Claim pending UI truthful** is merged as `b35674c5ceea116e576e6f9eeedc6aee1415e6ef`.
 - Migration `007_destination_claim_v1.sql` is applied to Neon production and validated against existing data.
-- PR #120 Cloudflare production build, CI, smoke, and **Guided flow — mobile + tablet + desktop** are all **SUCCESS**.
+- PR #120 and PR #121 Cloudflare production builds, CI, smoke, and **Guided flow — mobile + tablet + desktop** are all **SUCCESS**.
 - Vercel status is not the production gate for NimCarry.
 - Product behavior: one-time human bridge; sender pays the target directly; long-running FINAL reconciliation is server-owned.
 - The prior custody-chain model and manual-recheck happy path are obsolete.
@@ -102,19 +103,32 @@ Important product/security behavior:
 - the optional introducer lane remains available when the real-world relationship requires one;
 - introducers still never receive, hold, or redirect funds.
 
-The deployment is **not yet the live evidence gate**. No real Destination Claim TESTNET payment has been run after deployment.
+The first real Destination Claim run has now started.
 
-Next real proof:
+Mission `d1ed137a-834a-4211-b12f-cf00dbde75cc`:
 
-1. Create a fresh mission for David without entering David's wallet.
-2. Share the private claim with David.
-3. David signs the claim and binds his own Nimiq wallet.
-4. Confirm A changes to the direct send state.
-5. Send exactly one 1 NIM payment from A to David.
-6. Verify independent FINAL -> ARRIVED.
-7. Confirm the receipt contains no fabricated bridge when no introducer was used.
+- created for David without entering David's wallet;
+- David claimed the private delivery at `2026-09-21T07:59:43.907Z`;
+- target wallet is privately bound;
+- no invitation/bridge exists;
+- A correctly reached **Send 1 NIM to David**;
+- a direct sequence-1 intent was created at `2026-09-21T08:00:12.142Z`;
+- `invitation_id = NULL`, proving direct provenance;
+- Nimiq Pay returned no provable transaction hash;
+- as of `2026-09-21T08:11:40.727Z`, the mission is still `ACTIVE`, tx hash is null, no hop exists, and finalized hop count is 0.
 
-Do not create a second payment if anything stalls; use the existing reconciliation/recovery invariants.
+**Therefore the Claim/binding half is live-validated, but payment FINAL/ARRIVED is not. Do not resend the 1 NIM.**
+
+The recordings exposed two presentation defects only: while the direct no-hash send waited, the UI fell back to **Invite / Accept** plus **Waiting for response**, and the ceremony said **The bridge never received the 1 NIM** despite there being no bridge.
+
+PR #121 fixed those semantics without touching transaction/reconciliation logic:
+
+- direct WAIT remains **Create → Claim → Authorize → Send → Arrive**;
+- direct pending state shows **Checking existing send — no action needed**;
+- direct no-bridge copy explicitly says no bridge is involved;
+- Cloudflare production build, CI, smoke, and mobile/tablet/desktop guided flow are green.
+
+Current proof gate: wait for this existing mission to either discover a matching transaction and reach FINAL/ARRIVED, or terminate fail-closed with no broadcast. **Do not create a replacement mission or second payment while the intent is unresolved.**
 
 ## 2. Automatic reconciliation workstream
 
@@ -267,15 +281,13 @@ Do not add public destination requests, bridge search, bounty routing, reputatio
 
 ## 6. Immediate next implementation sequence
 
-1. **Destination Claim v1 — deployed, now live-validate**
-   - The two-person unknown-wallet path is implemented, migrated, merged, and deployed.
-   - Run one fresh real TESTNET mission without entering the destination wallet.
-   - Destination alone must bind its own wallet through the private expiring claim.
-   - Confirm claim binding moves no NIM.
-   - Sender must then pay the destination directly exactly once.
-   - Verify independent FINAL -> ARRIVED with no fabricated bridge.
-   - If no introducer is used, route/receipt provenance must remain bridge-free.
-   - Mobile + tablet + desktop automated acceptance is already green; real-device flow proof remains pending.
+1. **Destination Claim v1 — partial live proof, existing send unresolved**
+   - Mission `d1ed137a-834a-4211-b12f-cf00dbde75cc` proves real unknown-wallet creation + destination self-binding with no bridge.
+   - The direct payment intent exists but has no provable tx hash/hop yet.
+   - **Do not resend or create a replacement mission.**
+   - Wait for background reconciliation to discover/finalize the exact existing send or terminate it fail-closed.
+   - PR #121 already fixes the direct pending UI/provenance copy discovered in this run.
+   - End-to-end Destination Claim remains pending until FINAL/ARRIVED (or a terminal no-broadcast outcome) is independently observed.
 
 2. **Introduced Claim comparison — after the direct Claim path**
    - Add an optional one-time introducer only when the relationship requires it.
