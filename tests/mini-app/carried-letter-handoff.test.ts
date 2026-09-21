@@ -20,7 +20,7 @@ describe("NimCarry V2 warm-wax handoff ceremony", () => {
   });
 
   it("does not offer a 1 NIM send from an expired or unaccepted pass screen", () => {
-    expect(app).toContain('const introducedReady = inv?.status === "ACCEPTED" && !passWindowExpired');
+    expect(app).toContain('const introducedReady = m?.target_wallet_bound === true && inv?.status === "ACCEPTED" && !passWindowExpired');
     expect(app).toContain("const passReady = directClaimReady || introducedReady");
     expect(app).toContain("This introduction can’t be reused.");
     expect(app).toContain("No payment should be requested from this screen.");
