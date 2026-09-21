@@ -29,15 +29,16 @@ describe("NimCarry 1→5 journey health contract", () => {
   });
 
   it("never offers another payment from an expired pass window", () => {
-    expect(app).toContain('const passReady = inv?.status === "ACCEPTED" && !passWindowExpired');
-    expect(app).toContain("This pass can’t be reused.");
-    expect(app).toContain("No new payment should be requested from this screen.");
+    expect(app).toContain('const introducedReady = inv?.status === "ACCEPTED" && !passWindowExpired');
+    expect(app).toContain("const passReady = directClaimReady || introducedReady");
+    expect(app).toContain("This introduction can’t be reused.");
+    expect(app).toContain("No payment should be requested from this screen.");
   });
 
   it("renders the bridge once as via, never as a new holder after recovery", () => {
     expect(app).toContain("const hasVerifiedPath = Array.isArray(m.route) && m.route.length > 0");
     expect(app).toContain("entry.via?.display_label");
-    expect(app).toContain("Bridge · delivered to");
+    expect(app).toContain("Introducer · delivered directly to");
     expect(craft).toContain('const verifiedSteps = [...screen.querySelectorAll(".route-card .route-step")]');
     expect(craft).toContain("if (verifiedSteps.length > 0) return");
   });
