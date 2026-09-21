@@ -31,77 +31,100 @@ export class ReachMissionCoordinator {
 
   async authorizePass(input: {
     missionId: string;
-    invitationId: string;
+    invitationId?: string;
     auth: VerifiedWalletAction;
     authorizedPaymentWallets?: string[];
     now?: number;
   }): Promise<PassIntent> {
     const mission = await this.missions.getMissionRecord(input.missionId);
-    const invitation = await this.missions.getInvitationRecord(input.invitationId);
     const now = input.now ?? Date.now();
 
     if (input.auth.action !== "AUTHORIZE_PASS") {
       throw new MissionValidationError("WRONG_AUTH_ACTION", "AUTHORIZE_PASS wallet authorization is required");
     }
-    if (
-      input.auth.missionId !== mission.id ||
-      input.auth.invitationId !== invitation.id ||
-      input.auth.sequence !== invitation.sequence
-    ) {
-      throw new MissionValidationError("AUTH_BINDING_MISMATCH", "Pass authorization is bound to different mission state");
-    }
     if (mission.status !== "ACTIVE") throw new MissionValidationError("MISSION_NOT_ACTIVE", `Mission is ${mission.status}`);
     const signer = normalizeNimiqAddress(input.auth.wallet);
     if (signer !== mission.currentHolderWalletNormalized) {
-      throw new MissionValidationError("WRONG_CURRENT_HOLDER", "Only the canonical holder can authorize this pass");
+      throw new MissionValidationError("WRONG_CURRENT_HOLDER", "Only the canonical holder can authorize this delivery");
     }
-    if (invitation.missionId !== mission.id || invitation.sequence !== mission.currentSequence + 1) {
-      throw new MissionValidationError("INVITATION_SEQUENCE_MISMATCH", "Invitation is not the mission's next canonical hop");
-    }
-    if (
-      invitation.acceptedAt !== null &&
-      invitation.passDeadlineAt !== null &&
-      now >= invitation.passDeadlineAt
-    ) {
-      throw new MissionValidationError("PASS_DEADLINE_EXPIRED", "Accepted bridge pass deadline has expired");
-    }
-    if (invitation.status !== "ACCEPTED" || !invitation.candidateWalletNormalized) {
-      throw new MissionValidationError("INVITATION_NOT_ACCEPTED", "Next bridge must accept before a pass can be authorized");
-    }
-    if (invitation.passDeadlineAt === null) {
-      throw new MissionValidationError("PASS_DEADLINE_EXPIRED", "Accepted bridge pass deadline has expired");
-    }
-    if (this.walletAlreadyInFinalRoute(mission.id, invitation.candidateWalletNormalized)) {
-      throw new MissionValidationError("ROUTE_WALLET_REUSE", "A finalized route participant cannot re-enter the same mission");
+    if (mission.targetWalletCiphertext === null || mission.targetWalletHmac === null || !mission.targetConsentConfirmed) {
+      throw new MissionValidationError("TARGET_NOT_BOUND", "Destination must bind their wallet before a payment can be authorized");
     }
 
-    // The bridge is a social/consent intermediary, not a second custody
-    // destination. Once Grace (or any bridge) accepts, the creator's single
-    // 1 NIM pass is addressed directly to the mission target. This keeps the
-    // human route Creator → Bridge → Target while avoiding a second bridge-side
-    // payment/selection step.
+    let invitationId: string | null = null;
+    let expectedSequence = mission.currentSequence + 1;
+
+    if (input.invitationId) {
+      const invitation = await this.missions.getInvitationRecord(input.invitationId);
+      if (
+        input.auth.missionId !== mission.id ||
+        input.auth.invitationId !== invitation.id ||
+        input.auth.sequence !== invitation.sequence
+      ) {
+        throw new MissionValidationError("AUTH_BINDING_MISMATCH", "Pass authorization is bound to different mission state");
+      }
+      if (invitation.missionId !== mission.id || invitation.sequence !== expectedSequence) {
+        throw new MissionValidationError("INVITATION_SEQUENCE_MISMATCH", "Invitation is not the mission's next canonical hop");
+      }
+      if (
+        invitation.acceptedAt !== null &&
+        invitation.passDeadlineAt !== null &&
+        now >= invitation.passDeadlineAt
+      ) {
+        throw new MissionValidationError("PASS_DEADLINE_EXPIRED", "Accepted bridge pass deadline has expired");
+      }
+      if (invitation.status !== "ACCEPTED" || !invitation.candidateWalletNormalized) {
+        throw new MissionValidationError("INVITATION_NOT_ACCEPTED", "Next bridge must accept before this introduced delivery can be authorized");
+      }
+      if (invitation.passDeadlineAt === null) {
+        throw new MissionValidationError("PASS_DEADLINE_EXPIRED", "Accepted bridge pass deadline has expired");
+      }
+      if (this.walletAlreadyInFinalRoute(mission.id, invitation.candidateWalletNormalized)) {
+        throw new MissionValidationError("ROUTE_WALLET_REUSE", "A finalized route participant cannot re-enter the same mission");
+      }
+      invitationId = invitation.id;
+      expectedSequence = invitation.sequence;
+    } else {
+      if (
+        input.auth.missionId !== mission.id ||
+        input.auth.invitationId !== undefined ||
+        input.auth.sequence !== expectedSequence
+      ) {
+        throw new MissionValidationError(
+          "AUTH_BINDING_MISMATCH",
+          "Direct destination delivery authorization must bind the current mission and next sequence"
+        );
+      }
+      const claim = await this.missions.getDestinationClaimForMission(mission.id);
+      if (claim && (claim.status !== "CLAIMED" || !claim.claimedWalletNormalized)) {
+        throw new MissionValidationError("DESTINATION_NOT_CLAIMED", "Destination must accept the private claim before direct delivery");
+      }
+      // No claim row means the destination wallet was already known and
+      // explicitly consented at creation. That is also a valid two-person path.
+    }
+
     const targetWallet = normalizeNimiqAddress(this.protector.decrypt(mission.targetWalletCiphertext));
-
     const existing = this.relay.getActiveIntent(mission.id);
     if (existing) {
       if (
-        existing.sequence === invitation.sequence &&
+        existing.sequence === expectedSequence &&
         existing.currentHolder === signer &&
         existing.recipient === targetWallet &&
+        (existing.invitationId ?? null) === invitationId &&
         existing.recipientData !== null
       ) {
         if (isIntentStale(existing, now)) {
           if (this.relay.hasRecordedBroadcast(mission.id)) {
-            throw new MissionValidationError("STALE_BROADCASTED_INTENT", "A stale pass intent has broadcast evidence and cannot be replaced");
+            throw new MissionValidationError("STALE_BROADCASTED_INTENT", "A stale delivery intent has broadcast evidence and cannot be replaced");
           }
           this.relay.cancelPass(mission.id);
           const renewed = this.relay.initiatePass(mission.id, signer, targetWallet, {
             requireOpaqueTag: true,
             authorizedPaymentWallets: input.authorizedPaymentWallets,
-            invitationId: invitation.id,
+            invitationId,
           });
           if (!renewed.recipientData) {
-            throw new MissionValidationError("MISSING_HOP_COMMITMENT", "Reach Mission pass authorization must include an opaque on-chain commitment");
+            throw new MissionValidationError("MISSING_HOP_COMMITMENT", "NimCarry delivery authorization must include an opaque on-chain commitment");
           }
           await this.relay.flushDurability();
           return renewed;
@@ -109,29 +132,48 @@ export class ReachMissionCoordinator {
         await this.relay.flushDurability();
         return existing;
       }
-      throw new MissionValidationError("RELAY_INTENT_CONFLICT", "A different relay intent is already active for this mission");
+      throw new MissionValidationError("RELAY_INTENT_CONFLICT", "A different delivery intent is already active for this mission");
     }
 
     const intent = this.relay.initiatePass(mission.id, signer, targetWallet, {
       requireOpaqueTag: true,
       authorizedPaymentWallets: input.authorizedPaymentWallets,
-      invitationId: invitation.id,
+      invitationId,
     });
     if (!intent.recipientData) {
-      throw new MissionValidationError("MISSING_HOP_COMMITMENT", "Reach Mission pass authorization must include an opaque on-chain commitment");
+      throw new MissionValidationError("MISSING_HOP_COMMITMENT", "NimCarry delivery authorization must include an opaque on-chain commitment");
     }
     await this.relay.flushDurability();
     return intent;
   }
 
-  async recordBroadcast(input: { missionId: string; invitationId: string; txHash: string }): Promise<Hop> {
-    const invitation = await this.missions.getInvitationRecord(input.invitationId);
+  async recordBroadcast(input: { missionId: string; invitationId?: string; txHash: string }): Promise<Hop> {
     const active = this.relay.getActiveIntent(input.missionId);
-    if (!active) throw new MissionValidationError("NO_ACTIVE_PASS", "No authorized pass exists for this mission");
-    if (!active.recipientData) throw new MissionValidationError("MISSING_HOP_COMMITMENT", "Authorized Reach Mission pass has no opaque commitment");
-    if (invitation.missionId !== input.missionId || invitation.sequence !== active.sequence || invitation.status !== "ACCEPTED") {
-      throw new MissionValidationError("INVITATION_PASS_MISMATCH", "Broadcast does not match the accepted invitation");
+    if (!active) throw new MissionValidationError("NO_ACTIVE_PASS", "No authorized delivery exists for this mission");
+    if (!active.recipientData) throw new MissionValidationError("MISSING_HOP_COMMITMENT", "Authorized NimCarry delivery has no opaque commitment");
+
+    const expectedInvitationId = active.invitationId ?? null;
+    const suppliedInvitationId = input.invitationId ?? null;
+    if (expectedInvitationId !== suppliedInvitationId) {
+      throw new MissionValidationError("DELIVERY_AUTHORIZATION_MISMATCH", "Broadcast does not match the authorized delivery path");
     }
+
+    if (expectedInvitationId) {
+      const invitation = await this.missions.getInvitationRecord(expectedInvitationId);
+      if (
+        invitation.missionId !== input.missionId ||
+        invitation.sequence !== active.sequence ||
+        invitation.status !== "ACCEPTED"
+      ) {
+        throw new MissionValidationError("INVITATION_PASS_MISMATCH", "Broadcast does not match the accepted invitation");
+      }
+    } else {
+      const claim = await this.missions.getDestinationClaimForMission(input.missionId);
+      if (claim && claim.status !== "CLAIMED") {
+        throw new MissionValidationError("DESTINATION_NOT_CLAIMED", "Direct broadcast requires the private destination claim to be accepted");
+      }
+    }
+
     try {
       return this.relay.recordBroadcast(input.missionId, input.txHash);
     } finally {
@@ -191,22 +233,41 @@ export class ReachMissionCoordinator {
       .find((hop) => hop.sequence === nextSequence && hop.status === "CONFIRMED");
     if (!finalHop) return null;
 
-    const invitation = await this.repository.getOpenInvitation(missionId);
-    if (!invitation || invitation.status !== "ACCEPTED" || invitation.sequence !== nextSequence) {
-      throw new MissionValidationError(
-        "FINAL_HOP_WITHOUT_ACCEPTED_INVITATION",
-        "A finalized relay hop cannot be projected without its accepted invitation"
-      );
-    }
     const recipient = normalizeNimiqAddress(finalHop.recipient);
-    await this.repository.completeFinalHop({
-      missionId,
-      invitationId: invitation.id,
-      sequence: nextSequence,
-      recipientWallet: recipient,
-      recipientHmac: this.protector.hmac(recipient),
-      now: finalHop.confirmed_at ? Date.parse(finalHop.confirmed_at) : Date.now(),
-    });
+    const finalizedAt = finalHop.confirmed_at ? Date.parse(finalHop.confirmed_at) : Date.now();
+
+    if (finalHop.invitation_id) {
+      const invitation = await this.repository.getInvitation(finalHop.invitation_id);
+      if (!invitation || invitation.status !== "ACCEPTED" || invitation.sequence !== nextSequence) {
+        throw new MissionValidationError(
+          "FINAL_HOP_WITHOUT_ACCEPTED_INVITATION",
+          "An introduced finalized delivery requires its accepted invitation"
+        );
+      }
+      await this.repository.completeFinalHop({
+        missionId,
+        invitationId: invitation.id,
+        sequence: nextSequence,
+        recipientWallet: recipient,
+        recipientHmac: this.protector.hmac(recipient),
+        now: finalizedAt,
+      });
+    } else {
+      const claim = await this.repository.getDestinationClaimForMission(missionId);
+      if (claim && (claim.status !== "CLAIMED" || !claim.claimedWalletNormalized)) {
+        throw new MissionValidationError(
+          "FINAL_HOP_WITHOUT_DESTINATION_CLAIM",
+          "A claim-based direct delivery requires its destination claim"
+        );
+      }
+      await this.repository.completeDirectFinalHop({
+        missionId,
+        sequence: nextSequence,
+        recipientWallet: recipient,
+        recipientHmac: this.protector.hmac(recipient),
+        now: finalizedAt,
+      });
+    }
     return finalHop;
   }
 }

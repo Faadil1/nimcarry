@@ -1,21 +1,30 @@
-export const FIVE_SCREEN_IDS = [
+export const CANONICAL_SCREEN_IDS = [
   "MISSION_HOME",
   "CREATE_MISSION",
+  "DESTINATION_CLAIM",
   "BRIDGE_INVITATION",
   "PASS_1_NIM",
   "ROUTE_ARRIVAL",
 ] as const;
 
-export type MiniAppScreenId = (typeof FIVE_SCREEN_IDS)[number];
+/** @deprecated The product is no longer constrained to the original five-screen topology. */
+export const FIVE_SCREEN_IDS = CANONICAL_SCREEN_IDS;
+export type MiniAppScreenId = (typeof CANONICAL_SCREEN_IDS)[number];
 export type UiMissionStatus = "ACTIVE" | "ARRIVED" | "CANCELLED";
 export type UiMissionActivity = "ACTIVE" | "STALLED" | "TERMINAL";
 export type UiInvitationStatus = "INVITED" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "WITHDRAWN" | "COMPLETED";
-export type UiPrimaryAction = "CREATE_INVITATION" | "WAIT" | "PASS_1_NIM" | "REROUTE" | "VIEW_ROUTE" | "START_NEW_ROUTE" | null;
+export type UiPrimaryAction = "SHARE_CLAIM" | "SEND_1_NIM" | "CREATE_INVITATION" | "WAIT" | "PASS_1_NIM" | "REROUTE" | "VIEW_ROUTE" | "START_NEW_ROUTE" | null;
 
 export interface UiWalletRef {
   display_label: string | null;
   wallet_fingerprint: string;
   is_viewer?: boolean;
+}
+
+export interface UiDestinationClaimSummary {
+  status: "PENDING" | "CLAIMED" | "EXPIRED" | "REVOKED";
+  expires_at: string;
+  claimed_at: string | null;
 }
 
 export interface UiInvitationSummary {
@@ -59,6 +68,8 @@ export interface UiMissionView {
   sequence: number;
   finalized_hop_count: number;
   current_holder: UiWalletRef;
+  target_wallet_bound?: boolean;
+  destination_claim?: UiDestinationClaimSummary | null;
   invitation: UiInvitationSummary | null;
   route: BackendRouteEntry[] | UiRouteEntry[];
   viewer_role: "CREATOR" | "HOLDER" | "PARTICIPANT" | "INVITEE" | "TARGET" | "UNLISTED_VIEWER";
@@ -91,7 +102,7 @@ export function deriveMissionHomeModel(mission: UiMissionView | null): MissionHo
     return {
       eyebrow: "Mission reached",
       headline: "It made it.",
-      body: `${mission.finalized_hop_count} verified ${mission.finalized_hop_count === 1 ? "bridge" : "bridges"} carried the path to ${mission.target_label}.`,
+      body: `${mission.finalized_hop_count} independently verified ${mission.finalized_hop_count === 1 ? "delivery" : "deliveries"} reached ${mission.target_label}.`,
       primaryAction: mission.primary_action === "START_NEW_ROUTE" ? "START_NEW_ROUTE" : "VIEW_ROUTE",
       primaryLabel: mission.primary_action === "START_NEW_ROUTE" ? "Start your own mission" : "View completed route",
       statusLabel: "ARRIVED",
@@ -112,7 +123,7 @@ export function deriveMissionHomeModel(mission: UiMissionView | null): MissionHo
   const activity = mission.activity ?? "ACTIVE";
   const primaryLabel = actionLabel(mission.primary_action);
   return {
-    eyebrow: `${mission.finalized_hop_count} verified ${mission.finalized_hop_count === 1 ? "bridge" : "bridges"}`,
+    eyebrow: `${mission.finalized_hop_count} verified ${mission.finalized_hop_count === 1 ? "delivery" : "deliveries"}`,
     headline: mission.target_label,
     body: mission.mission_note,
     primaryAction: mission.primary_action,
@@ -123,7 +134,9 @@ export function deriveMissionHomeModel(mission: UiMissionView | null): MissionHo
 
 export function actionLabel(action: UiPrimaryAction): string | null {
   switch (action) {
-    case "CREATE_INVITATION": return "Choose next bridge";
+    case "SHARE_CLAIM": return "Share private claim";
+    case "SEND_1_NIM": return "Send 1 NIM";
+    case "CREATE_INVITATION": return "Add an introducer";
     case "WAIT": return "Waiting for response";
     case "PASS_1_NIM": return "Pass 1 NIM";
     case "REROUTE": return "Choose another bridge";
@@ -136,6 +149,7 @@ export function actionLabel(action: UiPrimaryAction): string | null {
 export function screenForPath(pathname: string): MiniAppScreenId {
   const path = pathname.replace(/\/+$/, "") || "/";
   if (path === "/create") return "CREATE_MISSION";
+  if (/^\/c\/[A-Za-z0-9_-]+$/.test(path)) return "DESTINATION_CLAIM";
   if (/^\/i\/[A-Za-z0-9_-]+$/.test(path)) return "BRIDGE_INVITATION";
   if (/^\/mission\/[^/]+\/pass$/.test(path)) return "PASS_1_NIM";
   if (/^\/mission\/[^/]+\/route$/.test(path)) return "ROUTE_ARRIVAL";
@@ -145,9 +159,10 @@ export function screenForPath(pathname: string): MiniAppScreenId {
 export function assertParticipantSafeMission(view: unknown): void {
   const serialized = JSON.stringify(view).toLowerCase();
   const forbidden = [
-    "target_wallet",
-    "targetwallet",
+    '"target_wallet":',
+    '"targetwallet":',
     "target_wallet_ciphertext",
+    "target_wallet_hmac",
     "targetwallethmac",
     "invite_token_hash",
     "signaturehex",

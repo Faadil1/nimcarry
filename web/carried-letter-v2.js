@@ -96,9 +96,15 @@
     if (!hero || hero.dataset.clv2Home === "1") return;
 
     const kicker = clean(hero.querySelector(".kicker")?.textContent);
-    if (!/destination-bound human routing|private introduction/i.test(kicker)) return;
+    const destinationFirst = /human-resolved delivery/i.test(kicker);
+    if (!/destination-bound human routing|private introduction|human-resolved delivery/i.test(kicker)) return;
     hero.dataset.clv2Home = "1";
     hero.classList.add("clv2-home");
+
+    // The Destination Claim workstream owns the new destination-first copy.
+    // Keep the visual-system class/geometry, but do not overwrite that product
+    // language with the older bridge-first letter metaphor.
+    if (destinationFirst) return;
 
     hero.querySelectorAll(
       ".promise-strip,.hc-home-proofline,.hc-use-cases,.hc-home-story,.wi-scenario,.wi-baton-note,.tw-thesis-line,.mp-audience,.mp-use-cases,.tw-orbit,.tw-route-instrument"
@@ -438,32 +444,35 @@
     hero.dataset.clv2Pass = "1";
     hero.classList.add("clv2-seal-handoff");
 
-    text(hero.querySelector(".kicker"), "Bridge accepted · direct delivery");
+    const direct = hero.dataset.deliveryMode === "direct";
+    text(hero.querySelector(".kicker"), direct ? "Destination claimed · direct delivery" : "Introduction accepted · direct delivery");
     text(hero.querySelector("h1"), "Send the 1 NIM to the destination.");
 
     const strongs = [...hero.querySelectorAll(".lede strong")];
-    const accepted = clean(strongs[0]?.textContent) || "accepted bridge";
-    const destination = clean(strongs[1]?.textContent) || "destination";
+    const accepted = direct ? null : (clean(strongs[0]?.textContent) || "accepted introducer");
+    const destination = clean(strongs[direct ? 0 : 1]?.textContent) || "destination";
 
     const send = hero.querySelector("#send");
-    if (send) text(send, "Send 1 NIM to destination");
+    if (send) text(send, `Send 1 NIM to ${destination}`);
 
     if (send && !hero.querySelector(".clv2-handoff-manifest")) {
       const manifest = el("section", "clv2-handoff-manifest");
-      manifest.setAttribute("aria-label", "Handoff slip");
+      manifest.setAttribute("aria-label", "Delivery slip");
       const seal = el("span", "clv2-manifest-seal");
       seal.setAttribute("aria-hidden", "true");
       const copy = el("div", "clv2-manifest-copy");
       copy.append(
         el("span", "clv2-manifest-kicker", "DIRECT DELIVERY SLIP"),
-        el("strong", "", `Via ${accepted}`),
-        el("p", "", `Exactly 1 NIM is sent directly to ${destination}. The bridge introduces the route; the bridge never receives custody.`),
+        el("strong", "", direct ? `To ${destination}` : `Introduced by ${accepted}`),
+        el("p", "", direct
+          ? `Exactly 1 NIM is sent directly to ${destination}, who bound their own wallet through the private claim.`
+          : `Exactly 1 NIM is sent directly to ${destination}. The introducer supplies consent and context, never custody.`),
         el("small", "", "Approval can open delivery. Broadcast can make it observable. Only independent FINAL proves arrival.")
       );
       const facts = el("div", "clv2-manifest-facts");
       [
         ["AMOUNT", "1 NIM"],
-        ["BRIDGE", accepted],
+        ...(direct ? [] : [["INTRODUCER", accepted]]),
         ["RECIPIENT", destination],
       ].forEach(([label, value]) => {
         const fact = el("span", "clv2-manifest-fact");
@@ -478,7 +487,9 @@
       const details = el("details", "clv2-pass-disclosure");
       details.append(
         el("summary", "", "Why 1 NIM?"),
-        el("p", "", "The 1 NIM is sent to the destination, not paid to the bridge. The bridge supplies the human connection; Nimiq supplies the independently verifiable delivery record.")
+        el("p", "", direct
+          ? "The destination bound their own wallet. The sender pays that wallet directly; Nimiq supplies the independently verifiable delivery record."
+          : "The 1 NIM is sent to the destination, not the introducer. The introducer supplies the human connection; Nimiq supplies the independently verifiable delivery record.")
       );
       send.closest(".button-row")?.after(details);
     }

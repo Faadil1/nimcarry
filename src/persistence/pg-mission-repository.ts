@@ -4,6 +4,7 @@ import {
   MissionValidationError,
   type AuthChallengeRecord,
   type AuditEventRecord,
+  type DestinationClaimRecord,
   type InvitationRecord,
   type InvitationStatus,
   type MissionRecord,
@@ -18,8 +19,8 @@ interface MissionRow {
   creator_display_label: string | null;
   current_holder_wallet_normalized: string;
   target_label: string;
-  target_wallet_ciphertext: Buffer;
-  target_wallet_hmac: string;
+  target_wallet_ciphertext: Buffer | null;
+  target_wallet_hmac: string | null;
   target_consent_confirmed: boolean;
   mission_note: string;
   status: MissionRecord["status"];
@@ -53,6 +54,18 @@ interface InvitationRow {
   closed_at: Date | null;
 }
 
+interface DestinationClaimRow {
+  id: string;
+  mission_id: string;
+  claim_token_hash: string;
+  status: DestinationClaimRecord["status"];
+  created_at: Date;
+  expires_at: Date;
+  claimed_at: Date | null;
+  closed_at: Date | null;
+  claimed_wallet_normalized: string | null;
+}
+
 interface ChallengeRow {
   id: string;
   wallet_normalized: string;
@@ -83,7 +96,7 @@ function missionFromRow(row: MissionRow): MissionRecord {
     creatorDisplayLabel: row.creator_display_label,
     currentHolderWalletNormalized: row.current_holder_wallet_normalized,
     targetLabel: row.target_label,
-    targetWalletCiphertext: row.target_wallet_ciphertext.toString("utf8"),
+    targetWalletCiphertext: row.target_wallet_ciphertext === null ? null : row.target_wallet_ciphertext.toString("utf8"),
     targetWalletHmac: row.target_wallet_hmac,
     targetConsentConfirmed: row.target_consent_confirmed,
     missionNote: row.mission_note,
@@ -95,6 +108,20 @@ function missionFromRow(row: MissionRow): MissionRecord {
     arrivedAt: toMs(row.arrived_at),
     cancelledAt: toMs(row.cancelled_at),
     updatedAt: row.updated_at.getTime(),
+  };
+}
+
+function destinationClaimFromRow(row: DestinationClaimRow): DestinationClaimRecord {
+  return {
+    id: row.id,
+    missionId: row.mission_id,
+    claimTokenHash: row.claim_token_hash,
+    status: row.status,
+    createdAt: row.created_at.getTime(),
+    expiresAt: row.expires_at.getTime(),
+    claimedAt: toMs(row.claimed_at),
+    closedAt: toMs(row.closed_at),
+    claimedWalletNormalized: row.claimed_wallet_normalized,
   };
 }
 
@@ -145,6 +172,12 @@ function mapPgErrorToMission(error: unknown, fallback: string): MissionValidatio
     case "23505": // unique_violation
       if (detail.includes("invitations_invite_token_hash_key")) {
         return new MissionValidationError("INVITE_TOKEN_COLLISION", detail);
+      }
+      if (detail.includes("destination_claims_claim_token_hash_key")) {
+        return new MissionValidationError("DESTINATION_CLAIM_TOKEN_COLLISION", detail);
+      }
+      if (detail.includes("one_pending_destination_claim_per_mission")) {
+        return new MissionValidationError("DESTINATION_CLAIM_ALREADY_OPEN", detail);
       }
       if (detail.includes("one_open_invitation_per_mission")) {
         return new MissionValidationError("OPEN_INVITATION_EXISTS", detail);
@@ -217,7 +250,7 @@ export class PgMissionRepository implements MissionRepository {
             record.creatorDisplayLabel,
             record.currentHolderWalletNormalized,
             record.targetLabel,
-            Buffer.from(record.targetWalletCiphertext, "utf8"),
+            record.targetWalletCiphertext === null ? null : Buffer.from(record.targetWalletCiphertext, "utf8"),
             record.targetWalletHmac,
             record.targetConsentConfirmed,
             record.missionNote,
@@ -249,6 +282,197 @@ export class PgMissionRepository implements MissionRepository {
       [id]
     );
     return result.rows.length === 0 ? undefined : missionFromRow(result.rows[0]);
+  }
+
+  async createDestinationClaim(record: DestinationClaimRecord): Promise<DestinationClaimRecord> {
+    return this.withTransaction(async (client) => {
+      const mission = await client.query<MissionRow>(
+        "SELECT * FROM missions WHERE id = $1 FOR UPDATE",
+        [record.missionId]
+      );
+      if (mission.rows.length === 0) {
+        throw new MissionValidationError("MISSION_NOT_FOUND", `Mission ${record.missionId} does not exist`);
+      }
+      const missionRow = mission.rows[0];
+      if (missionRow.status !== "ACTIVE") {
+        throw new MissionValidationError("MISSION_NOT_ACTIVE", `Mission ${record.missionId} is ${missionRow.status}`);
+      }
+      if (missionRow.target_wallet_hmac !== null || missionRow.target_wallet_ciphertext !== null) {
+        throw new MissionValidationError("TARGET_ALREADY_BOUND", "Mission already has a destination wallet");
+      }
+      try {
+        const created = await client.query<DestinationClaimRow>(
+          `INSERT INTO destination_claims
+            (id, mission_id, claim_token_hash, status, created_at, expires_at,
+             claimed_at, closed_at, claimed_wallet_normalized)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+           RETURNING *`,
+          [
+            record.id,
+            record.missionId,
+            record.claimTokenHash,
+            record.status,
+            epoch(record.createdAt),
+            epoch(record.expiresAt),
+            record.claimedAt === null ? null : epoch(record.claimedAt),
+            record.closedAt === null ? null : epoch(record.closedAt),
+            record.claimedWalletNormalized,
+          ]
+        );
+        await client.query("UPDATE missions SET updated_at=$2 WHERE id=$1", [record.missionId, epoch(record.createdAt)]);
+        return destinationClaimFromRow(created.rows[0]);
+      } catch (error) {
+        throw mapPgErrorToMission(error, `createDestinationClaim failed for ${record.id}`);
+      }
+    });
+  }
+
+  async getDestinationClaim(id: string): Promise<DestinationClaimRecord | undefined> {
+    const result = await this.pool.query<DestinationClaimRow>(
+      "SELECT * FROM destination_claims WHERE id = $1",
+      [id]
+    );
+    return result.rows.length === 0 ? undefined : destinationClaimFromRow(result.rows[0]);
+  }
+
+  async getDestinationClaimByTokenHash(tokenHash: string): Promise<DestinationClaimRecord | undefined> {
+    const result = await this.pool.query<DestinationClaimRow>(
+      "SELECT * FROM destination_claims WHERE claim_token_hash = $1",
+      [tokenHash]
+    );
+    return result.rows.length === 0 ? undefined : destinationClaimFromRow(result.rows[0]);
+  }
+
+  async getDestinationClaimForMission(missionId: string): Promise<DestinationClaimRecord | undefined> {
+    const result = await this.pool.query<DestinationClaimRow>(
+      "SELECT * FROM destination_claims WHERE mission_id = $1 ORDER BY created_at DESC LIMIT 1",
+      [missionId]
+    );
+    return result.rows.length === 0 ? undefined : destinationClaimFromRow(result.rows[0]);
+  }
+
+  async claimDestination(input: {
+    claimId: string;
+    missionId: string;
+    walletNormalized: string;
+    targetWalletCiphertext: string;
+    targetWalletHmac: string;
+    now: number;
+  }): Promise<{ mission: MissionRecord; claim: DestinationClaimRecord }> {
+    return this.withTransaction(async (client) => {
+      const mission = await client.query<MissionRow>(
+        "SELECT * FROM missions WHERE id = $1 FOR UPDATE",
+        [input.missionId]
+      );
+      if (mission.rows.length === 0) {
+        throw new MissionValidationError("MISSION_NOT_FOUND", `Mission ${input.missionId} does not exist`);
+      }
+      const missionRow = mission.rows[0];
+      const claim = await client.query<DestinationClaimRow>(
+        "SELECT * FROM destination_claims WHERE id = $1 FOR UPDATE",
+        [input.claimId]
+      );
+      if (claim.rows.length === 0) {
+        throw new MissionValidationError("DESTINATION_CLAIM_NOT_FOUND", `Destination claim ${input.claimId} does not exist`);
+      }
+      const claimRow = claim.rows[0];
+      if (claimRow.mission_id !== missionRow.id) {
+        throw new MissionValidationError("DESTINATION_CLAIM_MISSION_MISMATCH", "Claim belongs to another mission");
+      }
+      if (claimRow.status === "CLAIMED" && claimRow.claimed_wallet_normalized === input.walletNormalized) {
+        return { mission: missionFromRow(missionRow), claim: destinationClaimFromRow(claimRow) };
+      }
+      if (claimRow.status !== "PENDING") {
+        throw new MissionValidationError("DESTINATION_CLAIM_CLOSED", `Destination claim is ${claimRow.status}`);
+      }
+      if (input.now >= claimRow.expires_at.getTime()) {
+        await client.query(
+          "UPDATE destination_claims SET status='EXPIRED', closed_at=$2 WHERE id=$1",
+          [input.claimId, epoch(input.now)]
+        );
+        await client.query("UPDATE missions SET updated_at=$2 WHERE id=$1", [input.missionId, epoch(input.now)]);
+        throw new MissionValidationError("DESTINATION_CLAIM_EXPIRED", "Destination claim has expired");
+      }
+      if (missionRow.status !== "ACTIVE") {
+        throw new MissionValidationError("MISSION_NOT_ACTIVE", `Mission ${missionRow.id} is ${missionRow.status}`);
+      }
+      if (missionRow.target_wallet_hmac !== null || missionRow.target_wallet_ciphertext !== null) {
+        throw new MissionValidationError("TARGET_ALREADY_BOUND", "Mission destination wallet is already bound");
+      }
+      if (input.walletNormalized === missionRow.creator_wallet_normalized) {
+        throw new MissionValidationError("TARGET_IS_CREATOR", "The creator cannot claim their own destination");
+      }
+
+      const updatedClaim = await client.query<DestinationClaimRow>(
+        `UPDATE destination_claims
+           SET status='CLAIMED', claimed_wallet_normalized=$2, claimed_at=$3, closed_at=$3
+         WHERE id=$1 RETURNING *`,
+        [input.claimId, input.walletNormalized, epoch(input.now)]
+      );
+      const updatedMission = await client.query<MissionRow>(
+        `UPDATE missions
+           SET target_wallet_ciphertext=$2, target_wallet_hmac=$3,
+               target_consent_confirmed=true, updated_at=$4
+         WHERE id=$1 RETURNING *`,
+        [
+          input.missionId,
+          Buffer.from(input.targetWalletCiphertext, "utf8"),
+          input.targetWalletHmac,
+          epoch(input.now),
+        ]
+      );
+
+      await client.query(
+        `INSERT INTO participants (mission_id, wallet_normalized, display_label, display_name_opt_in, first_final_sequence)
+         VALUES ($1,$2,$3,FALSE,NULL)
+         ON CONFLICT (mission_id, wallet_normalized) DO NOTHING`,
+        [input.missionId, input.walletNormalized, missionRow.target_label]
+      );
+
+      return {
+        mission: missionFromRow(updatedMission.rows[0]),
+        claim: destinationClaimFromRow(updatedClaim.rows[0]),
+      };
+    });
+  }
+
+  async expireDueDestinationClaims(now: number): Promise<number> {
+    return this.withTransaction(async (client) => {
+      const due = await client.query<{ id: string; mission_id: string }>(
+        `SELECT id, mission_id FROM destination_claims
+         WHERE status='PENDING' AND expires_at <= $1
+         FOR UPDATE`,
+        [epoch(now)]
+      );
+      if (due.rows.length === 0) return 0;
+      for (const row of due.rows) {
+        await client.query(
+          "UPDATE destination_claims SET status='EXPIRED', closed_at=$2 WHERE id=$1",
+          [row.id, epoch(now)]
+        );
+      }
+      for (const missionId of [...new Set(due.rows.map((row) => row.mission_id))]) {
+        await client.query("UPDATE missions SET updated_at=$2 WHERE id=$1", [missionId, epoch(now)]);
+      }
+      return due.rows.length;
+    });
+  }
+
+  async revokePendingDestinationClaim(missionId: string, now: number): Promise<number> {
+    return this.withTransaction(async (client) => {
+      const updated = await client.query<{ id: string }>(
+        `UPDATE destination_claims
+           SET status='REVOKED', closed_at=$2
+         WHERE mission_id=$1 AND status='PENDING'
+         RETURNING id`,
+        [missionId, epoch(now)]
+      );
+      const count = updated.rows.length;
+      if (count > 0) {
+        await client.query("UPDATE missions SET updated_at=$2 WHERE id=$1", [missionId, epoch(now)]);
+      }
+      return count;
+    });
   }
 
   async cancelMissionPristine(id: string, signerWallet: string, now: number): Promise<MissionRecord> {
@@ -549,6 +773,60 @@ export class PgMissionRepository implements MissionRepository {
     });
   }
 
+  async completeDirectFinalHop(input: {
+    missionId: string;
+    sequence: number;
+    recipientWallet: string;
+    recipientHmac: string;
+    now: number;
+  }): Promise<MissionRecord> {
+    return this.withTransaction(async (client) => {
+      const mission = await client.query<MissionRow>(
+        "SELECT * FROM missions WHERE id = $1 FOR UPDATE",
+        [input.missionId]
+      );
+      if (mission.rows.length === 0) {
+        throw new MissionValidationError("MISSION_NOT_FOUND", `Mission ${input.missionId} does not exist`);
+      }
+      const row = mission.rows[0];
+      if (row.status === "ARRIVED" && row.current_sequence >= input.sequence) return missionFromRow(row);
+      if (row.status !== "ACTIVE") {
+        throw new MissionValidationError("MISSION_NOT_ACTIVE", `Mission ${row.id} is ${row.status}`);
+      }
+      if (row.target_wallet_hmac === null || row.target_wallet_ciphertext === null || !row.target_consent_confirmed) {
+        throw new MissionValidationError("TARGET_NOT_BOUND", "Destination must claim and bind a wallet before delivery can finalize");
+      }
+      if (input.recipientHmac !== row.target_wallet_hmac) {
+        throw new MissionValidationError("WRONG_FINAL_RECIPIENT", "Final recipient must be the mission destination");
+      }
+      if (row.current_sequence + 1 !== input.sequence) {
+        throw new MissionValidationError("FINALIZATION_SEQUENCE_RACE", "Mission sequence changed before finalization");
+      }
+
+      const updated = await client.query<MissionRow>(
+        `UPDATE missions
+           SET current_sequence=$2,
+               finalized_hop_count=finalized_hop_count+1,
+               current_holder_wallet_normalized=$3,
+               status='ARRIVED',
+               arrived_at=$4,
+               updated_at=$4
+         WHERE id=$1 RETURNING *`,
+        [input.missionId, input.sequence, input.recipientWallet, epoch(input.now)]
+      );
+
+      await client.query(
+        `INSERT INTO participants (mission_id, wallet_normalized, display_label, display_name_opt_in, first_final_sequence)
+         VALUES ($1,$2,$3,FALSE,$4)
+         ON CONFLICT (mission_id, wallet_normalized) DO UPDATE
+           SET first_final_sequence=COALESCE(participants.first_final_sequence, EXCLUDED.first_final_sequence)`,
+        [input.missionId, input.recipientWallet, row.target_label, input.sequence]
+      );
+
+      return missionFromRow(updated.rows[0]);
+    });
+  }
+
   async completeFinalHop(input: {
     missionId: string;
     invitationId: string;
@@ -742,9 +1020,10 @@ export class PgMissionRepository implements MissionRepository {
   }
 
   async snapshot(): Promise<MissionStoreSnapshot> {
-    const [missions, invitations, challenges, auditEvents] = await Promise.all([
+    const [missions, invitations, destinationClaims, challenges, auditEvents] = await Promise.all([
       this.pool.query<MissionRow>("SELECT * FROM missions"),
       this.pool.query<InvitationRow>("SELECT * FROM invitations"),
+      this.pool.query<DestinationClaimRow>("SELECT * FROM destination_claims"),
       this.pool.query<ChallengeRow>("SELECT * FROM auth_challenges"),
       this.pool.query<{
         id: string; mission_id: string | null; invitation_id: string | null; actor_wallet_normalized: string | null;
@@ -754,6 +1033,7 @@ export class PgMissionRepository implements MissionRepository {
     return {
       missions: missions.rows.map(missionFromRow),
       invitations: invitations.rows.map(invitationFromRow),
+      destinationClaims: destinationClaims.rows.map(destinationClaimFromRow),
       challenges: challenges.rows.map(challengeFromRow),
       auditEvents: auditEvents.rows.map((row): AuditEventRecord => ({ id: row.id, missionId: row.mission_id, invitationId: row.invitation_id, actorWalletNormalized: row.actor_wallet_normalized, eventType: row.event_type, metadata: row.metadata, createdAt: row.created_at.getTime() })),
     };

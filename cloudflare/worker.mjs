@@ -294,9 +294,9 @@ function shouldReachBackend(request, url) {
     return method !== "GET" || acceptsJson(request);
   }
 
-  // `/i/:token` is intentionally both an invite SPA route and an API endpoint.
-  // Browser navigation wants HTML; the app's fetch() explicitly asks for JSON.
-  if (path.startsWith("/i/")) {
+  // `/i/:token` and `/c/:token` are private bearer-link SPA routes and
+  // JSON API endpoints. Browser navigation wants HTML; app fetch() asks for JSON.
+  if (path.startsWith("/i/") || path.startsWith("/c/")) {
     return method !== "GET" || acceptsJson(request);
   }
 

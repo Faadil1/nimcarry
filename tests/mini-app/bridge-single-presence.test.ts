@@ -14,7 +14,7 @@ describe("mission bridge single-presence UX", () => {
 
   it("represents a completed bridge as the single via mark, not the holder", () => {
     expect(app).toContain("entry.via?.display_label");
-    expect(app).toContain("Bridge · delivered to");
+    expect(app).toContain("Introducer · delivered directly to");
     expect(app).toContain('markCurrentHolder: m.status === "ACTIVE"');
   });
 

@@ -13,15 +13,17 @@ describe("NimCarry V2 compressed handoff ceremony", () => {
 
   it("puts recipient, 1 NIM seal and FINAL rule in one artifact", () => {
     expect(v2).toContain("DIRECT DELIVERY SLIP");
-    expect(v2).toContain("The bridge introduces the route; the bridge never receives custody.");
+    expect(v2).toContain("who bound their own wallet through the private claim.");
+    expect(v2).toContain("The introducer supplies consent and context, never custody.");
     expect(v2).toContain("[\"AMOUNT\", \"1 NIM\"]");
-    expect(v2).toContain("[\"BRIDGE\", accepted]");
+    expect(v2).toContain("[[\"INTRODUCER\", accepted]]");
     expect(v2).toContain("[\"RECIPIENT\", destination]");
   });
 
-  it("keeps 1 NIM framed as destination delivery rather than bridge incentive", () => {
-    expect(v2).toContain("The 1 NIM is sent to the destination, not paid to the bridge.");
-    expect(v2).toContain("The bridge supplies the human connection");
+  it("keeps 1 NIM framed as destination delivery rather than introducer incentive", () => {
+    expect(v2).toContain("The destination bound their own wallet. The sender pays that wallet directly");
+    expect(v2).toContain("The 1 NIM is sent to the destination, not the introducer.");
+    expect(v2).toContain("The introducer supplies the human connection");
   });
 
   it("keeps the warm-wax verification scene as the only post-action state machine", () => {

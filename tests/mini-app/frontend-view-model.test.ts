@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FIVE_SCREEN_IDS, assertParticipantSafeMission, deriveMissionHomeModel, normalizeRouteEntries, safeRouteEntries, screenForPath, type UiMissionView } from "../../src/mini-app/view-model.js";
+import { CANONICAL_SCREEN_IDS, assertParticipantSafeMission, deriveMissionHomeModel, normalizeRouteEntries, safeRouteEntries, screenForPath, type UiMissionView } from "../../src/mini-app/view-model.js";
 
 function mission(overrides: Partial<UiMissionView> = {}): UiMissionView {
   return {
@@ -19,11 +19,19 @@ function mission(overrides: Partial<UiMissionView> = {}): UiMissionView {
   };
 }
 
-describe("five-screen Mini App view contract", () => {
-  it("keeps the MVP to exactly five canonical screens", () => {
-    expect(FIVE_SCREEN_IDS).toEqual(["MISSION_HOME", "CREATE_MISSION", "BRIDGE_INVITATION", "PASS_1_NIM", "ROUTE_ARRIVAL"]);
+describe("Mini App view contract", () => {
+  it("models Destination Claim as a first-class canonical screen", () => {
+    expect(CANONICAL_SCREEN_IDS).toEqual([
+      "MISSION_HOME",
+      "CREATE_MISSION",
+      "DESTINATION_CLAIM",
+      "BRIDGE_INVITATION",
+      "PASS_1_NIM",
+      "ROUTE_ARRIVAL",
+    ]);
+    expect(screenForPath("/c/private-claim-token")).toBe("DESTINATION_CLAIM");
   });
-  it("maps route paths deterministically to the five screens", () => {
+  it("maps route paths deterministically to canonical screens", () => {
     expect(screenForPath("/")).toBe("MISSION_HOME");
     expect(screenForPath("/mission/abc")).toBe("MISSION_HOME");
     expect(screenForPath("/create")).toBe("CREATE_MISSION");
@@ -45,8 +53,9 @@ describe("five-screen Mini App view contract", () => {
     expect(model.primaryLabel).toBe("View completed route");
   });
   it("fails closed if a participant-safe mission DTO leaks target-wallet markers", () => {
-    expect(() => assertParticipantSafeMission(mission())).not.toThrow();
+    expect(() => assertParticipantSafeMission(mission({ target_wallet_bound: true }))).not.toThrow();
     expect(() => assertParticipantSafeMission({ ...mission(), target_wallet: "NQ SECRET" })).toThrow(/forbidden field marker/);
+    expect(() => assertParticipantSafeMission({ ...mission(), target_wallet_ciphertext: "secret" })).toThrow(/forbidden field marker/);
   });
   it("orders display route entries only by canonical sequence", () => {
     const route = safeRouteEntries([

@@ -73,6 +73,21 @@ beforeAll(async () => {
   pool = new PgMemPool();
   const sql = readFileSync(MIGRATION_PATH, "utf8");
   await pool.exec(sql);
+  // Minimal pg-mem projection of migration 007. These repository tests mostly
+  // exercise the legacy known-wallet path, but snapshot() now includes claims.
+  await pool.exec(`
+    CREATE TABLE destination_claims (
+      id uuid PRIMARY KEY,
+      mission_id uuid NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+      claim_token_hash text NOT NULL UNIQUE,
+      status text NOT NULL,
+      created_at timestamptz NOT NULL,
+      expires_at timestamptz NOT NULL,
+      claimed_at timestamptz,
+      closed_at timestamptz,
+      claimed_wallet_normalized text
+    )
+  `);
   repo = new PgMissionRepository(pool);
 });
 

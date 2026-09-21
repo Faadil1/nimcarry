@@ -212,16 +212,16 @@ import { getNimiqProvider } from "/nimiq-provider.js";
     if (legacyBroadcast) {
       const missionId = decodeURIComponent(legacyBroadcast[1]);
       const pass = passByMission.get(missionId);
-      if (!pass?.invitationId || !pass?.broadcastCapability) {
-        throw new Error("BROADCAST_CAPABILITY_MISSING: authorize the pass again before claiming a transaction.");
+      if (!pass?.broadcastCapability) {
+        throw new Error("BROADCAST_CAPABILITY_MISSING: authorize the delivery again before claiming a transaction.");
       }
       path = `/missions/${encodeURIComponent(missionId)}/broadcast`;
       requestUrl.pathname = path;
       body = {
-        invitation_id: pass.invitationId,
         tx_hash: body?.tx_hash,
         broadcast_capability: pass.broadcastCapability,
       };
+      if (pass.invitationId) body.invitation_id = pass.invitationId;
       if (!headers.has("Idempotency-Key")) headers.set("Idempotency-Key", pass.broadcastRetryKey);
     }
 
@@ -277,7 +277,7 @@ import { getNimiqProvider } from "/nimiq-provider.js";
         opaque_commitment_present: plannedData.startsWith("co:v1:"),
       }));
       passByMission.set(missionId, {
-        invitationId: body?.invitation_id,
+        invitationId: body?.invitation_id || null,
         sequence: payload.sequence,
         intentId: payload.intent_id,
         broadcastCapability: payload.broadcast_capability,

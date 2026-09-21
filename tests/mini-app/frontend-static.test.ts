@@ -175,7 +175,7 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
   });
   it("adapts broadcast claims to the capability-bound endpoint", () => {
     expect(compat).toContain('path = `/missions/${encodeURIComponent(missionId)}/broadcast`');
-    expect(compat).toContain("invitation_id: pass.invitationId");
+    expect(compat).toContain("if (pass.invitationId) body.invitation_id = pass.invitationId");
     expect(compat).toContain("broadcast_capability: pass.broadcastCapability");
     expect(compat).toContain("BROADCAST_CAPABILITY_MISSING");
     expect(compat).toContain('hop: { status: "FINAL", sequence: expected }');
@@ -239,7 +239,8 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(js).toContain('mission.current_holder?.is_viewer === true && invitationStatus === "INVITED"');
     expect(js).toContain('mission.primary_action === "WAIT"');
     expect(js).toContain("senderWaitingForFinal");
-    expect(js).toContain("Bridge accepted the invitation. The handoff is ready.");
+    expect(js).toContain("Introducer accepted. The direct destination delivery is ready.");
+    expect(js).toContain("The destination still needs the private claim to bind their wallet.");
     expect(js).toContain("Delivered.");
     expect(js).toContain('addEventListener("focus", () => { void refreshWatchedMission(); })');
     expect(js).toContain('document.addEventListener("visibilitychange"');
@@ -255,7 +256,7 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
   it("derives the five-step progress indicator from lifecycle state", () => {
     expect(winning).toContain("function routeProgressIndex");
     expect(winning).toContain('if (status === "ARRIVED") return 4');
-    expect(winning).toContain('if (primaryAction === "PASS_1_NIM" || invitationStatus === "ACCEPTED") return 3');
+    expect(winning).toContain('primaryAction === "SEND_1_NIM"');
     expect(winning).toContain('if (invitationStatus === "INVITED") return 2');
     expect(winning).not.toContain('else if (/^\\/mission\\//.test(path)) current = 1');
   });
@@ -306,7 +307,7 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
   });
 
   it("makes ARRIVED a human outcome plus privacy-safe proof rather than a transaction toast", () => {
-    expect(winning).toContain("Each displayed bridge assisted a direct destination delivery that reached independent FINAL.");
+    expect(winning).toContain("Each displayed row is a destination delivery that reached independent FINAL.");
     expect(winning).toContain("Private destination wallet data stays hidden from this receipt.");
     expect(finalHuman).toContain("It arrived because people carried it.");
     expect(finalHuman).toContain("craft-arrival.svg");
@@ -318,6 +319,17 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(css).toContain(".button-row{display:flex;gap:9px;flex-wrap:wrap");
     expect(css).toContain("@media(min-width:620px)");
     expect(css).toContain("prefers-reduced-motion:reduce");
+  });
+
+  it("keeps private claim bearer links session-only and safely reissues lost links", () => {
+    expect(js).toContain('const claimStorageKey = (missionId) => `nimcarry.claim.${missionId}`');
+    expect(js).toContain("sessionStorage.setItem(claimStorageKey(missionId), mission.destination_claim_url)");
+    expect(js).not.toContain("localStorage.setItem(claimStorageKey");
+    expect(js).toContain('signedAuth("CREATE_DESTINATION_CLAIM"');
+    expect(js).toContain('/destination-claim');
+    expect(js).toContain("The previous pending link is revoked");
+    expect(js).toContain('claim.status !== "PENDING"');
+    expect(js).toContain("This claim can’t be used.");
   });
 
   it("honors reduced-motion in both base and final identity CSS", () => {

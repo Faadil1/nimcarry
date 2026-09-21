@@ -99,7 +99,14 @@ function createApplicationServer(
       createUserEmailSender(process.env),
       process.env.CARRY_ONE_TARGET_HMAC_KEY_B64URL ?? ""
     ),
-    sweep: () => repository.expireDueInvitations(Date.now()),
+    sweep: async () => {
+      const now = Date.now();
+      const [invitations, claims] = await Promise.all([
+        repository.expireDueInvitations(now),
+        repository.expireDueDestinationClaims(now),
+      ]);
+      return invitations + claims;
+    },
     reconcile: () => coordinator.reconcilePending(),
   };
 }
@@ -111,8 +118,8 @@ function registerMaintenance(app: Application): void {
     const intervalMs = Number(process.env.CARRY_ONE_INVITATION_SWEEP_INTERVAL_MS ?? 60_000);
     const timer = setInterval(() => {
       app.sweep!().then(
-        (count) => { if (count > 0) console.log(`Carry One invitation sweep expired ${count} invitation${count === 1 ? "" : "s"}`); },
-        (err) => console.error("Carry One invitation sweep failed:", err)
+        (count) => { if (count > 0) console.log(`NimCarry expiry sweep closed ${count} invitation/claim item${count === 1 ? "" : "s"}`); },
+        (err) => console.error("NimCarry expiry sweep failed:", err)
       );
     }, intervalMs);
     timer.unref();

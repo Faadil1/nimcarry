@@ -2,6 +2,7 @@ export type MissionStatus = "ACTIVE" | "ARRIVED" | "CANCELLED";
 export type MissionActivity = "ACTIVE" | "STALLED" | "TERMINAL";
 export type MissionVisibility = "UNLISTED" | "PRIVATE" | "PUBLIC";
 export type InvitationStatus = "INVITED" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "WITHDRAWN" | "COMPLETED";
+export type DestinationClaimStatus = "PENDING" | "CLAIMED" | "EXPIRED" | "REVOKED";
 export type ChallengeStatus = "ISSUED" | "USED" | "EXPIRED";
 
 export type MissionAction =
@@ -11,6 +12,8 @@ export type MissionAction =
   | "WITHDRAW_INVITATION"
   | "AUTHORIZE_PASS"
   | "CANCEL_MISSION"
+  | "CREATE_DESTINATION_CLAIM"
+  | "CLAIM_DESTINATION"
   | "VIEW_ROUTE";
 
 export interface VerifiedWalletAction {
@@ -28,9 +31,11 @@ export interface MissionRecord {
   creatorDisplayLabel: string | null;
   currentHolderWalletNormalized: string;
   targetLabel: string;
-  targetWalletCiphertext: string;
-  targetWalletHmac: string;
-  /** Cycle-II MVP requires a known destination that explicitly consented to be the target. */
+  /** Null until a private Destination Claim is accepted. */
+  targetWalletCiphertext: string | null;
+  /** Null until a private Destination Claim is accepted. */
+  targetWalletHmac: string | null;
+  /** True only once the destination is known/bound and has consented. */
   targetConsentConfirmed: boolean;
   missionNote: string;
   status: MissionStatus;
@@ -64,6 +69,26 @@ export interface InvitationRecord {
   closedAt: number | null;
 }
 
+export interface DestinationClaimRecord {
+  id: string;
+  missionId: string;
+  claimTokenHash: string;
+  status: DestinationClaimStatus;
+  createdAt: number;
+  expiresAt: number;
+  claimedAt: number | null;
+  closedAt: number | null;
+  claimedWalletNormalized: string | null;
+}
+
+export interface PublicDestinationClaim {
+  id: string;
+  mission_id: string;
+  status: DestinationClaimStatus;
+  expires_at: string;
+  claimed_at: string | null;
+}
+
 export interface AuthChallengeRecord {
   id: string;
   walletNormalized: string;
@@ -86,6 +111,8 @@ export interface PublicMission {
   target_label: string;
   /** Boolean disclosure only; the target wallet itself remains private. */
   target_consent_confirmed: boolean;
+  /** True once a destination wallet has been bound, either at creation or by claim. */
+  target_wallet_bound: boolean;
   mission_note: string;
   status: MissionStatus;
   activity: MissionActivity;
@@ -116,6 +143,7 @@ export interface PublicInvitation {
 export interface MissionStoreSnapshot {
   missions: MissionRecord[];
   invitations: InvitationRecord[];
+  destinationClaims: DestinationClaimRecord[];
   challenges: AuthChallengeRecord[];
   auditEvents?: AuditEventRecord[];
 }
