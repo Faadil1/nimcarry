@@ -902,9 +902,11 @@ async function buildMissionView(
       })
   );
   const activeIntent = deps.relay.getActiveIntent(missionId);
+  const destinationClaim = await deps.repository.getDestinationClaimForMission(missionId);
   const view = composeMissionView({
     mission: record,
     invitation: invitation ?? null,
+    destinationClaim: destinationClaim ?? null,
     route,
     protector: deps.protector,
     viewer: resolution.viewer,
