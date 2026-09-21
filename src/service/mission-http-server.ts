@@ -52,6 +52,7 @@ const MISSION_ACTIONS = [
   "WITHDRAW_INVITATION",
   "AUTHORIZE_PASS",
   "CANCEL_MISSION",
+  "CREATE_DESTINATION_CLAIM",
   "CLAIM_DESTINATION",
   "VIEW_ROUTE",
 ] as const;
@@ -231,6 +232,9 @@ async function handleMission(deps: MissionHttpDeps, req: IncomingMessage, res: S
   if (req.method === "POST" && tail.length === 1 && tail[0] === "broadcast") {
     return sendMutation(deps, req, res, () => broadcast(deps, req, missionId));
   }
+  if (req.method === "POST" && tail.length === 1 && tail[0] === "destination-claim") {
+    return sendMutation(deps, req, res, () => reissueDestinationClaim(deps, req, missionId));
+  }
   if (req.method === "POST" && tail.length === 1 && tail[0] === "invitations") {
     return sendMutation(deps, req, res, () => createInvitation(deps, req, missionId));
   }
@@ -318,6 +322,24 @@ async function cancelMission(deps: MissionHttpDeps, req: IncomingMessage, missio
   const auth = await verifyEnvelope(deps, envelope);
   await deps.missions.cancelMission(missionId, auth);
   return { status: 200, body: await viewMission(deps, req, missionId, normalizeNimiqAddress(auth.wallet)) };
+}
+
+async function reissueDestinationClaim(deps: MissionHttpDeps, req: IncomingMessage, missionId: string) {
+  const obj = await jsonBody(req);
+  const envelope = parseSignedEnvelope(obj);
+  rejectUnknownKeys(obj, ["challenge_id", "public_key", "signature"]);
+  const auth = await verifyEnvelope(deps, envelope);
+  const result = await deps.missions.reissueDestinationClaim({ missionId, auth });
+  return {
+    status: 201,
+    body: {
+      claim: result.claim,
+      destination_claim_url: new URL(
+        `/c/${encodeURIComponent(result.claimToken)}`,
+        deps.canonicalOrigin
+      ).toString(),
+    },
+  };
 }
 
 async function createInvitation(deps: MissionHttpDeps, req: IncomingMessage, missionId: string) {
