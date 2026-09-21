@@ -3,6 +3,8 @@
 
   const notice = document.querySelector("#notice");
   if (!notice) return;
+  const RECENT_MISSIONS_KEY = "nimcarry.recentMissions.v1";
+  const RECENT_MISSION_LIMIT = 5;
 
   const esc = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
   const missionId = () => {
@@ -44,7 +46,23 @@
     } catch {
       return [];
     }
-    return found.slice(-5).reverse();
+    return found.slice(-RECENT_MISSION_LIMIT).reverse();
+  };
+  const persistentMissionIds = () => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(RECENT_MISSIONS_KEY) || "[]");
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .map((value) => String(value || "").trim())
+        .filter((value, index, all) => /^[0-9a-f-]{36}$/i.test(value) && all.indexOf(value) === index)
+        .slice(0, RECENT_MISSION_LIMIT);
+    } catch {
+      return [];
+    }
+  };
+  const knownMissionIds = () => {
+    const combined = [...persistentMissionIds(), ...sessionMissionIds()];
+    return combined.filter((id, index) => combined.indexOf(id) === index).slice(0, RECENT_MISSION_LIMIT);
   };
 
   function classify(message) {
@@ -241,21 +259,21 @@
 
   function renderHomeRecovery() {
     if (location.pathname !== "/" || location.search) return false;
-    const ids = sessionMissionIds();
+    const ids = knownMissionIds();
     if (!ids.length) return false;
 
     const panel = ensurePanel();
     panel.dataset.kind = "access";
     const actions = ids.map((id, index) => {
       const fingerprint = id.length > 12 ? `${id.slice(0, 8)}…${id.slice(-4)}` : id;
-      return `<a class="button ${index === 0 ? "primary" : "ghost"}" href="${esc(recoveryPathForMission(id))}">Restore mission ${esc(fingerprint)}</a>`;
+      return `<a class="button ${index === 0 ? "primary" : "ghost"}" href="${esc(recoveryPathForMission(id))}">Resume recent mission ${esc(fingerprint)}</a>`;
     }).join("");
     panel.innerHTML = `
       <div class="nr-stamp">ROUTE SAFE</div>
       <div class="nr-copy">
-        <div class="nr-eyebrow">Previous mission found in this Nimiq Pay session</div>
+        <div class="nr-eyebrow">Previous mission found on this device</div>
         <h2>Resume without creating a new mission.</h2>
-        <p>NimCarry found a previous read-only mission capability in this browser session. Re-sign VIEW_ROUTE to restore access. This does not send NIM, re-invite a bridge, or change custody.</p>
+        <p>NimCarry remembers only a non-secret mission locator across app closes. Re-sign VIEW_ROUTE to mint fresh read-only access. The bearer capability itself remains session-only; this does not send NIM, re-invite a bridge, or change custody.</p>
         <div class="nr-rule"><span>Custody rule</span><strong>Recovery is read-only · only FINAL changes custody</strong></div>
       </div>
       <div class="nr-actions">${actions}</div>`;
