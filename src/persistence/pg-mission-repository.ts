@@ -756,6 +756,60 @@ export class PgMissionRepository implements MissionRepository {
     });
   }
 
+  async completeDirectFinalHop(input: {
+    missionId: string;
+    sequence: number;
+    recipientWallet: string;
+    recipientHmac: string;
+    now: number;
+  }): Promise<MissionRecord> {
+    return this.withTransaction(async (client) => {
+      const mission = await client.query<MissionRow>(
+        "SELECT * FROM missions WHERE id = $1 FOR UPDATE",
+        [input.missionId]
+      );
+      if (mission.rows.length === 0) {
+        throw new MissionValidationError("MISSION_NOT_FOUND", `Mission ${input.missionId} does not exist`);
+      }
+      const row = mission.rows[0];
+      if (row.status === "ARRIVED" && row.current_sequence >= input.sequence) return missionFromRow(row);
+      if (row.status !== "ACTIVE") {
+        throw new MissionValidationError("MISSION_NOT_ACTIVE", `Mission ${row.id} is ${row.status}`);
+      }
+      if (row.target_wallet_hmac === null || row.target_wallet_ciphertext === null || !row.target_consent_confirmed) {
+        throw new MissionValidationError("TARGET_NOT_BOUND", "Destination must claim and bind a wallet before delivery can finalize");
+      }
+      if (input.recipientHmac !== row.target_wallet_hmac) {
+        throw new MissionValidationError("WRONG_FINAL_RECIPIENT", "Final recipient must be the mission destination");
+      }
+      if (row.current_sequence + 1 !== input.sequence) {
+        throw new MissionValidationError("FINALIZATION_SEQUENCE_RACE", "Mission sequence changed before finalization");
+      }
+
+      const updated = await client.query<MissionRow>(
+        `UPDATE missions
+           SET current_sequence=$2,
+               finalized_hop_count=finalized_hop_count+1,
+               current_holder_wallet_normalized=$3,
+               status='ARRIVED',
+               arrived_at=$4,
+               updated_at=$4
+         WHERE id=$1 RETURNING *`,
+        [input.missionId, input.sequence, input.recipientWallet, epoch(input.now)]
+      );
+
+      await client.query(
+        `INSERT INTO participants (mission_id, wallet_normalized, display_label, display_name_opt_in, first_final_sequence)
+         VALUES ($1,$2,$3,FALSE,$4)
+         ON CONFLICT (mission_id, wallet_normalized) DO UPDATE
+           SET first_final_sequence=COALESCE(participants.first_final_sequence, EXCLUDED.first_final_sequence)`,
+        [input.missionId, input.recipientWallet, row.target_label, input.sequence]
+      );
+
+      return missionFromRow(updated.rows[0]);
+    });
+  }
+
   async completeFinalHop(input: {
     missionId: string;
     invitationId: string;
@@ -949,9 +1003,10 @@ export class PgMissionRepository implements MissionRepository {
   }
 
   async snapshot(): Promise<MissionStoreSnapshot> {
-    const [missions, invitations, challenges, auditEvents] = await Promise.all([
+    const [missions, invitations, destinationClaims, challenges, auditEvents] = await Promise.all([
       this.pool.query<MissionRow>("SELECT * FROM missions"),
       this.pool.query<InvitationRow>("SELECT * FROM invitations"),
+      this.pool.query<DestinationClaimRow>("SELECT * FROM destination_claims"),
       this.pool.query<ChallengeRow>("SELECT * FROM auth_challenges"),
       this.pool.query<{
         id: string; mission_id: string | null; invitation_id: string | null; actor_wallet_normalized: string | null;
@@ -961,6 +1016,7 @@ export class PgMissionRepository implements MissionRepository {
     return {
       missions: missions.rows.map(missionFromRow),
       invitations: invitations.rows.map(invitationFromRow),
+      destinationClaims: destinationClaims.rows.map(destinationClaimFromRow),
       challenges: challenges.rows.map(challengeFromRow),
       auditEvents: auditEvents.rows.map((row): AuditEventRecord => ({ id: row.id, missionId: row.mission_id, invitationId: row.invitation_id, actorWalletNormalized: row.actor_wallet_normalized, eventType: row.event_type, metadata: row.metadata, createdAt: row.created_at.getTime() })),
     };
