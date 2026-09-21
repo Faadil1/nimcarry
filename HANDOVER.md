@@ -9,14 +9,15 @@ This file is intentionally operational. A new conversation should be able to rea
 
 Current main baseline:
 
-- Product/runtime baseline: `b35674c5ceea116e576e6f9eeedc6aee1415e6ef` (PR #121 on top of PR #120).
+- Product/runtime baseline: `724f0d88877e32b2048a4e6eb9f6254b51f0de97` (PR #122 on top of PR #121/#120).
 - PR #114 **Move FINAL reconciliation into the background** is merged.
 - PR #117 **Hand ambiguous Nimiq Pay submissions to background reconciliation** is merged as `bad96d463064e418ec47a949acd792224d8fde24`.
 - PR #119 **Resume missions safely after a full app close** is merged as `50187e5e9387f47762a7ca011b9931ff91df769a`.
 - PR #120 **Add non-custodial Destination Claim v1** is merged as `2bfb3730f06052e52456193a029400000d716732`.
 - PR #121 **Keep direct Destination Claim pending UI truthful** is merged as `b35674c5ceea116e576e6f9eeedc6aee1415e6ef`.
+- PR #122 **Repair stranded FINAL mission projections automatically** is merged as `724f0d88877e32b2048a4e6eb9f6254b51f0de97`.
 - Migration `007_destination_claim_v1.sql` is applied to Neon production and validated against existing data.
-- PR #120 and PR #121 Cloudflare production builds, CI, smoke, and **Guided flow — mobile + tablet + desktop** are all **SUCCESS**.
+- PR #120/#121 are green for Cloudflare, CI, smoke, and **Guided flow — mobile + tablet + desktop**. PR #122 production Cloudflare build, smoke, and CI are also **SUCCESS**.
 - Vercel status is not the production gate for NimCarry.
 - Product behavior: one-time human bridge; sender pays the target directly; long-running FINAL reconciliation is server-owned.
 - The prior custody-chain model and manual-recheck happy path are obsolete.
@@ -129,6 +130,34 @@ PR #121 fixed those semantics without touching transaction/reconciliation logic:
 - Cloudflare production build, CI, smoke, and mobile/tablet/desktop guided flow are green.
 
 Current proof gate: wait for this existing mission to either discover a matching transaction and reach FINAL/ARRIVED, or terminate fail-closed with no broadcast. **Do not create a replacement mission or second payment while the intent is unresolved.**
+
+## 1C. Destination Claim recovered FINAL — mission projection repair
+
+Mission `d1ed137a-834a-4211-b12f-cf00dbde75cc` later resolved the ambiguous no-hash send to a real on-chain payment:
+
+- tx: `393e98c2cb9db0bf9bc5f40dca835f76f43262630d4bfc0a326aea02286b596e`
+- INCLUDED: `2026-09-21T10:50:16.621Z`
+- FINAL: `2026-09-21T10:51:02.963Z`
+- `invitation_id = NULL`
+- recipient: the exact wallet David bound through Destination Claim
+- no bridge/invitation exists
+
+This proves the original no-hash attempt really broadcast and was recovered without a resend.
+
+A new durability gap was exposed immediately afterward: the relay hop is FINAL, but the mission row remained `ACTIVE`, sequence 0, 0 finalized hops. The app therefore displayed a FINAL route row while still offering **Send 1 NIM to David**.
+
+PR #122 fixes this crash/race window:
+
+- startup/background sweeps now include durable FINAL relay rows even after their active intent disappeared;
+- the same idempotent coordinator reconcile path repairs the mission projection;
+- failed projection remains retryable;
+- settled historical FINAL missions are memoized in-process to avoid repeated 15-second reads;
+- process restart intentionally resets that memo so startup rescans durable FINALs;
+- mission view returns `WAIT` rather than another send/reroute while FINAL is ahead of the mission row.
+
+PR #122 is merged and Cloudflare production build/smoke/CI are green.
+
+**Current live gate:** wait for the replacement Cloudflare container to project this exact mission to `ARRIVED`. Until that happens, **do not press Send 1 NIM again**. No manual DB correction has been applied.
 
 ## 2. Automatic reconciliation workstream
 
@@ -281,13 +310,13 @@ Do not add public destination requests, bridge search, bounty routing, reputatio
 
 ## 6. Immediate next implementation sequence
 
-1. **Destination Claim v1 — partial live proof, existing send unresolved**
+1. **Destination Claim v1 — payment FINAL proven, ARRIVED projection repair pending**
    - Mission `d1ed137a-834a-4211-b12f-cf00dbde75cc` proves real unknown-wallet creation + destination self-binding with no bridge.
-   - The direct payment intent exists but has no provable tx hash/hop yet.
+   - The original no-hash send was independently recovered as tx `393e98c2…b596e` and reached FINAL.
+   - The relay FINAL is durable, but the mission row is still ACTIVE/0 FINAL due to a missed projection window.
    - **Do not resend or create a replacement mission.**
-   - Wait for background reconciliation to discover/finalize the exact existing send or terminate it fail-closed.
-   - PR #121 already fixes the direct pending UI/provenance copy discovered in this run.
-   - End-to-end Destination Claim remains pending until FINAL/ARRIVED (or a terminal no-broadcast outcome) is independently observed.
+   - PR #122 is deployed to repair this automatically and blocks another send while FINAL is ahead of mission state.
+   - End-to-end Destination Claim closes only when this same mission becomes durable ARRIVED without manual DB mutation.
 
 2. **Introduced Claim comparison — after the direct Claim path**
    - Add an optional one-time introducer only when the relationship requires it.
