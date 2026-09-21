@@ -473,7 +473,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     if (m.status === "ARRIVED") return "VIEW_ROUTE";
     if (!m.target_wallet_bound) return "SHARE_CLAIM";
     const status = m.invitation?.status;
-    if (!status && m.destination_claim?.status === "CLAIMED") return "SEND_1_NIM";
+    if (!status && (!m.destination_claim || m.destination_claim?.status === "CLAIMED")) return "SEND_1_NIM";
     if (!status || ["DECLINED", "EXPIRED", "WITHDRAWN", "COMPLETED"].includes(status)) return "CREATE_INVITATION";
     if (status === "INVITED") return "WAIT";
     if (status === "ACCEPTED") return "PASS_1_NIM";
@@ -743,7 +743,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     const directClaimReady =
       !inv &&
       m?.target_wallet_bound === true &&
-      m?.destination_claim?.status === "CLAIMED";
+      (!m?.destination_claim || m?.destination_claim?.status === "CLAIMED");
     const passDeadline = inv?.pass_deadline_at ? Date.parse(inv.pass_deadline_at) : NaN;
     const passWindowExpired = Number.isFinite(passDeadline) && Date.now() >= passDeadline;
     const introducedReady = inv?.status === "ACCEPTED" && !passWindowExpired;
