@@ -1,6 +1,6 @@
 project: NimCarry
-updated_at: "2026-09-20T23:47:00-04:00"
-phase: PERSISTENT_MISSION_RESUME_VALIDATION
+updated_at: "2026-09-20T23:54:00-04:00"
+phase: DESTINATION_CLAIM_EXPERIMENT
 source_of_truth: true
 
 repository:
@@ -161,7 +161,7 @@ implementation_state:
       - "PR #119 now persists only non-secret mission IDs, never route-view bearer capabilities, and mints fresh VIEW_ROUTE access on resume."
       - "Because mission c31534d0-9ecd-45b9-bf8d-e9457141d391 predates PR #119, one signed recovery is needed to bootstrap its new locator before testing a second full close/reopen."
   persistent_mission_resume:
-    status: MERGED_DEPLOYED_AWAITING_REAL_DEVICE_VALIDATION
+    status: LIVE_VALIDATED_COMPLETE
     merged_pr: 119
     merge_sha: 50187e5e9387f47762a7ca011b9931ff91df769a
     cloudflare_production_build: SUCCESS
@@ -182,10 +182,15 @@ implementation_state:
       - "mobile 375x812: PASS"
       - "tablet 768x1024: PASS"
       - "desktop 1280x900: PASS"
-    remaining_live_gate:
-      - "Bootstrap the pre-patch ARRIVED mission c31534d0-9ecd-45b9-bf8d-e9457141d391 once through signed route-access recovery."
-      - "Then fully close and reopen A and confirm Resume recent mission restores the same ARRIVED receipt."
-      - "No new mission or payment is required."
+    live_validation_observed:
+      - "A reopened NimCarry after a full app close and home surfaced 'Resume recent mission c31534d0…d391'."
+      - "Fresh signed VIEW_ROUTE recovery restored the same ARRIVED mission c31534d0-9ecd-45b9-bf8d-e9457141d391."
+      - "The restored mission showed 1 FINAL, Grace as bridge, direct delivery to David, and the original transaction fingerprint."
+      - "No new mission, re-invite, recheck, or second payment was required."
+    conclusion:
+      - "PR #119 persistent mission rediscovery is live-validated on the real device."
+      - "Server reconciliation plus close/reopen mission recovery is now end-to-end validated."
+      - "The automatic reconciliation/resume workstream is complete."
     evidence_doc: "docs/evidence/PERSISTENT-MISSION-RESUME-2026-09-20.md"
   automatic_finality_reconciliation:
     status: LIVE_VALIDATED_BACKEND_CLOSE_BEFORE_FINAL
@@ -237,8 +242,8 @@ implementation_state:
 
 next_workstream:
   priority:
-    - "Real-device validate PR #119 mission resume using the existing ARRIVED mission; do not create or pay a new mission."
-    - "After that gate, design and implement a non-custodial Destination Claim experiment."
+    - "Design and implement a non-custodial Destination Claim experiment."
+    - "Keep the two-person flow as the minimum legitimate success path; bridge introduction is optional, not mandatory."
     - "Compare Claim vs Introduced Claim with real users before deciding whether social-route proof is core or a trust layer."
     - "Update user-facing mental model away from Create -> Invite -> Accept -> Pass -> Arrive."
   implementation_constraints:
