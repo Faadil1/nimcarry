@@ -298,6 +298,11 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     const match = location.pathname.match(/^\/i\/([A-Za-z0-9_-]+)/);
     return match ? match[1] : null;
   }
+  function destinationClaimTokenFromPath() {
+    const match = location.pathname.match(/^\/c\/([A-Za-z0-9_-]+)/);
+    return match ? match[1] : null;
+  }
+  const claimStorageKey = (missionId) => `nimcarry.claim.${missionId}`;
 
   function demoLoad() { try { return JSON.parse(localStorage.getItem("carryone.demo") || "null"); } catch { return null; } }
   function demoSave(value) { localStorage.setItem("carryone.demo", JSON.stringify(value)); }
@@ -323,6 +328,8 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       mission?.invitation?.status || "",
       mission?.invitation?.candidate_display_label || "",
       mission?.invitation?.pass_deadline_at || "",
+      mission?.destination_claim?.status || "",
+      mission?.target_wallet_bound ? "BOUND" : "UNBOUND",
     ]);
   }
 
@@ -347,10 +354,12 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       mission.viewer_role === "INVITEE" && invitationStatus === "ACCEPTED";
     const senderWaitingForFinal =
       mission.current_holder?.is_viewer === true &&
-      invitationStatus === "ACCEPTED" &&
       mission.primary_action === "WAIT";
+    const senderWaitingForClaim =
+      mission.current_holder?.is_viewer === true &&
+      mission.primary_action === "SHARE_CLAIM";
 
-    return holderWaitingForAcceptance || acceptedBridgeWaitingForFinal || senderWaitingForFinal;
+    return holderWaitingForAcceptance || acceptedBridgeWaitingForFinal || senderWaitingForFinal || senderWaitingForClaim;
   }
 
   async function refreshWatchedMission() {
@@ -376,8 +385,14 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
         notice(bridgeCompletedIntroduction
           ? `FINAL verified. ${latest?.target_label || "The destination"} received the 1 NIM. Your bridge step is complete.`
           : `Delivered. ${latest?.target_label || "The destination"} received the independently verified 1 NIM.`);
+      } else if (
+        previousMission?.destination_claim?.status !== "CLAIMED" &&
+        latest?.destination_claim?.status === "CLAIMED" &&
+        latest?.current_holder?.is_viewer === true
+      ) {
+        notice(`${latest?.target_label || "The destination"} claimed the private delivery. You can now send the 1 NIM directly.`);
       } else if (invitationStatus === "ACCEPTED" && latest?.current_holder?.is_viewer === true) {
-        notice("Bridge accepted the invitation. The handoff is ready.");
+        notice("Bridge accepted the introduction. The direct delivery is ready.");
       } else if (invitationStatus === "DECLINED") {
         notice("Bridge declined the invitation. The letter stayed with you.");
       } else if (previousFingerprint) {
@@ -411,6 +426,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     const path = location.pathname.replace(/\/+$/, "") || "/";
     if (!/^\/mission\/[^/]+$/.test(path)) stopMissionWatch();
     if (path === "/create") return renderCreate();
+    if (/^\/c\/[A-Za-z0-9_-]+$/.test(path)) return renderDestinationClaim();
     if (/^\/i\/[A-Za-z0-9_-]+$/.test(path)) return renderInvitation();
     if (/^\/mission\/[^/]+\/pass$/.test(path)) return renderPass();
     if (/^\/mission\/[^/]+\/route$/.test(path)) return renderRoute();
@@ -455,7 +471,9 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
 
   function derivePrimaryAction(m) {
     if (m.status === "ARRIVED") return "VIEW_ROUTE";
+    if (!m.target_wallet_bound) return "SHARE_CLAIM";
     const status = m.invitation?.status;
+    if (!status && m.destination_claim?.status === "CLAIMED") return "SEND_1_NIM";
     if (!status || ["DECLINED", "EXPIRED", "WITHDRAWN", "COMPLETED"].includes(status)) return "CREATE_INVITATION";
     if (status === "INVITED") return "WAIT";
     if (status === "ACCEPTED") return "PASS_1_NIM";
@@ -463,7 +481,9 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
   }
   function homeButtons(action, m) {
     if (m.status === "ARRIVED") return `<button id="route-button" class="button green">View completed route</button><button id="new-button" class="button ghost">Start your own mission</button>`;
-    if (action === "CREATE_INVITATION" || action === "REROUTE") return `<button id="invite-button" class="button primary">${action === "REROUTE" ? "Choose another bridge" : "Choose next bridge"}</button><button id="route-button" class="button ghost">Follow route</button>`;
+    if (action === "SHARE_CLAIM") return `<button id="claim-share-button" class="button primary">Share private claim</button><button id="route-button" class="button ghost">View mission</button>`;
+    if (action === "SEND_1_NIM") return `<button id="pass-button" class="button primary">Send 1 NIM to ${esc(m.target_label || "destination")}</button><button id="route-button" class="button ghost">View mission</button>`;
+    if (action === "CREATE_INVITATION" || action === "REROUTE") return `<button id="invite-button" class="button primary">${action === "REROUTE" ? "Choose another bridge" : "Add an introducer"}</button><button id="pass-button" class="button ghost">Send directly instead</button><button id="route-button" class="button ghost">Follow route</button>`;
     if (action === "WAIT" && m.viewer_role === "INVITEE" && m.invitation?.status === "ACCEPTED") return `<button class="button primary" disabled>Accepted — waiting for delivery</button><button id="route-button" class="button ghost">Follow route</button>`;
     if (action === "WAIT" && m.invitation?.status === "ACCEPTED") return `<button class="button primary" disabled>Checking existing send — no action needed</button><button id="route-button" class="button ghost">Follow route</button>`;
     if (action === "WAIT") return `<button class="button primary" disabled>Waiting for response</button><button id="route-button" class="button ghost">Follow route</button>`;
@@ -476,11 +496,52 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     document.querySelector("#new-button")?.addEventListener("click", () => navigate("/create"));
     document.querySelector("#pass-button")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(m.mission_id)}/pass`));
     document.querySelector("#invite-button")?.addEventListener("click", () => openInviteDialog(m));
+    document.querySelector("#claim-share-button")?.addEventListener("click", () => shareDestinationClaim(m));
+  }
+
+  async function shareDestinationClaim(mission) {
+    const claimUrl = sessionStorage.getItem(claimStorageKey(mission.mission_id));
+    if (!claimUrl) {
+      notice("CLAIM_LINK_NOT_IN_SESSION: this private bearer link is not persisted. Return to the creation session or create a fresh claim link.", true);
+      return;
+    }
+    const shareData = {
+      title: `NimCarry delivery for ${mission.target_label || "you"}`,
+      text: `${mission.target_label || "You"} can privately bind the destination wallet for this NimCarry delivery.`,
+      url: claimUrl,
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        notice("Private destination claim shared.");
+        return;
+      }
+      await navigator.clipboard.writeText(claimUrl);
+      notice("Private destination claim copied. Send it only to the intended destination.");
+    } catch (error) {
+      if (/cancel|abort/i.test(String(error?.message || error || ""))) return;
+      notice("Could not share automatically. Keep this private claim link only with the intended destination.", true);
+    }
   }
 
   async function renderCreate() {
-    els.screen.innerHTML = `<button class="back-link" id="back">← Back</button><section class="form-card"><div class="kicker">Screen 2 / 5 · Create Mission</div><h2>Who should this reach?</h2><p class="lede">For Cycle II, use a known, consenting Nimiq destination. The destination wallet is stored privately and never shown in normal route views.</p><form id="create-form" class="form-grid"><label>Target label<input name="target_label" maxlength="60" required placeholder="Nimiq builder" /></label><label>Private target wallet<input name="target_wallet" required autocomplete="off" placeholder="NQ…" /></label><label>Why should this reach them?<textarea name="mission_note" maxlength="180" required placeholder="I want this idea to reach someone who can connect it to…"></textarea></label><label>Creator display label (optional)<input name="creator_display_label" maxlength="60" placeholder="Faadil" /></label><label class="checkline"><input name="target_consent_confirmed" type="checkbox" required /><span>I confirm this target is known to me and has consented to be the destination for this Cycle II mission.</span></label><button data-busy-lock="1" class="button primary" type="submit">Create mission</button></form></section>`;
-    document.querySelector("#back").addEventListener("click", () => history.back()); document.querySelector("#create-form").addEventListener("submit", createMission); els.screen.focus();
+    els.screen.innerHTML = `<button class="back-link" id="back">← Back</button><section class="form-card"><div class="kicker">Private delivery · destination first</div><h2>Who is this for?</h2><p class="lede">You do not need their Nimiq address yet. If you leave it blank, NimCarry creates a private claim that only the destination can use to bind their own wallet.</p><form id="create-form" class="form-grid"><label>Destination name or label<input name="target_label" maxlength="60" required placeholder="David" /></label><label>Nimiq address <span>(optional)</span><input id="target-wallet-input" name="target_wallet" autocomplete="off" placeholder="Leave blank if you don’t know it" /><small>If unknown, the destination binds their own wallet through a private expiring claim.</small></label><label>What are you sending / why?<textarea name="mission_note" maxlength="180" required placeholder="A short private reason for this delivery…"></textarea></label><label>Your display label <span>(optional)</span><input name="creator_display_label" maxlength="60" placeholder="Faadil" /></label><label id="target-consent-row" class="checkline" hidden><input name="target_consent_confirmed" type="checkbox" /><span>I confirm this exact Nimiq address belongs to the consenting destination.</span></label><button data-busy-lock="1" class="button primary" type="submit">Create private delivery</button></form></section>`;
+    const targetWalletInput = document.querySelector("#target-wallet-input");
+    const consentRow = document.querySelector("#target-consent-row");
+    const consentInput = consentRow?.querySelector('input[name="target_consent_confirmed"]');
+    const syncConsent = () => {
+      const hasWallet = Boolean(targetWalletInput?.value?.trim());
+      if (consentRow) consentRow.hidden = !hasWallet;
+      if (consentInput) {
+        consentInput.required = hasWallet;
+        if (!hasWallet) consentInput.checked = false;
+      }
+    };
+    targetWalletInput?.addEventListener("input", syncConsent);
+    syncConsent();
+    document.querySelector("#back").addEventListener("click", () => history.back());
+    document.querySelector("#create-form").addEventListener("submit", createMission);
+    els.screen.focus();
   }
 
   async function createMission(event) {
@@ -492,10 +553,29 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
         demoSave({ mission, invitation: null }); state.mission = mission; navigate(`/mission/${mission.mission_id}`); return;
       }
       const auth = await signedAuth("CREATE_MISSION");
-      const mission = await api("/missions", { method: "POST", body: { ...input, target_consent_confirmed: true, visibility: "UNLISTED", auth } });
+      const targetWallet = String(input.target_wallet || "").trim();
+      const missionBody = {
+        target_label: input.target_label,
+        mission_note: input.mission_note,
+        creator_display_label: input.creator_display_label || undefined,
+        visibility: "UNLISTED",
+        auth,
+      };
+      if (targetWallet) {
+        missionBody.target_wallet = targetWallet;
+        missionBody.target_consent_confirmed = input.target_consent_confirmed === "on";
+      }
+      const mission = await api("/missions", { method: "POST", body: missionBody });
       const missionId = mission.mission_id || mission.id;
+      if (mission.destination_claim_url) {
+        sessionStorage.setItem(claimStorageKey(missionId), mission.destination_claim_url);
+      }
       rememberMissionLocator(missionId);
-      state.mission = mission; navigate(`/mission/${encodeURIComponent(missionId)}`);
+      state.mission = mission;
+      navigate(`/mission/${encodeURIComponent(missionId)}`);
+      if (mission.destination_claim_url) {
+        notice(`Private claim created for ${mission.target_label || input.target_label}. Share it only with that destination.`);
+      }
     } catch (error) { notice(error.message, true); } finally { setBusy(false); }
   }
 
