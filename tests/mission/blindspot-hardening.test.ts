@@ -160,4 +160,79 @@ describe("Reach Mission blind-spot hardening", () => {
     expect((await repo.snapshot()).invitations).toHaveLength(0);
     expect((await repo.snapshot()).destinationClaims[0].status).toBe("CLAIMED");
   });
+
+  it("background-repairs a direct FINAL that persisted before mission ARRIVED projection", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "nimcarry-claim-projection-repair-"));
+    dirs.push(dir);
+    const missionPath = join(dir, "mission.json");
+    const relayPath = join(dir, "relay.json");
+    const repo = new FileMissionRepository(missionPath);
+    const protector = new TargetWalletProtector(Buffer.alloc(32, 51), Buffer.alloc(32, 52));
+    const service = new ReachMissionService(repo, protector);
+    const rpc = new Rpc();
+    const relay = new CanonicalRelayService(new FileRelayStore(relayPath), rpc);
+    const coordinator = new ReachMissionCoordinator(service, repo, relay, protector);
+    const creator = wallet();
+    const destination = wallet();
+
+    const mission = await service.createMission({
+      auth: auth(creator, "CREATE_MISSION"),
+      targetLabel: "David",
+      missionNote: "Crash-window repair for direct claim.",
+      now: 20_000,
+    });
+    const opened = await service.createDestinationClaim({
+      missionId: mission.id,
+      creatorWallet: creator,
+      now: 20_100,
+    });
+    await service.claimDestination({
+      token: opened.claimToken,
+      auth: auth(destination, "CLAIM_DESTINATION", mission.id),
+      now: 20_200,
+    });
+    const intent = await coordinator.authorizePass({
+      missionId: mission.id,
+      auth: auth(creator, "AUTHORIZE_PASS", mission.id, undefined, 1),
+      now: 20_300,
+    });
+    const txHash = "e".repeat(64);
+    await coordinator.recordBroadcast({ missionId: mission.id, txHash });
+    rpc.tx = {
+      hash: txHash,
+      from: normalizeNimiqAddress(creator),
+      to: normalizeNimiqAddress(destination),
+      value: ONE_NIM_IN_LUNA,
+      blockNumber: 3_032_020,
+      confirmations: 999,
+      recipientData: intent.recipientData!,
+    };
+
+    // Simulate the crash window: relay FINAL persists, mission projection does not.
+    const finalHop = await relay.reconcile(mission.id);
+    await relay.flushDurability();
+    expect(finalHop?.status).toBe("FINAL");
+    expect((await repo.getMission(mission.id))?.status).toBe("ACTIVE");
+    expect(relay.getPendingReconciliationBatonIds()).toEqual([]);
+    expect(relay.getFinalizedProjectionBatonIds()).toContain(mission.id);
+
+    // New process: startup/background sweep must repair without another payment.
+    const repo2 = new FileMissionRepository(missionPath);
+    const service2 = new ReachMissionService(repo2, protector);
+    const relay2 = new CanonicalRelayService(new FileRelayStore(relayPath), rpc);
+    const coordinator2 = new ReachMissionCoordinator(service2, repo2, relay2, protector);
+    const repaired = await coordinator2.reconcilePending();
+
+    expect(repaired).toMatchObject({ checked: 1, arrived: 1, errors: 0 });
+    const arrived = await service2.getMissionRecord(mission.id);
+    expect(arrived.status).toBe("ARRIVED");
+    expect(arrived.currentSequence).toBe(1);
+    expect(arrived.finalizedHopCount).toBe(1);
+    expect(arrived.currentHolderWalletNormalized).toBe(normalizeNimiqAddress(destination));
+    expect((await repo2.snapshot()).invitations).toHaveLength(0);
+
+    // Once settled, the same process does not keep rescanning this historical FINAL.
+    await expect(coordinator2.reconcilePending()).resolves.toMatchObject({ checked: 0, arrived: 0, errors: 0 });
+  });
+
 });
