@@ -12,11 +12,16 @@ describe("route access self-recovery", () => {
     expect(ux).toContain("/route-access-recovery.html");
   });
 
-  it("can rediscover stale mission ids from session storage when browser history is lost", () => {
+  it("can rediscover a mission after session storage is lost without persisting bearer access", () => {
     expect(ux).toContain('const prefix = "carryone.view."');
-    expect(ux).toContain("Previous mission found in this Nimiq Pay session");
+    expect(ux).toContain('const RECENT_MISSIONS_KEY = "nimcarry.recentMissions.v1"');
+    expect(ux).toContain("persistentMissionIds");
+    expect(ux).toContain("knownMissionIds");
+    expect(ux).toContain("Previous mission found on this device");
     expect(ux).toContain("Resume without creating a new mission");
+    expect(ux).toContain("bearer capability itself remains session-only");
     expect(ux).toContain("recoveryPathForMission(id)");
+    expect(ux).not.toContain('localStorage.setItem(`carryone.view.');
   });
 
   it("uses a signed VIEW_ROUTE challenge and returns to the same mission", () => {
