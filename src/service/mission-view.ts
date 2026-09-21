@@ -201,7 +201,7 @@ function derivePrimaryAction(
   }
   if (viewerIsCurrentHolder) {
     if (!targetWalletBound) return "SHARE_CLAIM";
-    if (!invitation && destinationClaim?.status === "CLAIMED") {
+    if (!invitation && (destinationClaim === null || destinationClaim.status === "CLAIMED")) {
       return !hasActiveIntent || (activeIntentStale && !activeIntentHasBroadcast) ? "SEND_1_NIM" : "WAIT";
     }
     if (!invitation) return "CREATE_INVITATION";
