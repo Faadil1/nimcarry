@@ -108,3 +108,46 @@ Possible evidence-valid outcomes:
 - no matching broadcast discovered before stale expiry → terminal fail-closed INVALID/no custody movement.
 
 Until one of those occurs, Destination Claim v1 is **partially live-validated**, not end-to-end validated.
+
+
+## Later chain discovery and FINAL projection gap
+
+The same no-hash send was later independently discovered on TESTNET.
+
+Durable relay evidence:
+
+- tx: `393e98c2cb9db0bf9bc5f40dca835f76f43262630d4bfc0a326aea02286b596e`
+- INCLUDED: `2026-09-21T10:50:16.621Z`
+- FINAL: `2026-09-21T10:51:02.963Z`
+- invitation_id: `NULL`
+- recipient: the exact wallet David bound through Destination Claim
+
+This proves that the original ambiguous no-hash attempt was a real broadcast and that the background reconciler recovered it without a resend.
+
+A second crash/race window was then exposed: the relay FINAL was durable, but the mission row remained `ACTIVE`, sequence 0, with 0 finalized hops. The UI therefore showed a verified direct-delivery row while Mission Home still offered **Send 1 NIM to David**.
+
+That state is unsafe as presentation because it can suggest a duplicate payment even though FINAL already exists.
+
+PR #122 **Repair stranded FINAL mission projections automatically** was merged as:
+
+`724f0d88877e32b2048a4e6eb9f6254b51f0de97`
+
+The fix:
+
+- discovers durable FINAL relay rows even after their active intent has been removed;
+- retries the existing idempotent mission projection in background/startup sweeps;
+- remembers already-settled historical FINALs in-process to avoid repeated 15-second reads;
+- resets that optimization on process restart so startup always rescans crash-window candidates;
+- makes mission views return `WAIT` rather than another send/reroute when a FINAL route entry is ahead of the mission row;
+- initiates no payment and changes no FINAL criteria.
+
+PR #122 gates:
+
+- PR CI: **SUCCESS**
+- Cloudflare production build: **SUCCESS**
+- production smoke: **SUCCESS**
+- production CI: **SUCCESS**
+
+At the time this evidence entry was written, Cloudflare had deployed the new image but the old long-lived container instance had not yet projected this mission. Cloudflare container rollouts may briefly continue serving an older container image while replacement progresses.
+
+Until the mission row becomes `ARRIVED`, **do not press Send 1 NIM again**.
