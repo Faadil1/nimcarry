@@ -29,7 +29,7 @@ describe("NimCarry 1→5 journey health contract", () => {
   });
 
   it("never offers another payment from an expired pass window", () => {
-    expect(app).toContain('const introducedReady = inv?.status === "ACCEPTED" && !passWindowExpired');
+    expect(app).toContain('const introducedReady = m?.target_wallet_bound === true && inv?.status === "ACCEPTED" && !passWindowExpired');
     expect(app).toContain("const passReady = directClaimReady || introducedReady");
     expect(app).toContain("This introduction can’t be reused.");
     expect(app).toContain("No payment should be requested from this screen.");
