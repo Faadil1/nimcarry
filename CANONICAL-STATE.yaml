@@ -1,5 +1,5 @@
 project: NimCarry
-updated_at: "2026-09-20T23:16:00-04:00"
+updated_at: "2026-09-20T23:24:00-04:00"
 phase: AUTOMATIC_FINALITY_RECONCILIATION
 source_of_truth: true
 
@@ -9,10 +9,10 @@ repository:
   baseline_summary: "PR #117 merged on top of #114: server-owned FINAL reconciliation plus evidence-safe no-hash submission recovery."
 
 latest_live_validation:
-  mission_id: 052bc4d3-a71c-43b8-8aba-be6d40b5651c
+  mission_id: c31534d0-9ecd-45b9-bf8d-e9457141d391
   status: ARRIVED
   finalized_hop_count: 1
-  transaction_hash: a2d31d21c33dd4de01067a499333ae5f488fcc3ea54f09fd25147d2edde4e3f8
+  transaction_hash: dcb5f139f12f65a10b51871275dd797ecdea98bc8af1e3b17b3ea0fbdfbe27e4
   bridge:
     label: Grace
     role: "consent/introduction only"
@@ -140,8 +140,26 @@ candidate_flows:
     description: "Do not build a public discovery/marketplace flow until real demand and abuse controls are proven."
 
 implementation_state:
+  close_before_final_proof:
+    status: BACKEND_VALIDATED_UI_RESUME_DEFECT_FOUND
+    mission_id: c31534d0-9ecd-45b9-bf8d-e9457141d391
+    created_at: "2026-09-21T03:19:41.310Z"
+    included_at: "2026-09-21T03:21:45.975Z"
+    finalized_at: "2026-09-21T03:22:50.427Z"
+    transaction_hash: dcb5f139f12f65a10b51871275dd797ecdea98bc8af1e3b17b3ea0fbdfbe27e4
+    observed:
+      - "Faadil closed the sender app before FINAL."
+      - "Grace remained open and independently observed ARRIVED."
+      - "Neon confirms the mission advanced to ARRIVED with one FINAL hop and one tx hash."
+      - "No second payment or manual recheck was required."
+      - "When Faadil reopened NimCarry, the app landed on the generic home/new-mission surface instead of offering the completed mission."
+    conclusion:
+      - "Server-owned reconciliation across client close is live-validated."
+      - "The remaining defect is mission rediscovery/resume UX, not finality reconciliation."
+      - "Current home recovery discovers missions from sessionStorage carryone.view.*; a full app close can remove that session-only locator."
+      - "Fix must persist only a non-secret mission locator, never a route-view bearer capability, then mint a fresh VIEW_ROUTE capability on resume."
   automatic_finality_reconciliation:
-    status: MERGED_LIVE_VALIDATION_CONTINUES
+    status: LIVE_VALIDATED_BACKEND_CLOSE_BEFORE_FINAL
     merged_pr: 114
     merge_sha: 5d31d5bf3234f267a55aee5e3f5435165b9478aa
     merge_checks:
@@ -156,10 +174,13 @@ implementation_state:
       - "Manual 'Recheck existing handoff' is removed from the current happy path."
       - "Mission Home watches both the accepted bridge and the sender while an existing payment finalizes."
       - "Closing the page does not create a resend path; background reconciliation continues server-side while the runtime is active."
-    live_validation_required:
-      - "Broadcast one real TESTNET payment with a recorded hash, close the client while pending, and confirm mission reaches ARRIVED without manual recheck."
-      - "Reopen before FINAL and verify no second payment control is offered."
-      - "Verify the same behavior on mobile, tablet, and desktop."
+    live_validation_observed:
+      - "Real mission c31534d0-9ecd-45b9-bf8d-e9457141d391 reached ARRIVED after the sender app was closed before FINAL."
+      - "One recorded tx hash advanced INCLUDED -> FINAL with no manual recheck and no second payment."
+    remaining_product_gate:
+      - "Repair sender mission rediscovery after a full app close so reopening A surfaces the existing mission/receipt instead of only the new-mission home."
+      - "Keep bearer route-view capability session-scoped; persist only a non-secret mission locator and mint fresh VIEW_ROUTE on resume."
+      - "Verify the repaired resume UX on mobile, tablet, and desktop."
     evidence_doc: "docs/evidence/AUTOMATIC-FINALITY-RECONCILIATION-2026-09-20.md"
     latest_ambiguous_submission_evidence: "docs/evidence/AMBIGUOUS-SUBMISSION-LIVE-2026-09-20.md"
   ambiguous_submission_recovery:
