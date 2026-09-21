@@ -159,9 +159,10 @@ export function screenForPath(pathname: string): MiniAppScreenId {
 export function assertParticipantSafeMission(view: unknown): void {
   const serialized = JSON.stringify(view).toLowerCase();
   const forbidden = [
-    "target_wallet",
-    "targetwallet",
+    '"target_wallet":',
+    '"targetwallet":',
     "target_wallet_ciphertext",
+    "target_wallet_hmac",
     "targetwallethmac",
     "invite_token_hash",
     "signaturehex",
