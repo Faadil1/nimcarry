@@ -1,12 +1,15 @@
-export const FIVE_SCREEN_IDS = [
+export const CANONICAL_SCREEN_IDS = [
   "MISSION_HOME",
   "CREATE_MISSION",
+  "DESTINATION_CLAIM",
   "BRIDGE_INVITATION",
   "PASS_1_NIM",
   "ROUTE_ARRIVAL",
 ] as const;
 
-export type MiniAppScreenId = (typeof FIVE_SCREEN_IDS)[number];
+/** @deprecated The product is no longer constrained to the original five-screen topology. */
+export const FIVE_SCREEN_IDS = CANONICAL_SCREEN_IDS;
+export type MiniAppScreenId = (typeof CANONICAL_SCREEN_IDS)[number];
 export type UiMissionStatus = "ACTIVE" | "ARRIVED" | "CANCELLED";
 export type UiMissionActivity = "ACTIVE" | "STALLED" | "TERMINAL";
 export type UiInvitationStatus = "INVITED" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "WITHDRAWN" | "COMPLETED";
@@ -16,6 +19,12 @@ export interface UiWalletRef {
   display_label: string | null;
   wallet_fingerprint: string;
   is_viewer?: boolean;
+}
+
+export interface UiDestinationClaimSummary {
+  status: "PENDING" | "CLAIMED" | "EXPIRED" | "REVOKED";
+  expires_at: string;
+  claimed_at: string | null;
 }
 
 export interface UiInvitationSummary {
@@ -59,6 +68,8 @@ export interface UiMissionView {
   sequence: number;
   finalized_hop_count: number;
   current_holder: UiWalletRef;
+  target_wallet_bound?: boolean;
+  destination_claim?: UiDestinationClaimSummary | null;
   invitation: UiInvitationSummary | null;
   route: BackendRouteEntry[] | UiRouteEntry[];
   viewer_role: "CREATOR" | "HOLDER" | "PARTICIPANT" | "INVITEE" | "TARGET" | "UNLISTED_VIEWER";
@@ -138,6 +149,7 @@ export function actionLabel(action: UiPrimaryAction): string | null {
 export function screenForPath(pathname: string): MiniAppScreenId {
   const path = pathname.replace(/\/+$/, "") || "/";
   if (path === "/create") return "CREATE_MISSION";
+  if (/^\/c\/[A-Za-z0-9_-]+$/.test(path)) return "DESTINATION_CLAIM";
   if (/^\/i\/[A-Za-z0-9_-]+$/.test(path)) return "BRIDGE_INVITATION";
   if (/^\/mission\/[^/]+\/pass$/.test(path)) return "PASS_1_NIM";
   if (/^\/mission\/[^/]+\/route$/.test(path)) return "ROUTE_ARRIVAL";
