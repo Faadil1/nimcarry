@@ -9,11 +9,12 @@ This file is intentionally operational. A new conversation should be able to rea
 
 Current main baseline:
 
-- SHA: `bad96d463064e418ec47a949acd792224d8fde24`
+- Product/runtime baseline: `50187e5e9387f47762a7ca011b9931ff91df769a` (PR #119).
 - PR #114 **Move FINAL reconciliation into the background** is merged.
 - PR #117 **Hand ambiguous Nimiq Pay submissions to background reconciliation** is merged as `bad96d463064e418ec47a949acd792224d8fde24`.
-- PR #117 gates: CI #1575 **SUCCESS**, Judge Full Flow #220 **SUCCESS**; guided-flow coverage exercised mobile + desktop.
-- Cloudflare production build for PR #117 is **SUCCESS**. Vercel status is not the production gate for NimCarry.
+- PR #119 **Resume missions safely after a full app close** is merged as `50187e5e9387f47762a7ca011b9931ff91df769a`.
+- PR #119 Cloudflare production build, CI, Judge Window smoke, and **Guided flow — mobile + tablet + desktop** are all **SUCCESS**.
+- Vercel status is not the production gate for NimCarry.
 - Product behavior: one-time human bridge; sender pays the target directly; long-running FINAL reconciliation is server-owned.
 - The prior custody-chain model and manual-recheck happy path are obsolete.
 
@@ -58,14 +59,17 @@ A separate UX defect was discovered when Faadil reopened A: NimCarry returned to
 
 Root cause in the current frontend: home recovery discovers prior missions from `sessionStorage` keys named `carryone.view.<missionId>`. A full mini-app close can destroy this session-only locator. The durable mission is safe; the app simply loses discoverability of which mission to reopen.
 
-Required fix:
+Implemented in PR #119 and deployed to Cloudflare:
 
-- persist only a non-secret mission locator (mission ID plus minimal display metadata if useful);
-- **do not** persist the route-view bearer capability in localStorage;
-- on reopen, show a Resume/Recent mission action;
-- mint a fresh read-only `VIEW_ROUTE` capability after user authorization;
-- return directly to the existing mission/ARRIVED receipt;
-- verify mobile + tablet + desktop.
+- recent non-secret mission UUID locators are persisted under `nimcarry.recentMissions.v1`, capped at five;
+- the route-view bearer capability remains **sessionStorage-only** under `carryone.view.<missionId>`;
+- home now shows **Resume recent mission** after a full app close;
+- resume goes through signed `VIEW_ROUTE` recovery and mints fresh read-only access;
+- recovery returns to the same mission/ARRIVED receipt;
+- recovery has no create/invite/pass/send/custody mutation path;
+- PR and production guided flow passed mobile + tablet + desktop.
+
+Important migration detail: mission `c31534d0-9ecd-45b9-bf8d-e9457141d391` was created before PR #119, so A never wrote the new persistent locator. Use that existing ARRIVED mission once through signed route-access recovery to bootstrap the locator. **Do not create another payment.** After that one recovery, fully close/reopen A and verify the Resume action restores the same ARRIVED receipt.
 
 ## 2. Automatic reconciliation workstream
 
@@ -89,17 +93,17 @@ Implemented in the code branch for this handover:
 - while open, Mission Home watches the sender's accepted/pending state and reflects ARRIVED when the backend advances;
 - retries remain read/reconcile operations only and never authorize or send a second payment.
 
-Status: **merged with CI/Judge gates green. Both no-hash fail-closed recovery and hash-recorded close-before-FINAL server reconciliation are now live-validated. The remaining issue is sender mission rediscovery/resume UX after a full app close.**
+Status: **server-owned reconciliation is live-validated for both no-hash fail-closed recovery and hash-recorded close-before-FINAL arrival. PR #119 fixes the separate sender rediscovery defect and is deployed with all automated gates green.**
 
-Required live validation:
+Remaining real-device validation requires **no new mission and no new payment**:
 
-1. create a fresh real TESTNET mission;
-2. broadcast the one payment and confirm a tx hash is durably recorded;
-3. close the client while the hop is still pending/included;
-4. wait without pressing any manual recheck;
-5. reopen and confirm the mission reached ARRIVED automatically;
-6. verify no second payment control is offered at any point;
-7. verify mobile + tablet + desktop.
+1. open the existing ARRIVED mission `c31534d0-9ecd-45b9-bf8d-e9457141d391` once through signed route-access recovery;
+2. confirm A reaches the existing ARRIVED receipt;
+3. close NimCarry completely;
+4. reopen NimCarry at home;
+5. confirm **Resume recent mission** appears;
+6. sign fresh `VIEW_ROUTE`;
+7. confirm the same ARRIVED receipt returns with no resend/recheck/payment control.
 
 ### Latest live attempt — terminal no-hash recovery
 
@@ -218,17 +222,15 @@ Do not add public destination requests, bridge search, bounty routing, reputatio
 
 ## 6. Immediate next implementation sequence
 
-1. **Automatic reconciliation — one live gate remains**
-   - PR #114 merged as `5d31d5bf3234f267a55aee5e3f5435165b9478aa`.
-   - PR #117 merged as `bad96d463064e418ec47a949acd792224d8fde24`.
-   - Both relevant Cloudflare production builds succeeded.
-   - No-hash attempt `d9ae9ec2-5eab-485e-b19a-31b8a96e700a` is now terminal `INVALID` with no tx hash, no FINAL, and no duplicate payment.
-   - Browser no longer owns long-running FINAL or ambiguous-submission recovery loops.
-   - Manual recheck is removed from the happy path.
-   - Remaining proof gate: a fresh real TESTNET payment with a durably recorded hash, then close/reopen before FINAL and confirm automatic ARRIVED with no resend control.
-   - Live acceptance must cover mobile, tablet, and desktop.
+1. **Persistent mission resume — final real-device UX gate**
+   - PR #119 merged as `50187e5e9387f47762a7ca011b9931ff91df769a` and Cloudflare production build succeeded.
+   - CI, Judge Window smoke, and guided mobile + tablet + desktop flow are green.
+   - Use existing ARRIVED mission `c31534d0-9ecd-45b9-bf8d-e9457141d391`; no new payment.
+   - Bootstrap its locator once through signed route-access recovery because it predates PR #119.
+   - Then full-close/reopen A and verify **Resume recent mission** restores the same ARRIVED receipt.
+   - Bearer VIEW_ROUTE access must remain session-only.
 
-2. **Destination Claim experiment — next implementation workstream**
+2. **Destination Claim experiment — next implementation workstream after the resume gate**
    - No on-chain escrow dependency.
    - Sender can create a mission before knowing destination wallet.
    - Destination alone can bind the destination wallet.
