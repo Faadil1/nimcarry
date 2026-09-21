@@ -320,6 +320,17 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(css).toContain("prefers-reduced-motion:reduce");
   });
 
+  it("keeps private claim bearer links session-only and safely reissues lost links", () => {
+    expect(js).toContain('const claimStorageKey = (missionId) => `nimcarry.claim.${missionId}`');
+    expect(js).toContain("sessionStorage.setItem(claimStorageKey(missionId), mission.destination_claim_url)");
+    expect(js).not.toContain("localStorage.setItem(claimStorageKey");
+    expect(js).toContain('signedAuth("CREATE_DESTINATION_CLAIM"');
+    expect(js).toContain('/destination-claim');
+    expect(js).toContain("The previous pending link is revoked");
+    expect(js).toContain('claim.status !== "PENDING"');
+    expect(js).toContain("This claim can’t be used.");
+  });
+
   it("honors reduced-motion in both base and final identity CSS", () => {
     expect(css).toContain("prefers-reduced-motion:reduce");
     expect(finalHumanCss).toContain("prefers-reduced-motion:reduce");
