@@ -54,8 +54,8 @@ describe("NimCarry V2 carried-letter foundation", () => {
   it("preserves privacy and FINAL semantics in the new metaphor", () => {
     expect(js).toContain("Their address stays sealed from every carrier.");
     expect(js).toContain("Only independently verified handoffs are inked onto this letter.");
-    expect(js).toContain("The bridge introduces the route; the bridge never receives custody.");
-    expect(js).toContain("The 1 NIM is sent to the destination, not paid to the bridge.");
+    expect(js).toContain("The destination bound their own wallet. The sender pays that wallet directly");
+    expect(js).toContain("The 1 NIM is sent to the destination, not the introducer.");
   });
 
   it("supports mobile, deliberate desktop composition and reduced motion", () => {
