@@ -5,6 +5,7 @@ const js = readFileSync("web/app.js", "utf8");
 const provider = readFileSync("web/nimiq-provider.js", "utf8");
 const sdk = readFileSync("web/vendor/nimiq-mini-app-sdk.js", "utf8");
 const compat = readFileSync("web/http-compat.js", "utf8");
+const recoveryUx = readFileSync("web/nimiq-recovery-ux.js", "utf8");
 const demoUx = readFileSync("web/demo-ux.js", "utf8");
 const winning = readFileSync("web/winning-intelligence.js", "utf8");
 const finalHuman = readFileSync("web/final-human-craft.js", "utf8");
@@ -144,6 +145,20 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(js).toContain('headers.Authorization = `Bearer ${viewToken}`');
     expect(compat).toContain('sessionStorage.setItem(viewStorageKey(missionId), token)');
     expect(compat).toContain('headers.set("Authorization", `Bearer ${token}`)');
+  });
+  it("persists only non-secret mission locators so a full app close can resume safely", () => {
+    expect(js).toContain('const RECENT_MISSIONS_KEY = "nimcarry.recentMissions.v1"');
+    expect(js).toContain("function rememberMissionLocator(missionId)");
+    expect(js).toContain("localStorage.setItem(RECENT_MISSIONS_KEY, JSON.stringify(next))");
+    expect(js).toContain("rememberMissionLocator(mission?.mission_id || missionId)");
+    expect(js).toContain("rememberMissionLocator(missionId)");
+    expect(js).not.toContain('localStorage.setItem(`carryone.view.${missionId}`');
+    expect(recoveryUx).toContain('const RECENT_MISSIONS_KEY = "nimcarry.recentMissions.v1"');
+    expect(recoveryUx).toContain("persistentMissionIds");
+    expect(recoveryUx).toContain("knownMissionIds");
+    expect(recoveryUx).toContain("Resume recent mission");
+    expect(recoveryUx).toContain("bearer capability itself remains session-only");
+    expect(recoveryUx).toContain("/route-access-recovery.html");
   });
   it("adapts nested UI signatures to the active flat Mission HTTP envelope", () => {
     expect(compat).toContain("challenge_id: auth.challenge_id");
