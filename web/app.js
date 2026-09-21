@@ -576,7 +576,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     const form = new FormData(event.currentTarget); const input = Object.fromEntries(form.entries());
     try {
       if (state.demo) {
-        const mission = { mission_id: `demo-${Date.now()}`, status: "ACTIVE", activity: "ACTIVE", target_label: input.target_label, mission_note: input.mission_note, sequence: 0, finalized_hop_count: 0, current_holder: { display_label: input.creator_display_label || "You", wallet_fingerprint: "NQ…DEMO", is_viewer: true }, invitation: null, route: [], viewer_role: "HOLDER", primary_action: "CREATE_INVITATION" };
+        const mission = { mission_id: `demo-${Date.now()}`, status: "ACTIVE", activity: "ACTIVE", target_label: input.target_label, mission_note: input.mission_note, target_consent_confirmed: true, target_wallet_bound: true, destination_claim: null, sequence: 0, finalized_hop_count: 0, current_holder: { display_label: input.creator_display_label || "You", wallet_fingerprint: "NQ…DEMO", is_viewer: true }, invitation: null, route: [], viewer_role: "HOLDER", primary_action: "CREATE_INVITATION" };
         demoSave({ mission, invitation: null }); state.mission = mission; navigate(`/mission/${mission.mission_id}`); return;
       }
       const auth = await signedAuth("CREATE_MISSION");
