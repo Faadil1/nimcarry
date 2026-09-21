@@ -102,6 +102,24 @@ export class CanonicalRelayService {
       .map((intent) => intent.batonId);
   }
 
+  /**
+   * Durable FINAL hops whose mission projection may still need repair.
+   *
+   * FINAL relay state and mission ARRIVED state live in separate durable stores.
+   * A process can stop after persisting FINAL but before projecting that fact
+   * into the mission row. Exposing the baton ids lets the coordinator retry the
+   * idempotent projection on startup/background sweeps without initiating any
+   * wallet action or payment.
+   */
+  getFinalizedProjectionBatonIds(): string[] {
+    const snapshot = this.store.snapshot();
+    return [...new Set(
+      snapshot.hops
+        .filter((hop) => hop.status === "FINAL")
+        .map((hop) => hop.batonId)
+    )];
+  }
+
   hasRecordedBroadcast(batonId: string): boolean {
     const intent = this.store.getActiveIntent(batonId);
     if (!intent) return false;
