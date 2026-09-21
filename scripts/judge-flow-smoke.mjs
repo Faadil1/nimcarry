@@ -150,6 +150,53 @@ async function run(viewport) {
     if (/carried-letter-v2-demo/.test(liveBodyClass || "")) throw new Error("Live site leaked demo visual identity");
     captures.push(await captureState(page, viewport, "00-live-home", "home"));
 
+    // Destination Claim is a first-class product surface. Exercise it at every
+    // viewport without signing or mutating any real runtime. Document requests
+    // still load the SPA; only the app's JSON GET is fulfilled synthetically.
+    activeStep = "destination-claim-responsive";
+    const claimToken = "judge-destination-claim";
+    const claimUrlPattern = `**/c/${claimToken}`;
+    await page.route(claimUrlPattern, async (route) => {
+      const request = route.request();
+      if (request.resourceType() === "document") {
+        await route.continue();
+        return;
+      }
+      if (request.method() !== "GET") {
+        await route.abort();
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          claim: {
+            id: "22222222-2222-4222-8222-222222222222",
+            mission_id: "33333333-3333-4333-8333-333333333333",
+            status: "PENDING",
+            expires_at: "2026-09-22T04:00:00.000Z",
+            claimed_at: null,
+          },
+          mission: {
+            mission_id: "33333333-3333-4333-8333-333333333333",
+            target_label: "David",
+            mission_note: "A private delivery for David.",
+            status: "ACTIVE",
+            target_wallet_bound: false,
+          },
+        }),
+      });
+    });
+    await page.goto(`${baseUrl}/c/${claimToken}`, { waitUntil: "networkidle", timeout: 20000 });
+    await page.locator('[data-destination-claim-status="PENDING"]').waitFor({ state: "visible", timeout: 5000 });
+    await page.locator("#claim-destination").waitFor({ state: "visible" });
+    const claimCopy = await page.locator('[data-destination-claim-status="PENDING"]').textContent();
+    if (!/Bind my wallet as destination/i.test(claimCopy || "")) {
+      throw new Error(`Destination Claim surface missing binding action: ${claimCopy || "empty"}`);
+    }
+    captures.push(await captureState(page, viewport, "00c-destination-claim", null));
+    await page.unroute(claimUrlPattern);
+
     // A full mini-app close drops sessionStorage. The home screen must still
     // rediscover a non-secret mission locator from localStorage and route the
     // user through fresh read-only VIEW_ROUTE recovery. Never persist bearer access.
