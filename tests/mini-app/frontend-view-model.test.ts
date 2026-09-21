@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FIVE_SCREEN_IDS, assertParticipantSafeMission, deriveMissionHomeModel, normalizeRouteEntries, safeRouteEntries, screenForPath, type UiMissionView } from "../../src/mini-app/view-model.js";
+import { CANONICAL_SCREEN_IDS, assertParticipantSafeMission, deriveMissionHomeModel, normalizeRouteEntries, safeRouteEntries, screenForPath, type UiMissionView } from "../../src/mini-app/view-model.js";
 
 function mission(overrides: Partial<UiMissionView> = {}): UiMissionView {
   return {
@@ -20,8 +20,16 @@ function mission(overrides: Partial<UiMissionView> = {}): UiMissionView {
 }
 
 describe("five-screen Mini App view contract", () => {
-  it("keeps the MVP to exactly five canonical screens", () => {
-    expect(FIVE_SCREEN_IDS).toEqual(["MISSION_HOME", "CREATE_MISSION", "BRIDGE_INVITATION", "PASS_1_NIM", "ROUTE_ARRIVAL"]);
+  it("models Destination Claim as a first-class canonical screen", () => {
+    expect(CANONICAL_SCREEN_IDS).toEqual([
+      "MISSION_HOME",
+      "CREATE_MISSION",
+      "DESTINATION_CLAIM",
+      "BRIDGE_INVITATION",
+      "PASS_1_NIM",
+      "ROUTE_ARRIVAL",
+    ]);
+    expect(screenForPath("/c/private-claim-token")).toBe("DESTINATION_CLAIM");
   });
   it("maps route paths deterministically to the five screens", () => {
     expect(screenForPath("/")).toBe("MISSION_HOME");
