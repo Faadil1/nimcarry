@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { PrivateKey, PublicKey } from "@nimiq/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { FileMissionRepository } from "../../src/mission/file-repository.js";
-import { ReachMissionService, INVITATION_TTL_MS, MISSION_STALL_THRESHOLD_MS } from "../../src/mission/service.js";
+import { ReachMissionService, DESTINATION_CLAIM_TTL_MS, INVITATION_TTL_MS, MISSION_STALL_THRESHOLD_MS } from "../../src/mission/service.js";
 import { TargetWalletProtector, normalizeNimiqAddress } from "../../src/mission/target-wallet-crypto.js";
 import type { MissionAction, VerifiedWalletAction } from "../../src/mission/types.js";
 
@@ -39,6 +39,77 @@ function consentedMissionInput(creator: string, now: number) {
 
 afterEach(() => {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+});
+
+describe("Destination Claim foundation", () => {
+  it("creates an unbound mission and lets only the destination bind its own wallet", async () => {
+    const { repo, service } = fixture();
+    const creator = wallet();
+    const destination = wallet();
+
+    const mission = await service.createMission({
+      auth: auth(creator, "CREATE_MISSION"),
+      targetLabel: "David",
+      missionNote: "A private delivery for David.",
+      now: 100,
+    });
+
+    expect(mission.target_wallet_bound).toBe(false);
+    expect(mission.target_consent_confirmed).toBe(false);
+    const storedBefore = await service.getMissionRecord(mission.id);
+    expect(storedBefore.targetWalletCiphertext).toBeNull();
+    expect(storedBefore.targetWalletHmac).toBeNull();
+
+    await expect(service.createInvitation({
+      missionId: mission.id,
+      auth: auth(creator, "CREATE_INVITATION", mission.id, undefined, 1),
+      now: 150,
+    })).rejects.toMatchObject({ reason: "TARGET_NOT_BOUND" });
+
+    const opened = await service.createDestinationClaim({ missionId: mission.id, creatorWallet: creator, now: 200 });
+    expect(opened.claim.status).toBe("PENDING");
+    expect(JSON.stringify(opened.claim)).not.toContain(opened.claimToken);
+
+    await expect(service.claimDestination({
+      token: opened.claimToken,
+      auth: auth(creator, "CLAIM_DESTINATION", mission.id),
+      now: 250,
+    })).rejects.toMatchObject({ reason: "TARGET_IS_CREATOR" });
+
+    const claimed = await service.claimDestination({
+      token: opened.claimToken,
+      auth: auth(destination, "CLAIM_DESTINATION", mission.id),
+      now: 300,
+    });
+
+    expect(claimed.claim.status).toBe("CLAIMED");
+    expect(claimed.mission.target_wallet_bound).toBe(true);
+    expect(claimed.mission.target_consent_confirmed).toBe(true);
+    const stored = await service.getMissionRecord(mission.id);
+    expect(stored.targetWalletCiphertext).not.toBeNull();
+    expect(stored.targetWalletCiphertext).not.toContain(normalizeNimiqAddress(destination));
+    expect(stored.targetWalletHmac).not.toBe(normalizeNimiqAddress(destination));
+    expect((await repo.snapshot()).destinationClaims).toHaveLength(1);
+  });
+
+  it("expires an untouched destination claim without binding a wallet or moving custody", async () => {
+    const { service } = fixture();
+    const creator = wallet();
+    const mission = await service.createMission({
+      auth: auth(creator, "CREATE_MISSION"),
+      targetLabel: "David",
+      missionNote: "Private claim expiry test.",
+      now: 1_000,
+    });
+    const opened = await service.createDestinationClaim({ missionId: mission.id, creatorWallet: creator, now: 1_100 });
+    expect(await service.expireDueDestinationClaims(1_100 + DESTINATION_CLAIM_TTL_MS + 1)).toBe(1);
+    const claimState = await service.getDestinationClaimByToken(opened.claimToken, 1_100 + DESTINATION_CLAIM_TTL_MS + 2);
+    expect(claimState.claim.status).toBe("EXPIRED");
+    const after = await service.getMissionRecord(mission.id);
+    expect(after.targetWalletHmac).toBeNull();
+    expect(after.currentSequence).toBe(0);
+    expect(after.finalizedHopCount).toBe(0);
+  });
 });
 
 describe("Reach Mission foundation service", () => {
