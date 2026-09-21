@@ -284,6 +284,180 @@ export class PgMissionRepository implements MissionRepository {
     return result.rows.length === 0 ? undefined : missionFromRow(result.rows[0]);
   }
 
+  async createDestinationClaim(record: DestinationClaimRecord): Promise<DestinationClaimRecord> {
+    return this.withTransaction(async (client) => {
+      const mission = await client.query<MissionRow>(
+        "SELECT * FROM missions WHERE id = $1 FOR UPDATE",
+        [record.missionId]
+      );
+      if (mission.rows.length === 0) {
+        throw new MissionValidationError("MISSION_NOT_FOUND", `Mission ${record.missionId} does not exist`);
+      }
+      const missionRow = mission.rows[0];
+      if (missionRow.status !== "ACTIVE") {
+        throw new MissionValidationError("MISSION_NOT_ACTIVE", `Mission ${record.missionId} is ${missionRow.status}`);
+      }
+      if (missionRow.target_wallet_hmac !== null || missionRow.target_wallet_ciphertext !== null) {
+        throw new MissionValidationError("TARGET_ALREADY_BOUND", "Mission already has a destination wallet");
+      }
+      try {
+        const created = await client.query<DestinationClaimRow>(
+          `INSERT INTO destination_claims
+            (id, mission_id, claim_token_hash, status, created_at, expires_at,
+             claimed_at, closed_at, claimed_wallet_normalized)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+           RETURNING *`,
+          [
+            record.id,
+            record.missionId,
+            record.claimTokenHash,
+            record.status,
+            epoch(record.createdAt),
+            epoch(record.expiresAt),
+            record.claimedAt === null ? null : epoch(record.claimedAt),
+            record.closedAt === null ? null : epoch(record.closedAt),
+            record.claimedWalletNormalized,
+          ]
+        );
+        await client.query("UPDATE missions SET updated_at=$2 WHERE id=$1", [record.missionId, epoch(record.createdAt)]);
+        return destinationClaimFromRow(created.rows[0]);
+      } catch (error) {
+        throw mapPgErrorToMission(error, `createDestinationClaim failed for ${record.id}`);
+      }
+    });
+  }
+
+  async getDestinationClaim(id: string): Promise<DestinationClaimRecord | undefined> {
+    const result = await this.pool.query<DestinationClaimRow>(
+      "SELECT * FROM destination_claims WHERE id = $1",
+      [id]
+    );
+    return result.rows.length === 0 ? undefined : destinationClaimFromRow(result.rows[0]);
+  }
+
+  async getDestinationClaimByTokenHash(tokenHash: string): Promise<DestinationClaimRecord | undefined> {
+    const result = await this.pool.query<DestinationClaimRow>(
+      "SELECT * FROM destination_claims WHERE claim_token_hash = $1",
+      [tokenHash]
+    );
+    return result.rows.length === 0 ? undefined : destinationClaimFromRow(result.rows[0]);
+  }
+
+  async getDestinationClaimForMission(missionId: string): Promise<DestinationClaimRecord | undefined> {
+    const result = await this.pool.query<DestinationClaimRow>(
+      "SELECT * FROM destination_claims WHERE mission_id = $1 ORDER BY created_at DESC LIMIT 1",
+      [missionId]
+    );
+    return result.rows.length === 0 ? undefined : destinationClaimFromRow(result.rows[0]);
+  }
+
+  async claimDestination(input: {
+    claimId: string;
+    missionId: string;
+    walletNormalized: string;
+    targetWalletCiphertext: string;
+    targetWalletHmac: string;
+    now: number;
+  }): Promise<{ mission: MissionRecord; claim: DestinationClaimRecord }> {
+    return this.withTransaction(async (client) => {
+      const mission = await client.query<MissionRow>(
+        "SELECT * FROM missions WHERE id = $1 FOR UPDATE",
+        [input.missionId]
+      );
+      if (mission.rows.length === 0) {
+        throw new MissionValidationError("MISSION_NOT_FOUND", `Mission ${input.missionId} does not exist`);
+      }
+      const missionRow = mission.rows[0];
+      const claim = await client.query<DestinationClaimRow>(
+        "SELECT * FROM destination_claims WHERE id = $1 FOR UPDATE",
+        [input.claimId]
+      );
+      if (claim.rows.length === 0) {
+        throw new MissionValidationError("DESTINATION_CLAIM_NOT_FOUND", `Destination claim ${input.claimId} does not exist`);
+      }
+      const claimRow = claim.rows[0];
+      if (claimRow.mission_id !== missionRow.id) {
+        throw new MissionValidationError("DESTINATION_CLAIM_MISSION_MISMATCH", "Claim belongs to another mission");
+      }
+      if (claimRow.status === "CLAIMED" && claimRow.claimed_wallet_normalized === input.walletNormalized) {
+        return { mission: missionFromRow(missionRow), claim: destinationClaimFromRow(claimRow) };
+      }
+      if (claimRow.status !== "PENDING") {
+        throw new MissionValidationError("DESTINATION_CLAIM_CLOSED", `Destination claim is ${claimRow.status}`);
+      }
+      if (input.now >= claimRow.expires_at.getTime()) {
+        await client.query(
+          "UPDATE destination_claims SET status='EXPIRED', closed_at=$2 WHERE id=$1",
+          [input.claimId, epoch(input.now)]
+        );
+        await client.query("UPDATE missions SET updated_at=$2 WHERE id=$1", [input.missionId, epoch(input.now)]);
+        throw new MissionValidationError("DESTINATION_CLAIM_EXPIRED", "Destination claim has expired");
+      }
+      if (missionRow.status !== "ACTIVE") {
+        throw new MissionValidationError("MISSION_NOT_ACTIVE", `Mission ${missionRow.id} is ${missionRow.status}`);
+      }
+      if (missionRow.target_wallet_hmac !== null || missionRow.target_wallet_ciphertext !== null) {
+        throw new MissionValidationError("TARGET_ALREADY_BOUND", "Mission destination wallet is already bound");
+      }
+      if (input.walletNormalized === missionRow.creator_wallet_normalized) {
+        throw new MissionValidationError("TARGET_IS_CREATOR", "The creator cannot claim their own destination");
+      }
+
+      const updatedClaim = await client.query<DestinationClaimRow>(
+        `UPDATE destination_claims
+           SET status='CLAIMED', claimed_wallet_normalized=$2, claimed_at=$3, closed_at=$3
+         WHERE id=$1 RETURNING *`,
+        [input.claimId, input.walletNormalized, epoch(input.now)]
+      );
+      const updatedMission = await client.query<MissionRow>(
+        `UPDATE missions
+           SET target_wallet_ciphertext=$2, target_wallet_hmac=$3,
+               target_consent_confirmed=true, updated_at=$4
+         WHERE id=$1 RETURNING *`,
+        [
+          input.missionId,
+          Buffer.from(input.targetWalletCiphertext, "utf8"),
+          input.targetWalletHmac,
+          epoch(input.now),
+        ]
+      );
+
+      await client.query(
+        `INSERT INTO participants (mission_id, wallet_normalized, display_label, display_name_opt_in, first_final_sequence)
+         VALUES ($1,$2,$3,FALSE,NULL)
+         ON CONFLICT (mission_id, wallet_normalized) DO NOTHING`,
+        [input.missionId, input.walletNormalized, missionRow.target_label]
+      );
+
+      return {
+        mission: missionFromRow(updatedMission.rows[0]),
+        claim: destinationClaimFromRow(updatedClaim.rows[0]),
+      };
+    });
+  }
+
+  async expireDueDestinationClaims(now: number): Promise<number> {
+    return this.withTransaction(async (client) => {
+      const due = await client.query<{ id: string; mission_id: string }>(
+        `SELECT id, mission_id FROM destination_claims
+         WHERE status='PENDING' AND expires_at <= $1
+         FOR UPDATE`,
+        [epoch(now)]
+      );
+      if (due.rows.length === 0) return 0;
+      for (const row of due.rows) {
+        await client.query(
+          "UPDATE destination_claims SET status='EXPIRED', closed_at=$2 WHERE id=$1",
+          [row.id, epoch(now)]
+        );
+      }
+      for (const missionId of [...new Set(due.rows.map((row) => row.mission_id))]) {
+        await client.query("UPDATE missions SET updated_at=$2 WHERE id=$1", [missionId, epoch(now)]);
+      }
+      return due.rows.length;
+    });
+  }
+
   async cancelMissionPristine(id: string, signerWallet: string, now: number): Promise<MissionRecord> {
     return this.withTransaction(async (client) => {
       // Load the mission row-locked, then validate and update in the same
