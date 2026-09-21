@@ -326,12 +326,6 @@ export class ReachMissionService {
     now?: number;
   }): Promise<{ invitation: PublicInvitation; inviteToken: string }> {
     const mission = await this.requireMission(input.missionId);
-    if (mission.targetWalletHmac === null || mission.targetWalletCiphertext === null) {
-      throw new MissionValidationError(
-        "TARGET_NOT_BOUND",
-        "Bind the destination wallet through the private claim before adding an optional bridge"
-      );
-    }
     const sequence = mission.currentSequence + 1;
     assertAction(input.auth, "CREATE_INVITATION", { missionId: mission.id, sequence });
     const signer = normalizeNimiqAddress(input.auth.wallet);
