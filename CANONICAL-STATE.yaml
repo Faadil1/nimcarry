@@ -1,12 +1,12 @@
 project: NimCarry
-updated_at: "2026-09-20T23:54:00-04:00"
+updated_at: "2026-09-21T03:45:00-04:00"
 phase: DESTINATION_CLAIM_EXPERIMENT
 source_of_truth: true
 
 repository:
   full_name: Faadil1/nimcarry
-  baseline_main_sha: 50187e5e9387f47762a7ca011b9931ff91df769a
-  baseline_summary: "PR #119 is merged and deployed on Cloudflare: safe persistent mission locators plus fresh VIEW_ROUTE recovery after a full app close."
+  baseline_main_sha: 2bfb3730f06052e52456193a029400000d716732
+  baseline_summary: "PR #120 Destination Claim v1 is merged on main, migration 007 is applied to Neon production, and the Cloudflare production build plus CI/smoke/responsive guided flow are all SUCCESS."
 
 latest_live_validation:
   mission_id: c31534d0-9ecd-45b9-bf8d-e9457141d391
@@ -130,9 +130,14 @@ candidate_flows:
     status: KEEP_AS_PRIMITIVE
     description: "Known destination wallet -> sender pays destination directly -> background FINAL verification -> receipt."
   destination_claim:
-    status: TEST_NEXT
+    status: DEPLOYED_AWAITING_LIVE_VALIDATION
     description: "Wallet unknown -> private claim -> destination binds own wallet -> sender pays -> background FINAL verification."
     escrow_required_for_v1: false
+    merged_pr: 120
+    merge_sha: 2bfb3730f06052e52456193a029400000d716732
+    cloudflare_production_build: SUCCESS
+    neon_migration_007: APPLIED_AND_VALIDATED
+    live_real_payment_validation: PENDING
   introduced:
     status: TEST
     description: "Optional bridge consents once for a fixed destination; destination is then resolved directly or by claim; sender pays destination."
@@ -160,6 +165,38 @@ implementation_state:
       - "Current home recovery discovers missions from sessionStorage carryone.view.*; a full app close can remove that session-only locator."
       - "PR #119 now persists only non-secret mission IDs, never route-view bearer capabilities, and mints fresh VIEW_ROUTE access on resume."
       - "Because mission c31534d0-9ecd-45b9-bf8d-e9457141d391 predates PR #119, one signed recovery is needed to bootstrap its new locator before testing a second full close/reopen."
+  destination_claim_v1:
+    status: DEPLOYED_AWAITING_REAL_TESTNET_VALIDATION
+    merged_pr: 120
+    merge_sha: 2bfb3730f06052e52456193a029400000d716732
+    migration:
+      file: migrations/007_destination_claim_v1.sql
+      neon_production: APPLIED
+      validation:
+        destination_claims_table: PRESENT
+        one_pending_claim_index: PRESENT
+        pass_intents_invitation_nullable: true
+        hops_invitation_nullable: true
+        inconsistent_existing_missions: 0
+    deployment:
+      cloudflare_production_build: SUCCESS
+      cloudflare_build_id: a7f339dd-d0d5-4958-9deb-6ec0c202405f
+      ci: SUCCESS
+      smoke: SUCCESS
+      responsive_guided_flow_mobile_tablet_desktop: SUCCESS
+    behavior:
+      - "A mission can be created before the destination wallet is known."
+      - "The private claim binds the destination wallet only after destination-signed CLAIM_DESTINATION authorization."
+      - "Claim acceptance moves no NIM."
+      - "A lost unshared bearer claim can be safely revoked and reissued after a fresh creator signature."
+      - "Direct delivery carries no invitation provenance and never fabricates a bridge."
+      - "An optional introducer may still be added when the real-world relationship requires one."
+      - "Payment remains sender -> bound destination only, followed by independent FINAL and ARRIVED."
+    remaining_gate:
+      - "Run one fresh real TESTNET Destination Claim mission end to end."
+      - "Verify destination binding, exactly one direct 1 NIM payment, FINAL/ARRIVED, and no fabricated bridge."
+      - "Do not treat deployment success as live product proof until that real mission completes."
+
   persistent_mission_resume:
     status: LIVE_VALIDATED_COMPLETE
     merged_pr: 119
@@ -242,10 +279,10 @@ implementation_state:
 
 next_workstream:
   priority:
-    - "Design and implement a non-custodial Destination Claim experiment."
-    - "Keep the two-person flow as the minimum legitimate success path; bridge introduction is optional, not mandatory."
-    - "Compare Claim vs Introduced Claim with real users before deciding whether social-route proof is core or a trust layer."
-    - "Update user-facing mental model away from Create -> Invite -> Accept -> Pass -> Arrive."
+    - "Live-validate deployed Destination Claim v1 with one fresh real TESTNET mission."
+    - "Prove unknown wallet -> private claim -> destination self-bind -> one direct 1 NIM payment -> FINAL -> ARRIVED."
+    - "Confirm direct Claim produces no fabricated bridge while the optional introducer lane remains available when needed."
+    - "After direct Claim proof, compare Claim vs Introduced Claim with real users before deciding whether social-route proof is core or a trust layer."
   implementation_constraints:
     - "No escrow/on-chain refund dependency for the first claim experiment."
     - "No bridge reputation system."
