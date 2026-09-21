@@ -19,16 +19,20 @@ Current main baseline:
 
 Latest live test completed successfully:
 
-- mission: `6f7ced41-5971-4c92-904a-ab01c485a3b3`
+- mission: `052bc4d3-a71c-43b8-8aba-be6d40b5651c`
 - bridge: Grace
 - destination: David
-- tx: `066651d2a0e8bd791b7d7809f10f9dfc014294a21c02cf0e970fce88d5f825ad`
+- tx: `a2d31d21c33dd4de01067a499333ae5f488fcc3ea54f09fd25147d2edde4e3f8`
 - final state: `ARRIVED`
 - hop state: `FINAL`
 - finalized hop count: `1`
+- arrival/finality timestamp: `2026-09-21T03:14:57.977Z`
 - Grace completed the social bridge role and never received the payment.
 - The sender remained authoritative until FINAL.
 - Exactly one payment was required.
+- Both Faadil (sender) and Grace (accepted bridge) correctly see mission-level `ARRIVED`.
+- Their completion messaging is role-specific: the sender sees the delivered route/receipt; the bridge sees that its bridge step is complete.
+- This run kept the sender client open until ARRIVED, so it does **not yet** prove the close-before-FINAL recovery gate.
 
 ## 2. Automatic reconciliation workstream
 
