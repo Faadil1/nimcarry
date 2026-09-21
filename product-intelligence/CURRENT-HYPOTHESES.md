@@ -6,8 +6,8 @@ The 2026-09-20 live test and blind six-model product review invalidated the old 
 
 | Hypothesis | Status | Why it matters | Smallest useful test | Primary signal |
 |---|---|---|---|---|
-| H1. A new sender can get first value without coordinating two additional NimCarry users | PROMOTE | Three-person activation is a structural barrier | Keep Direct and build Destination Claim so one sender can start alone | successful mission starts from one existing user |
-| H2. “Human known, wallet unknown” is a real job worth solving | TEST | This may be the strongest two-person wedge | Sender creates private claim for a real contact who has no known wallet | claim open → wallet bind → completed payment |
+| H1. A new sender can get first value without coordinating two additional NimCarry users | PROMOTE | Three-person activation is a structural barrier | Keep Direct and live-validate deployed Destination Claim so one sender can start alone | successful mission starts from one existing user |
+| H2. “Human known, wallet unknown” is a real job worth solving | TEST | This may be the strongest two-person wedge | Run the deployed private-claim flow with a real contact whose wallet is not entered by the sender | claim open → destination self-bind → one direct payment → FINAL/ARRIVED |
 | H3. Optional human introduction adds measurable value beyond Claim alone | TEST | This decides whether social-route proof is core or a trust layer | Compare Claim vs Introduced Claim on similar real missions | completion, trust, comprehension, repeat use |
 | H4. Bridge consent should be one action and never imply custody | PROMOTE | Live testing validated the corrected social/financial separation | Keep one-tap acceptance and direct sender → destination payment | bridge completion without duplicate steps/payments |
 | H5. Automatic durable reconciliation is required for a trustworthy product | PROMOTE | Manual Recheck exposed backend state as user work and risks resend confusion | Background reconcile attached tx through FINAL across app close/reopen | zero manual recheck; zero duplicate payment |
@@ -31,6 +31,8 @@ The 2026-09-20 live test and blind six-model product review invalidated the old 
 6. the product preserves a human-readable receipt of what was authorized and what was actually proven.
 
 This is a testable architecture, not a claim that the final market positioning has been decided.
+
+Implementation status as of 2026-09-21: Destination Claim v1 is merged and deployed on the canonical Cloudflare runtime, migration 007 is applied to Neon production, and automated CI/smoke/responsive gates are green. H2 remains **TEST** until a real TESTNET claim → self-bind → direct 1 NIM → FINAL/ARRIVED mission is completed.
 
 ## Current product boundaries
 
