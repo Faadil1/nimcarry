@@ -1,12 +1,12 @@
 project: NimCarry
-updated_at: "2026-09-20T23:24:00-04:00"
-phase: AUTOMATIC_FINALITY_RECONCILIATION
+updated_at: "2026-09-20T23:47:00-04:00"
+phase: PERSISTENT_MISSION_RESUME_VALIDATION
 source_of_truth: true
 
 repository:
   full_name: Faadil1/nimcarry
-  baseline_main_sha: bad96d463064e418ec47a949acd792224d8fde24
-  baseline_summary: "PR #117 merged on top of #114: server-owned FINAL reconciliation plus evidence-safe no-hash submission recovery."
+  baseline_main_sha: 50187e5e9387f47762a7ca011b9931ff91df769a
+  baseline_summary: "PR #119 is merged and deployed on Cloudflare: safe persistent mission locators plus fresh VIEW_ROUTE recovery after a full app close."
 
 latest_live_validation:
   mission_id: c31534d0-9ecd-45b9-bf8d-e9457141d391
@@ -27,7 +27,8 @@ latest_live_validation:
     - "Manual 'Recheck existing handoff' can recover state, but this is product/architecture debt."
     - "ARRIVED is a mission-level truth visible to both the sender and the accepted bridge when each still has authorized mission access."
     - "Role-specific completion copy remains distinct: sender sees the delivered route/receipt; bridge sees that the bridge step is complete."
-    - "This run reached real FINAL/ARRIVED with one direct sender-to-David payment, but the client remained open until ARRIVED, so close-before-FINAL recovery is not yet proven."
+    - "This run proves close-before-FINAL server reconciliation: Faadil closed A before FINAL and the mission still reached ARRIVED without recheck or second payment."
+    - "Reopening A exposed a separate mission-rediscovery defect; PR #119 is deployed to fix that without persisting route-view bearer access."
 
 latest_live_attempt:
   mission_id: d9ae9ec2-5eab-485e-b19a-31b8a96e700a
@@ -141,7 +142,7 @@ candidate_flows:
 
 implementation_state:
   close_before_final_proof:
-    status: BACKEND_VALIDATED_UI_RESUME_DEFECT_FOUND
+    status: BACKEND_VALIDATED_RESUME_FIX_DEPLOYED_AWAITING_REAL_DEVICE_VALIDATION
     mission_id: c31534d0-9ecd-45b9-bf8d-e9457141d391
     created_at: "2026-09-21T03:19:41.310Z"
     included_at: "2026-09-21T03:21:45.975Z"
@@ -157,7 +158,35 @@ implementation_state:
       - "Server-owned reconciliation across client close is live-validated."
       - "The remaining defect is mission rediscovery/resume UX, not finality reconciliation."
       - "Current home recovery discovers missions from sessionStorage carryone.view.*; a full app close can remove that session-only locator."
-      - "Fix must persist only a non-secret mission locator, never a route-view bearer capability, then mint a fresh VIEW_ROUTE capability on resume."
+      - "PR #119 now persists only non-secret mission IDs, never route-view bearer capabilities, and mints fresh VIEW_ROUTE access on resume."
+      - "Because mission c31534d0-9ecd-45b9-bf8d-e9457141d391 predates PR #119, one signed recovery is needed to bootstrap its new locator before testing a second full close/reopen."
+  persistent_mission_resume:
+    status: MERGED_DEPLOYED_AWAITING_REAL_DEVICE_VALIDATION
+    merged_pr: 119
+    merge_sha: 50187e5e9387f47762a7ca011b9931ff91df769a
+    cloudflare_production_build: SUCCESS
+    merge_checks:
+      ci: SUCCESS
+      judge_window_smoke: SUCCESS
+      responsive_guided_flow_mobile_tablet_desktop: SUCCESS
+    security_model:
+      - "Persist only recent opaque mission UUID locators in localStorage under nimcarry.recentMissions.v1, capped at five."
+      - "Keep carryone.view.<missionId> bearer capabilities in sessionStorage only."
+      - "Resume always requires a fresh signed read-only VIEW_ROUTE capability after session loss."
+      - "Resume cannot create a mission, recreate an invite, authorize a pass, send NIM, or mutate custody."
+    ui_behavior:
+      - "Home surfaces Resume recent mission when a persistent locator exists."
+      - "Recovery returns to the same mission/ARRIVED receipt after fresh VIEW_ROUTE authorization."
+      - "Synthetic full-close behavior is covered by clearing sessionStorage while preserving the locator."
+    responsive_gate:
+      - "mobile 375x812: PASS"
+      - "tablet 768x1024: PASS"
+      - "desktop 1280x900: PASS"
+    remaining_live_gate:
+      - "Bootstrap the pre-patch ARRIVED mission c31534d0-9ecd-45b9-bf8d-e9457141d391 once through signed route-access recovery."
+      - "Then fully close and reopen A and confirm Resume recent mission restores the same ARRIVED receipt."
+      - "No new mission or payment is required."
+    evidence_doc: "docs/evidence/PERSISTENT-MISSION-RESUME-2026-09-20.md"
   automatic_finality_reconciliation:
     status: LIVE_VALIDATED_BACKEND_CLOSE_BEFORE_FINAL
     merged_pr: 114
@@ -178,9 +207,8 @@ implementation_state:
       - "Real mission c31534d0-9ecd-45b9-bf8d-e9457141d391 reached ARRIVED after the sender app was closed before FINAL."
       - "One recorded tx hash advanced INCLUDED -> FINAL with no manual recheck and no second payment."
     remaining_product_gate:
-      - "Repair sender mission rediscovery after a full app close so reopening A surfaces the existing mission/receipt instead of only the new-mission home."
-      - "Keep bearer route-view capability session-scoped; persist only a non-secret mission locator and mint fresh VIEW_ROUTE on resume."
-      - "Verify the repaired resume UX on mobile, tablet, and desktop."
+      - "Server reconciliation itself is complete; only real-device validation of the deployed mission-resume UX remains."
+      - "No new payment is required for that UX validation."
     evidence_doc: "docs/evidence/AUTOMATIC-FINALITY-RECONCILIATION-2026-09-20.md"
     latest_ambiguous_submission_evidence: "docs/evidence/AMBIGUOUS-SUBMISSION-LIVE-2026-09-20.md"
   ambiguous_submission_recovery:
@@ -203,14 +231,14 @@ implementation_state:
       - "Mission d9ae9ec2-5eab-485e-b19a-31b8a96e700a resolved to hop INVALID with no tx hash and zero finalized hops."
       - "The bridge invitation expired; mission remained ACTIVE and custody did not change."
       - "No second payment was made."
-    live_validation_required:
-      - "Run a fresh real TESTNET send that returns/records a hash, close the client before FINAL, and confirm automatic ARRIVED."
-      - "Perform live viewport acceptance at mobile, tablet, and desktop."
+    follow_on_proof_completed:
+      - "Hash-recorded close-before-FINAL server reconciliation was subsequently validated by mission c31534d0-9ecd-45b9-bf8d-e9457141d391."
+      - "No-hash and hash-recorded recovery paths are both now proven without duplicate payment."
 
 next_workstream:
   priority:
-    - "Live-validate automatic reconciliation across client close/reopen with a hash-recorded payment."
-    - "Design and implement a non-custodial Destination Claim experiment."
+    - "Real-device validate PR #119 mission resume using the existing ARRIVED mission; do not create or pay a new mission."
+    - "After that gate, design and implement a non-custodial Destination Claim experiment."
     - "Compare Claim vs Introduced Claim with real users before deciding whether social-route proof is core or a trust layer."
     - "Update user-facing mental model away from Create -> Invite -> Accept -> Pass -> Arrive."
   implementation_constraints:
