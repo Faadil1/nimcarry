@@ -17,13 +17,14 @@ on:
       - scripts/judge-flow-smoke.mjs
       - .github/workflows/judge-flow-smoke.yml
       - tests/mini-app/approved-craft-fidelity.test.ts
+      - tests/mini-app/route-access-recovery.test.ts
 
 permissions:
   contents: read
 
 jobs:
   flow:
-    name: Guided flow — mobile + desktop
+    name: Guided flow — mobile + tablet + desktop
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
