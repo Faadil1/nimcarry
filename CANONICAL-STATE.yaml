@@ -1,5 +1,5 @@
 project: NimCarry
-updated_at: "2026-09-20T21:03:39-04:00"
+updated_at: "2026-09-20T23:16:00-04:00"
 phase: AUTOMATIC_FINALITY_RECONCILIATION
 source_of_truth: true
 
@@ -9,10 +9,10 @@ repository:
   baseline_summary: "PR #117 merged on top of #114: server-owned FINAL reconciliation plus evidence-safe no-hash submission recovery."
 
 latest_live_validation:
-  mission_id: 6f7ced41-5971-4c92-904a-ab01c485a3b3
+  mission_id: 052bc4d3-a71c-43b8-8aba-be6d40b5651c
   status: ARRIVED
   finalized_hop_count: 1
-  transaction_hash: 066651d2a0e8bd791b7d7809f10f9dfc014294a21c02cf0e970fce88d5f825ad
+  transaction_hash: a2d31d21c33dd4de01067a499333ae5f488fcc3ea54f09fd25147d2edde4e3f8
   bridge:
     label: Grace
     role: "consent/introduction only"
@@ -25,6 +25,9 @@ latest_live_validation:
     - "One payment can progress INCLUDED -> FINAL -> ARRIVED."
     - "A client polling timeout does not imply payment failure."
     - "Manual 'Recheck existing handoff' can recover state, but this is product/architecture debt."
+    - "ARRIVED is a mission-level truth visible to both the sender and the accepted bridge when each still has authorized mission access."
+    - "Role-specific completion copy remains distinct: sender sees the delivered route/receipt; bridge sees that the bridge step is complete."
+    - "This run reached real FINAL/ARRIVED with one direct sender-to-David payment, but the client remained open until ARRIVED, so close-before-FINAL recovery is not yet proven."
 
 latest_live_attempt:
   mission_id: d9ae9ec2-5eab-485e-b19a-31b8a96e700a
