@@ -159,6 +159,27 @@ PR #122 is merged and Cloudflare production build/smoke/CI are green.
 
 **Current live gate:** wait for the replacement Cloudflare container to project this exact mission to `ARRIVED`. Until that happens, **do not press Send 1 NIM again**. No manual DB correction has been applied.
 
+## 1D. User-requested test data cleanup
+
+On 2026-09-21 the user explicitly requested deletion of their test data from Neon production.
+
+Deleted:
+
+- all **13** missions with `creator_display_label = Faadil`;
+- all mission-linked `destination_claims`, `invitations`, `pass_intents`, `hops`, auth challenges, audit events, and participant rows through the existing mission CASCADE relationships.
+
+Verified afterward:
+
+- remaining Faadil missions: **0**
+- remaining known test destination claims: **0**
+- remaining known test invitations: **0**
+- remaining known test pass intents: **0**
+- remaining known test hops: **0**
+
+The existing Faadil user account and linked identity/wallet/session records were deliberately **preserved** so testing can continue without re-registration.
+
+Historical evidence files and Git history still describe prior test missions. Treat those as evidence only; **do not try to resume, reconcile, repair, or mutate the deleted mission ids**.
+
 ## 2. Automatic reconciliation workstream
 
 The live test exposed a client-owned finality defect:
@@ -310,13 +331,12 @@ Do not add public destination requests, bridge search, bounty routing, reputatio
 
 ## 6. Immediate next implementation sequence
 
-1. **Destination Claim v1 — payment FINAL proven, ARRIVED projection repair pending**
-   - Mission `d1ed137a-834a-4211-b12f-cf00dbde75cc` proves real unknown-wallet creation + destination self-binding with no bridge.
-   - The original no-hash send was independently recovered as tx `393e98c2…b596e` and reached FINAL.
-   - The relay FINAL is durable, but the mission row is still ACTIVE/0 FINAL due to a missed projection window.
-   - **Do not resend or create a replacement mission.**
-   - PR #122 is deployed to repair this automatically and blocks another send while FINAL is ahead of mission state.
-   - End-to-end Destination Claim closes only when this same mission becomes durable ARRIVED without manual DB mutation.
+1. **Destination Claim v1 — clean dataset for renewed user testing**
+   - The previous Faadil test missions were deleted at the user's explicit request.
+   - Keep the existing Faadil account; no re-registration is required.
+   - New testers should create fresh missions from the deployed Destination Claim flow.
+   - Keep the anti-resend rule: if a send is pending/checking, do not create a second payment.
+   - Historical deleted mission ids remain evidence references only.
 
 2. **Introduced Claim comparison — after the direct Claim path**
    - Add an optional one-time introducer only when the relationship requires it.
