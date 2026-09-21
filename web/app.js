@@ -740,14 +740,27 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     try { await loadMission(missionId); } catch (error) { notice(error.message, true); }
     const m = state.mission;
     const inv = m?.invitation || state.invitation;
+    const directClaimReady =
+      !inv &&
+      m?.target_wallet_bound === true &&
+      m?.destination_claim?.status === "CLAIMED";
     const passDeadline = inv?.pass_deadline_at ? Date.parse(inv.pass_deadline_at) : NaN;
     const passWindowExpired = Number.isFinite(passDeadline) && Date.now() >= passDeadline;
-    const passReady = inv?.status === "ACCEPTED" && !passWindowExpired;
+    const introducedReady = inv?.status === "ACCEPTED" && !passWindowExpired;
+    const passReady = directClaimReady || introducedReady;
 
     if (!passReady) {
-      const bridge = inv?.candidate_label || inv?.candidate_display_label || "This bridge";
-      const expired = inv?.status === "EXPIRED" || passWindowExpired;
-      els.screen.innerHTML = `<button class="back-link" id="back">← Mission Home</button><section class="hero-card"><div class="kicker">Handoff window closed</div><h1 class="target-title">${expired ? "This pass can’t be reused." : "This bridge isn’t ready to receive."}</h1><p class="lede">${expired ? `${esc(bridge)} accepted earlier, but that authorization window has expired.` : "The next bridge must accept before a 1 NIM pass can be authorized."}</p><div class="warning" style="margin-top:16px">No new payment should be requested from this screen. Custody stays with the last verified holder until a fresh supported handoff reaches FINAL.</div><div class="button-row"><button id="mission-return" class="button primary">Return to mission</button><button id="route-return" class="button ghost">Check verified route</button></div></section>`;
+      let title = "This delivery is not ready.";
+      let body = "The destination must bind their wallet before a 1 NIM delivery can be authorized.";
+      if (inv) {
+        const bridge = inv?.candidate_label || inv?.candidate_display_label || "This bridge";
+        const expired = inv?.status === "EXPIRED" || passWindowExpired;
+        title = expired ? "This introduction can’t be reused." : "This introduction isn’t ready.";
+        body = expired
+          ? `${bridge} accepted earlier, but that authorization window has expired.`
+          : "The introducer must accept before this introduced delivery can be authorized.";
+      }
+      els.screen.innerHTML = `<button class="back-link" id="back">← Mission Home</button><section class="hero-card"><div class="kicker">Delivery not ready</div><h1 class="target-title">${esc(title)}</h1><p class="lede">${esc(body)}</p><div class="warning" style="margin-top:16px">No payment should be requested from this screen. Binding a destination or accepting an introduction never moves NIM.</div><div class="button-row"><button id="mission-return" class="button primary">Return to mission</button><button id="route-return" class="button ghost">Check verified route</button></div></section>`;
       document.querySelector("#back")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}`));
       document.querySelector("#mission-return")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}`));
       document.querySelector("#route-return")?.addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}/route`));
@@ -755,14 +768,18 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       return;
     }
 
-    els.screen.innerHTML = `<button class="back-link" id="back">← Mission Home</button><section class="hero-card"><div class="kicker">Screen 4 / 5 · Send 1 NIM</div><h1 class="target-title">Bridge accepted. Deliver directly.</h1><p class="lede">Via <strong>${esc(inv?.candidate_label || inv?.candidate_display_label || inv?.accepted_wallet_fingerprint || "Accepted bridge")}</strong> → recipient <strong>${esc(m?.target_label || "Destination")}</strong></p><div class="promise-strip"><div class="promise orange"><span>Value</span><strong>1 NIM</strong><span>100,000 Luna</span></div><div class="promise green"><span>Requested fee</span><strong>0</strong><span>Wallet/network may still refuse</span></div><div class="promise violet"><span>Custody</span><strong>FINAL</strong><span>Never mempool-only</span></div></div><div class="warning" style="margin-top:16px">After a transaction hash is recorded, Carry One will not offer reroute/cancel. The backend must reconcile the claim independently.</div><div class="button-row"><button data-busy-lock="1" id="send" class="button primary">Authorize + Pass 1 NIM</button></div></section>`;
+    const viaCopy = directClaimReady
+      ? `Recipient <strong>${esc(m?.target_label || "Destination")}</strong> bound their own wallet through the private claim.`
+      : `Introduced by <strong>${esc(inv?.candidate_label || inv?.candidate_display_label || "Accepted introducer")}</strong> → recipient <strong>${esc(m?.target_label || "Destination")}</strong>.`;
+    const title = directClaimReady ? "Destination claimed. Deliver directly." : "Introduction accepted. Deliver directly.";
+    const button = directClaimReady ? `Send 1 NIM to ${esc(m?.target_label || "destination")}` : "Authorize + Send 1 NIM";
+    els.screen.innerHTML = `<button class="back-link" id="back">← Mission Home</button><section class="hero-card"><div class="kicker">Direct destination delivery</div><h1 class="target-title">${esc(title)}</h1><p class="lede">${viaCopy}</p><div class="promise-strip"><div class="promise orange"><span>Value</span><strong>1 NIM</strong><span>100,000 Luna</span></div><div class="promise green"><span>Requested fee</span><strong>0</strong><span>Wallet/network may still refuse</span></div><div class="promise violet"><span>Completion</span><strong>FINAL</strong><span>Never approval-only</span></div></div><div class="warning" style="margin-top:16px">The payment is always addressed directly to the destination wallet. After a transaction hash is recorded, NimCarry locks the send path and reconciles FINAL independently.</div><div class="button-row"><button data-busy-lock="1" id="send" class="button primary">${button}</button></div></section>`;
     document.querySelector("#back").addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}`));
-    document.querySelector("#send").addEventListener("click", () => executePass(missionId, inv));
+    document.querySelector("#send").addEventListener("click", () => executePass(missionId, inv || null));
     els.screen.focus();
   }
 
   async function executePass(missionId, invitation) {
-    if (!invitation?.invitation_id) return notice("INVITATION_REQUIRED: no accepted invitation is available for this pass.", true);
     setBusy(true);
     let passPhase = "start";
     try {
@@ -798,13 +815,18 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
         navigate(`/mission/${encodeURIComponent(missionId)}/route`);
         return;
       }
-      const sequence = Number(invitation.sequence || state.mission?.sequence + 1 || 1);
-      handoffEvent("authorization-requested", { status: "AUTHORIZATION_REQUESTED" });
-      notice("Authorizing canonical pass intent…");
-       passPhase = "authorize"; passDiagnostic("authorize_started", { sequence });
-       const auth = await signedAuth("AUTHORIZE_PASS", { missionId, invitationId: invitation.invitation_id, sequence });
-       passPhase = "pass_intent";
-      const intent = await api(`/missions/${encodeURIComponent(missionId)}/pass-intent`, { method: "POST", body: { invitation_id: invitation.invitation_id, auth } });
+      const invitationId = invitation?.invitation_id || null;
+      const sequence = Number(invitation?.sequence ?? (Number(state.mission?.sequence || 0) + 1));
+      handoffEvent("authorization-requested", { status: "AUTHORIZATION_REQUESTED", direct_claim: !invitationId });
+      notice(invitationId ? "Authorizing introduced direct delivery…" : "Authorizing direct destination delivery…");
+      passPhase = "authorize"; passDiagnostic("authorize_started", { sequence, invitation_present: Boolean(invitationId) });
+      const authBindings = { missionId, sequence };
+      if (invitationId) authBindings.invitationId = invitationId;
+      const auth = await signedAuth("AUTHORIZE_PASS", authBindings);
+      passPhase = "pass_intent";
+      const intentBody = { auth };
+      if (invitationId) intentBody.invitation_id = invitationId;
+      const intent = await api(`/missions/${encodeURIComponent(missionId)}/pass-intent`, { method: "POST", body: intentBody });
       if (!intent?.recipient || Number(intent.value_luna) !== ONE_NIM || !intent.recipient_data) throw new Error("PASS_INTENT_CONTRACT_MISMATCH: recipient/value/opaque data required.");
        if (!String(intent.recipient_data).startsWith("co:v1:")) throw new Error("OPAQUE_COMMITMENT_REQUIRED: refusing clear-text/legacy recipient data.");
        if (!intent.expected_sender || walletKey(auth.wallet) !== walletKey(intent.expected_sender)) {
@@ -830,7 +852,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       await api(`/missions/${encodeURIComponent(missionId)}/pass-intent/${encodeURIComponent(intentId)}/broadcast`, { method: "POST", body: { tx_hash: txHash } });
       handoffEvent("broadcast-claim-recorded", { status: "PENDING" });
       handoffEvent("verification-pending", { status: "PENDING" });
-      notice("Payment sent. NimCarry is checking independent FINAL in the background…");
+      notice("1 NIM submitted to the destination. NimCarry is checking independent FINAL in the background…");
       passPhase = "finality_verification";
       const verification = await pollFinality(missionId);
       if (verification.final) {
@@ -840,7 +862,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       } else {
         handoffEvent("verification-backgrounded", { status: "PENDING" });
         navigate(`/mission/${encodeURIComponent(missionId)}`);
-        notice("Payment sent — finalizing in the background. You can safely close this page. Do not resend 1 NIM.");
+        notice("Destination payment submitted — finalizing in the background. You can safely close this page. Do not resend 1 NIM.");
       }
     } catch (error) {
       const classification = passFailureClass(passPhase, error);
