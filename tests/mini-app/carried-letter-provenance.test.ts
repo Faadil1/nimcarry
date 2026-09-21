@@ -11,9 +11,11 @@ const receipt = readFileSync("web/winning-intelligence.js", "utf8");
 const css = readFileSync("web/carried-letter-v2.css", "utf8");
 
 describe("NimCarry V2 finalized carrier provenance", () => {
-  it("sources historical marks from completed invitation truth", () => {
+  it("sources introduced marks only from the exact finalized invitation provenance", () => {
     expect(httpServer).toContain('hop.status === "CONFIRMED"');
-    expect(httpServer).toContain("finalizedBridgeMarks[hop.sequence] = historicalInvitation");
+    expect(httpServer).toContain("if (!hop.invitation_id) return");
+    expect(httpServer).toContain("await deps.repository.getInvitation(hop.invitation_id)");
+    expect(httpServer).toContain("finalizedBridgeMarks[hop.sequence] = {");
     expect(httpServer).toContain("historicalInvitation.candidateDisplayLabel");
   });
 
