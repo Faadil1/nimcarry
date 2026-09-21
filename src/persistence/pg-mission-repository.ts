@@ -4,6 +4,7 @@ import {
   MissionValidationError,
   type AuthChallengeRecord,
   type AuditEventRecord,
+  type DestinationClaimRecord,
   type InvitationRecord,
   type InvitationStatus,
   type MissionRecord,
@@ -18,8 +19,8 @@ interface MissionRow {
   creator_display_label: string | null;
   current_holder_wallet_normalized: string;
   target_label: string;
-  target_wallet_ciphertext: Buffer;
-  target_wallet_hmac: string;
+  target_wallet_ciphertext: Buffer | null;
+  target_wallet_hmac: string | null;
   target_consent_confirmed: boolean;
   mission_note: string;
   status: MissionRecord["status"];
@@ -53,6 +54,18 @@ interface InvitationRow {
   closed_at: Date | null;
 }
 
+interface DestinationClaimRow {
+  id: string;
+  mission_id: string;
+  claim_token_hash: string;
+  status: DestinationClaimRecord["status"];
+  created_at: Date;
+  expires_at: Date;
+  claimed_at: Date | null;
+  closed_at: Date | null;
+  claimed_wallet_normalized: string | null;
+}
+
 interface ChallengeRow {
   id: string;
   wallet_normalized: string;
@@ -83,7 +96,7 @@ function missionFromRow(row: MissionRow): MissionRecord {
     creatorDisplayLabel: row.creator_display_label,
     currentHolderWalletNormalized: row.current_holder_wallet_normalized,
     targetLabel: row.target_label,
-    targetWalletCiphertext: row.target_wallet_ciphertext.toString("utf8"),
+    targetWalletCiphertext: row.target_wallet_ciphertext === null ? null : row.target_wallet_ciphertext.toString("utf8"),
     targetWalletHmac: row.target_wallet_hmac,
     targetConsentConfirmed: row.target_consent_confirmed,
     missionNote: row.mission_note,
@@ -95,6 +108,20 @@ function missionFromRow(row: MissionRow): MissionRecord {
     arrivedAt: toMs(row.arrived_at),
     cancelledAt: toMs(row.cancelled_at),
     updatedAt: row.updated_at.getTime(),
+  };
+}
+
+function destinationClaimFromRow(row: DestinationClaimRow): DestinationClaimRecord {
+  return {
+    id: row.id,
+    missionId: row.mission_id,
+    claimTokenHash: row.claim_token_hash,
+    status: row.status,
+    createdAt: row.created_at.getTime(),
+    expiresAt: row.expires_at.getTime(),
+    claimedAt: toMs(row.claimed_at),
+    closedAt: toMs(row.closed_at),
+    claimedWalletNormalized: row.claimed_wallet_normalized,
   };
 }
 
@@ -145,6 +172,12 @@ function mapPgErrorToMission(error: unknown, fallback: string): MissionValidatio
     case "23505": // unique_violation
       if (detail.includes("invitations_invite_token_hash_key")) {
         return new MissionValidationError("INVITE_TOKEN_COLLISION", detail);
+      }
+      if (detail.includes("destination_claims_claim_token_hash_key")) {
+        return new MissionValidationError("DESTINATION_CLAIM_TOKEN_COLLISION", detail);
+      }
+      if (detail.includes("one_pending_destination_claim_per_mission")) {
+        return new MissionValidationError("DESTINATION_CLAIM_ALREADY_OPEN", detail);
       }
       if (detail.includes("one_open_invitation_per_mission")) {
         return new MissionValidationError("OPEN_INVITATION_EXISTS", detail);
@@ -217,7 +250,7 @@ export class PgMissionRepository implements MissionRepository {
             record.creatorDisplayLabel,
             record.currentHolderWalletNormalized,
             record.targetLabel,
-            Buffer.from(record.targetWalletCiphertext, "utf8"),
+            record.targetWalletCiphertext === null ? null : Buffer.from(record.targetWalletCiphertext, "utf8"),
             record.targetWalletHmac,
             record.targetConsentConfirmed,
             record.missionNote,
