@@ -34,6 +34,36 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
   let missionWatchFingerprint = "";
   let missionWatchInFlight = false;
 
+  // Persist only opaque mission locators across a full mini-app close. Route-view
+  // bearer capabilities remain session-scoped and are never written to localStorage.
+  const RECENT_MISSIONS_KEY = "nimcarry.recentMissions.v1";
+  const RECENT_MISSION_LIMIT = 5;
+
+  function recentMissionIds() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(RECENT_MISSIONS_KEY) || "[]");
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .map((value) => String(value || "").trim())
+        .filter((value, index, all) => /^[0-9a-f-]{36}$/i.test(value) && all.indexOf(value) === index)
+        .slice(0, RECENT_MISSION_LIMIT);
+    } catch {
+      return [];
+    }
+  }
+
+  function rememberMissionLocator(missionId) {
+    if (state.demo) return;
+    const id = String(missionId || "").trim();
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return;
+    try {
+      const next = [id, ...recentMissionIds().filter((existing) => existing !== id)].slice(0, RECENT_MISSION_LIMIT);
+      localStorage.setItem(RECENT_MISSIONS_KEY, JSON.stringify(next));
+    } catch {
+      // Recovery is an enhancement. A storage failure must never block the mission.
+    }
+  }
+
   async function runProviderDiagnostic() {
     els.network.textContent = "PROVIDER CHECK";
     els.screen.innerHTML = '<section class="card"><div class="kicker">Read-only provider diagnostic</div><h1>Checking Nimiq Pay…</h1><p id="provider-check-status" role="status" aria-live="polite">Waiting for window.nimiq.</p><div id="provider-check-accounts"></div></section>';
@@ -156,6 +186,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     const view = await api(`/missions/${encodeURIComponent(missionId)}/view`, { method: "POST", body: { challenge_id: challengeId, public_key: signed.publicKey, signature: signed.signature } });
     if (!view?.view_token) throw new Error("VIEW_ROUTE_CAPABILITY_CONTRACT_MISMATCH");
     sessionStorage.setItem(`carryone.view.${missionId}`, view.view_token);
+    rememberMissionLocator(missionId);
     navigate(`/mission/${encodeURIComponent(missionId)}`);
   }
 
@@ -278,6 +309,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     }
     const viewToken = extractViewToken(missionId);
     const mission = await api(`/missions/${encodeURIComponent(missionId)}`, { viewToken });
+    rememberMissionLocator(mission?.mission_id || missionId);
     state.mission = mission; state.invitation = mission?.invitation || null; return mission;
   }
 
@@ -461,7 +493,9 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       }
       const auth = await signedAuth("CREATE_MISSION");
       const mission = await api("/missions", { method: "POST", body: { ...input, target_consent_confirmed: true, visibility: "UNLISTED", auth } });
-      state.mission = mission; navigate(`/mission/${encodeURIComponent(mission.mission_id || mission.id)}`);
+      const missionId = mission.mission_id || mission.id;
+      rememberMissionLocator(missionId);
+      state.mission = mission; navigate(`/mission/${encodeURIComponent(missionId)}`);
     } catch (error) { notice(error.message, true); } finally { setBusy(false); }
   }
 
