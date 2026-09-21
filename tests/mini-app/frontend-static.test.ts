@@ -175,7 +175,7 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
   });
   it("adapts broadcast claims to the capability-bound endpoint", () => {
     expect(compat).toContain('path = `/missions/${encodeURIComponent(missionId)}/broadcast`');
-    expect(compat).toContain("invitation_id: pass.invitationId");
+    expect(compat).toContain("if (pass.invitationId) body.invitation_id = pass.invitationId");
     expect(compat).toContain("broadcast_capability: pass.broadcastCapability");
     expect(compat).toContain("BROADCAST_CAPABILITY_MISSING");
     expect(compat).toContain('hop: { status: "FINAL", sequence: expected }');
@@ -239,7 +239,7 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(js).toContain('mission.current_holder?.is_viewer === true && invitationStatus === "INVITED"');
     expect(js).toContain('mission.primary_action === "WAIT"');
     expect(js).toContain("senderWaitingForFinal");
-    expect(js).toContain("Bridge accepted the invitation. The handoff is ready.");
+    expect(js).toContain("Bridge accepted the introduction. The direct delivery is ready.");
     expect(js).toContain("Delivered.");
     expect(js).toContain('addEventListener("focus", () => { void refreshWatchedMission(); })');
     expect(js).toContain('document.addEventListener("visibilitychange"');
@@ -255,7 +255,7 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
   it("derives the five-step progress indicator from lifecycle state", () => {
     expect(winning).toContain("function routeProgressIndex");
     expect(winning).toContain('if (status === "ARRIVED") return 4');
-    expect(winning).toContain('if (primaryAction === "PASS_1_NIM" || invitationStatus === "ACCEPTED") return 3');
+    expect(winning).toContain('primaryAction === "SEND_1_NIM"');
     expect(winning).toContain('if (invitationStatus === "INVITED") return 2');
     expect(winning).not.toContain('else if (/^\\/mission\\//.test(path)) current = 1');
   });
