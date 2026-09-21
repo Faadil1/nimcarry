@@ -1,5 +1,5 @@
 project: NimCarry
-updated_at: "2026-09-20T19:07:31-04:00"
+updated_at: "2026-09-20T21:03:39-04:00"
 phase: AUTOMATIC_FINALITY_RECONCILIATION
 source_of_truth: true
 
@@ -28,11 +28,11 @@ latest_live_validation:
 
 latest_live_attempt:
   mission_id: d9ae9ec2-5eab-485e-b19a-31b8a96e700a
-  observed_at: "2026-09-20T19:07:31-04:00"
-  status: INCONCLUSIVE_AMBIGUOUS_SUBMISSION
+  observed_at: "2026-09-20T21:03:39-04:00"
+  status: TERMINAL_INVALID_NO_BROADCAST_EVIDENCE
   target_label: David
   bridge_label: Grace
-  invitation_status: ACCEPTED
+  invitation_status: EXPIRED
   intent:
     sequence: 1
     recipient_wallet: "NQ67 MXN0 0TFY AUHD L11M E8JQ N4ME 70M6 7S1U"
@@ -40,17 +40,20 @@ latest_live_attempt:
   durable_observation:
     mission_status: ACTIVE
     finalized_hop_count: 0
-    hop_recorded: false
+    hop_recorded: true
+    hop_status: INVALID
     transaction_hash_recorded: false
+    final_custody_change: false
   client_evidence:
     - "Nimiq Pay approval path returned no provable transaction hash."
     - "Foreground recovery then hit VERIFICATION_DELAYED: Load failed."
     - "The recovery card incorrectly said the transaction was already claimed even though durable state had no hop/hash."
   conclusion:
-    - "Do not resend: an authorized intent exists and exact no-hash chain discovery remains the safe recovery path."
-    - "This run does not yet prove a payment was broadcast or that automatic reconciliation failed."
-    - "Ambiguous-submission UX must not claim a transaction exists before durable broadcast evidence exists."
-    - "At 19:07 local the durable state still had an active intent but no hop/hash; the send remains unresolved and must not be retried."
+    - "The no-hash attempt resolved terminally without any second payment."
+    - "No matching broadcast hash was discovered; custody never changed and the mission did not ARRIVE."
+    - "PR #117 is live on the canonical Cloudflare runtime and the no-hash recovery path can end fail-closed as INVALID."
+    - "The exact INVALID transition time is not independently auditable from the current row because persisted invalidated_at uses the hop creation timestamp."
+    - "Next proof gate: a fresh real TESTNET send with a recorded hash, close the client before FINAL, then confirm automatic ARRIVED with no resend path."
 
 product_direction:
   status: TEST
@@ -151,15 +154,16 @@ implementation_state:
       - "Mission Home watches both the accepted bridge and the sender while an existing payment finalizes."
       - "Closing the page does not create a resend path; background reconciliation continues server-side while the runtime is active."
     live_validation_required:
-      - "Broadcast one real TESTNET payment, close the client while pending, and confirm mission reaches ARRIVED without manual recheck."
+      - "Broadcast one real TESTNET payment with a recorded hash, close the client while pending, and confirm mission reaches ARRIVED without manual recheck."
       - "Reopen before FINAL and verify no second payment control is offered."
-      - "Verify the same behavior on mobile and desktop."
+      - "Verify the same behavior on mobile, tablet, and desktop."
     evidence_doc: "docs/evidence/AUTOMATIC-FINALITY-RECONCILIATION-2026-09-20.md"
     latest_ambiguous_submission_evidence: "docs/evidence/AMBIGUOUS-SUBMISSION-LIVE-2026-09-20.md"
   ambiguous_submission_recovery:
-    status: MERGED_AWAITING_LIVE_VALIDATION
+    status: LIVE_VALIDATED_NO_HASH_TERMINAL_INVALID
     merged_pr: 117
     merge_sha: bad96d463064e418ec47a949acd792224d8fde24
+    cloudflare_production_build: SUCCESS
     merge_checks:
       ci: SUCCESS
       judge_full_flow_smoke: SUCCESS
@@ -171,14 +175,17 @@ implementation_state:
       - "The local safety hold remains, so unresolved send attempts cannot become duplicate sends."
       - "Recovery copy distinguishes an authorized intent from a proven transaction hash/broadcast."
       - "Mission Home no longer says 'Payment sent' when only an unresolved active intent is known."
+    live_validation_observed:
+      - "Mission d9ae9ec2-5eab-485e-b19a-31b8a96e700a resolved to hop INVALID with no tx hash and zero finalized hops."
+      - "The bridge invitation expired; mission remained ACTIVE and custody did not change."
+      - "No second payment was made."
     live_validation_required:
-      - "Resolve the current no-hash mission without resending, or wait for a terminal INVALID observation."
       - "Run a fresh real TESTNET send that returns/records a hash, close the client before FINAL, and confirm automatic ARRIVED."
       - "Perform live viewport acceptance at mobile, tablet, and desktop."
 
 next_workstream:
   priority:
-    - "Live-validate automatic reconciliation across client close/reopen."
+    - "Live-validate automatic reconciliation across client close/reopen with a hash-recorded payment."
     - "Design and implement a non-custodial Destination Claim experiment."
     - "Compare Claim vs Introduced Claim with real users before deciding whether social-route proof is core or a trust layer."
     - "Update user-facing mental model away from Create -> Invite -> Accept -> Pass -> Arrive."
