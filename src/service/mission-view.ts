@@ -1,10 +1,10 @@
 import type { PublicHop, PublicStatus } from "./canonical-relay-service.js";
 import { missionActivity } from "../mission/service.js";
 import { TargetWalletProtector, normalizeNimiqAddress, walletFingerprint } from "../mission/target-wallet-crypto.js";
-import type { InvitationRecord, InvitationStatus, MissionActivity, MissionRecord, MissionStatus } from "../mission/types.js";
+import type { DestinationClaimRecord, DestinationClaimStatus, InvitationRecord, InvitationStatus, MissionActivity, MissionRecord, MissionStatus } from "../mission/types.js";
 
 export type ViewerRole = "CREATOR" | "HOLDER" | "PARTICIPANT" | "INVITEE" | "TARGET" | "UNLISTED_VIEWER";
-export type PrimaryAction = "CREATE_INVITATION" | "WAIT" | "PASS_1_NIM" | "REROUTE" | "VIEW_ROUTE" | "START_NEW_ROUTE";
+export type PrimaryAction = "SHARE_CLAIM" | "CREATE_INVITATION" | "WAIT" | "SEND_1_NIM" | "PASS_1_NIM" | "REROUTE" | "VIEW_ROUTE" | "START_NEW_ROUTE";
 
 export interface RouteEntry {
   sequence: number;
@@ -28,17 +28,25 @@ export interface InvitationSummary {
   pass_deadline_at: string | null;
 }
 
+export interface DestinationClaimSummary {
+  status: DestinationClaimStatus;
+  expires_at: string;
+  claimed_at: string | null;
+}
+
 export interface MissionView {
   mission_id: string;
   status: MissionStatus;
   activity: MissionActivity;
   target_label: string;
   target_consent_confirmed: boolean;
+  target_wallet_bound: boolean;
   mission_note: string;
   sequence: number;
   finalized_hop_count: number;
   current_holder: { display_label: string | null; wallet_fingerprint: string; is_viewer: boolean };
   invitation: InvitationSummary | null;
+  destination_claim: DestinationClaimSummary | null;
   route: RouteEntry[];
   route_following_available: boolean;
   stalled_restart_available: boolean;
@@ -151,7 +159,7 @@ function deriveViewerRole(
 ): ViewerRole {
   if (viewer === null) return "UNLISTED_VIEWER";
   if (viewer === mission.creatorWalletNormalized) return "CREATOR";
-  if (protector.matchesHmac(viewer, mission.targetWalletHmac)) return "TARGET";
+  if (mission.targetWalletHmac !== null && protector.matchesHmac(viewer, mission.targetWalletHmac)) return "TARGET";
   if (mission.status === "ACTIVE" && viewer === mission.currentHolderWalletNormalized) return "HOLDER";
   if (
     invitation &&
@@ -176,6 +184,8 @@ function derivePrimaryAction(
   activity: MissionActivity,
   viewerRole: ViewerRole,
   invitation: InvitationSummary | null,
+  destinationClaim: DestinationClaimSummary | null,
+  targetWalletBound: boolean,
   currentSequence: number,
   viewerIsCurrentHolder: boolean,
   hasActiveIntent: boolean,
@@ -190,6 +200,10 @@ function derivePrimaryAction(
     return ["CREATOR", "HOLDER", "PARTICIPANT"].includes(viewerRole) ? "REROUTE" : "VIEW_ROUTE";
   }
   if (viewerIsCurrentHolder) {
+    if (!targetWalletBound) return "SHARE_CLAIM";
+    if (!invitation && destinationClaim?.status === "CLAIMED") {
+      return !hasActiveIntent || (activeIntentStale && !activeIntentHasBroadcast) ? "SEND_1_NIM" : "WAIT";
+    }
     if (!invitation) return "CREATE_INVITATION";
     if (invitation.status === "EXPIRED" && invitation.sequence === currentSequence + 1) return "CREATE_INVITATION";
     if (invitation.status === "ACCEPTED" && (!hasActiveIntent || (activeIntentStale && !activeIntentHasBroadcast))) return "PASS_1_NIM";
@@ -204,6 +218,7 @@ function derivePrimaryAction(
 export function composeMissionView(input: {
   mission: MissionRecord;
   invitation: InvitationRecord | null;
+  destinationClaim?: DestinationClaimRecord | null;
   route: PublicHop[];
   protector: TargetWalletProtector;
   viewer: string | null;
@@ -230,12 +245,22 @@ export function composeMissionView(input: {
   const invitation = input.invitation === null
     ? null
     : toInvitationSummary(input.invitation, !viewerSeesFullInvitation(input.mission, input.invitation, input.viewer));
+  const destinationClaim = input.destinationClaim
+    ? {
+        status: input.destinationClaim.status,
+        expires_at: new Date(input.destinationClaim.expiresAt).toISOString(),
+        claimed_at: input.destinationClaim.claimedAt === null ? null : new Date(input.destinationClaim.claimedAt).toISOString(),
+      }
+    : null;
+  const targetWalletBound = input.mission.targetWalletHmac !== null && input.mission.targetWalletCiphertext !== null;
   const viewerIsCurrentHolder = sameWallet(input.viewer, input.mission.currentHolderWalletNormalized);
   const primaryAction = derivePrimaryAction(
     input.mission.status,
     activity,
     viewerRole,
     invitation,
+    destinationClaim,
+    targetWalletBound,
     input.mission.currentSequence,
     viewerIsCurrentHolder,
     input.hasActiveIntent,
@@ -249,6 +274,7 @@ export function composeMissionView(input: {
     activity,
     target_label: input.mission.targetLabel,
     target_consent_confirmed: input.mission.targetConsentConfirmed,
+    target_wallet_bound: targetWalletBound,
     mission_note: input.mission.missionNote,
     sequence: input.mission.currentSequence,
     finalized_hop_count: input.mission.finalizedHopCount,
@@ -261,6 +287,7 @@ export function composeMissionView(input: {
       is_viewer: viewerIsCurrentHolder,
     },
     invitation,
+    destination_claim: destinationClaim,
     route: input.route.map((hop) => toRouteEntry(hop, input.mission, input.viewer, finalizedBridgeMarks, revealBridgeMarks)),
     route_following_available: input.mission.status !== "CANCELLED",
     stalled_restart_available: activity === "STALLED",
