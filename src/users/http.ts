@@ -180,9 +180,28 @@ async function handleUsers(
       });
       try {
         await emailSender.sendLoginCode({ to: profile.emailNormalized, code, expiresAt });
+        console.info(JSON.stringify({
+          event: "user_login_code_request",
+          request_id: id,
+          disposition: "delivery_accepted",
+        }));
       } catch {
+        console.warn(JSON.stringify({
+          event: "user_login_code_request",
+          request_id: id,
+          disposition: "delivery_failed",
+        }));
         throw new UserDirectoryError("EMAIL_DELIVERY_FAILED", "NimCarry could not send the sign-in code. Please try again.");
       }
+    } else {
+      // Keep the public response enumeration-safe, but leave a PII-free
+      // operational trace so support can distinguish "no matching profile"
+      // from a provider-delivery problem.
+      console.info(JSON.stringify({
+        event: "user_login_code_request",
+        request_id: id,
+        disposition: "no_matching_profile",
+      }));
     }
 
     return send(res, 202, {
