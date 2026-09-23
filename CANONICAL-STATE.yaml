@@ -1,12 +1,33 @@
 project: NimCarry
-updated_at: "2026-09-21T09:20:00-04:00"
+updated_at: "2026-09-23T12:00:00-04:00"
 phase: DESTINATION_CLAIM_EXPERIMENT
 source_of_truth: true
 
 repository:
   full_name: Faadil1/nimcarry
-  baseline_main_sha: 724f0d88877e32b2048a4e6eb9f6254b51f0de97
-  baseline_summary: "PR #122 is merged and Cloudflare-deployed to repair durable FINAL relay state that can outlive a missed mission ARRIVED projection; the first real Destination Claim payment is independently FINAL but its mission row is still awaiting automatic projection repair."
+  baseline_main_sha: 943248664c4c66d628af4623bc2c6250886b74d0
+  baseline_summary: "PR #125 is merged on top of the live reconciliation / Destination Claim baseline and PR #123 motion polish. The reusable approval-before-finality pattern is now public, README evidence boundaries no longer claim that real FINAL/ARRIVED is absent, and the wallet-side investigation is tracked in nimiq/wallet#314."
+
+public_integration_pattern:
+  status: PUBLISHED
+  name: "Approval Is Not Final"
+  document: docs/APPROVAL-IS-NOT-FINAL.md
+  merged_pr: 125
+  merge_sha: 943248664c4c66d628af4623bc2c6250886b74d0
+  core_rule: "approval != broadcast != INCLUDED != FINAL"
+  external_issue: "https://github.com/nimiq/wallet/issues/314"
+  external_root_cause_status: UNCONFIRMED
+  evidence_boundary:
+    - "One no-hash approval was later independently rediscovered and reached INCLUDED -> FINAL without a resend."
+    - "A different no-hash approval terminated fail-closed with no matching broadcast and no custody movement."
+    - "A close-before-FINAL run completed through server-owned reconciliation without a manual recheck or second payment."
+    - "NimCarry has app-side evidence and screen recordings, but not raw internal Nimiq Pay logs from the original failing approvals."
+  reusable_contract:
+    - "Approval never advances financial delivery."
+    - "Missing client hash is an ambiguous state, not an automatic failure verdict."
+    - "Do not resend while an earlier payment could still exist."
+    - "Reconciliation is automatic, durable, idempotent, and independent of browser lifetime."
+    - "Only independently verified FINAL advances financial state."
 
 latest_live_validation:
   mission_id: c31534d0-9ecd-45b9-bf8d-e9457141d391
