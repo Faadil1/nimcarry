@@ -125,12 +125,20 @@
   position:sticky;
   top:74px;
   z-index:35;
-  background:var(--cl-indigo);
+  width:max-content;
+  max-width:calc(100% - 16px);
+  margin:8px 8px 10px auto;
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(78,75,134,.86);
   color:#fff;
-  border:1px solid #3f3b72;
-  letter-spacing:.085em;
+  border:1px solid rgba(63,59,114,.62);
+  font-size:.62rem;
+  line-height:1.1;
+  letter-spacing:.055em;
   text-transform:uppercase;
-  box-shadow:0 8px 24px rgba(51,47,104,.18);
+  box-shadow:none;
+  backdrop-filter:blur(8px);
 }
 .carried-letter-v2-demo :is(.hero-card,.form-card,.route-card){
   position:relative;
