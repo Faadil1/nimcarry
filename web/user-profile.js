@@ -84,7 +84,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType } from
     if (status) {
       status.textContent = progress.stage === "VERIFYING"
         ? "Code verification was interrupted. Try the code once more. If it was already consumed, request a new code."
-        : "Resume sign-in: enter the 6-digit code already sent. This step survives refresh until the code expires.";
+        : "Resume sign-in: enter the 6-digit code if you received it. If not, request a fresh code using the exact email you originally registered with.";
     }
   }
 
@@ -143,7 +143,12 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType } from
         <label>6-digit code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="123456" /></label>
         <button class="button secondary" type="submit">Sign in to my profile</button>
       </form>
-      <small id="nimcarry-signin-status">Returning users keep the same profile, history, and linked wallets.</small>
+      <small id="nimcarry-signin-status" role="status" aria-live="polite">Returning users keep the same profile, history, and linked wallets.</small>
+      <div id="nimcarry-signin-help" class="warning" hidden style="margin-top:10px">
+        <strong>No code yet?</strong>
+        Check inbox and spam, then make sure you used the exact email originally registered with NimCarry.
+        If you never created a NimCarry profile, use “New to NimCarry?” below instead.
+      </div>
 
       <div style="margin:22px 0 18px;border-top:1px solid var(--line,#d8cbbb);padding-top:18px">
         <div class="kicker">New to NimCarry?</div>
@@ -216,10 +221,14 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType } from
       const verify = document.querySelector("#nimcarry-user-signin-verify");
       if (verify) verify.hidden = false;
       verify?.querySelector('input[name="code"]')?.focus();
-      if (status) status.textContent = "If that email belongs to a NimCarry profile, a 6-digit code has been sent. It expires in 10 minutes.";
+      if (status) status.textContent = "If that exact email belongs to a NimCarry profile, a 6-digit code is on its way. It expires in 10 minutes.";
+      const help = document.querySelector("#nimcarry-signin-help");
+      if (help) help.hidden = false;
     } catch (error) {
       clearSignInProgress();
       loginChallengeId = null;
+      const help = document.querySelector("#nimcarry-signin-help");
+      if (help) help.hidden = false;
       if (status) {
         status.textContent = error.reason === "EMAIL_DELIVERY_NOT_CONFIGURED"
           ? "Returning-user email sign-in is being configured. Your existing profile is safe; try again shortly."

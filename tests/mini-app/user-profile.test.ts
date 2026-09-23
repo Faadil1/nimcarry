@@ -16,6 +16,16 @@ describe("human-first user onboarding surface", () => {
     expect(profile).toContain("Name + email creates your NimCarry user profile.");
   });
 
+  it("makes missing-code recovery explicit without revealing account existence", () => {
+    expect(profile).toContain("If that exact email belongs to a NimCarry profile, a 6-digit code is on its way.");
+    expect(profile).toContain("No code yet?");
+    expect(profile).toContain("exact email originally registered with NimCarry");
+    expect(profile).toContain("If you never created a NimCarry profile");
+    expect(profile).toContain('role="status" aria-live="polite"');
+    expect(profile).not.toContain("We found your account");
+    expect(profile).not.toContain("No account exists");
+  });
+
   it("persists only a minimal returning-user sign-in checkpoint across refreshes", () => {
     expect(profile).toContain("nimcarry.signInProgress");
     expect(profile).toContain("REQUESTING");
