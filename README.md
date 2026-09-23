@@ -22,7 +22,7 @@
 <p align="center"><sub>Cycle II Public Preview · Testnet · Mainnet disabled</sub></p>
 
 > **Current status**  
-> The live product and guided demo are available now. Real A→B→C TESTNET proof is still pending because two approved attempts were independently verified as not broadcast. The suspected Nimiq Pay 2.19.1 TESTNET submission issue remains unconfirmed. No real `FINAL` or `ARRIVED` is claimed.
+> The live product and guided demo are available now. Real TESTNET runs have reached independently verified `FINAL` / `ARRIVED`, including a close-before-FINAL recovery and a Destination Claim payment that was initially ambiguous/no-hash and later independently rediscovered as FINAL. A separate no-hash attempt also terminated fail-closed with no matching broadcast. The wallet-side intermittent submission behavior remains under investigation in [nimiq/wallet issue #314](https://github.com/nimiq/wallet/issues/314).
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/nimiq/miniappscompetition-submissions/a0c2466264376f117667c1a2992fe7e250552f34/cycle2/Faadil1/screenshot-1.jpg" alt="NimCarry destination-bound human routing mission — final V3.2 UI" width="100%" />
@@ -130,13 +130,15 @@ What is proven today:
 | Guided demo | Ready |
 | Cloudflare / Postgres runtime | Ready |
 | Nimiq Pay provider readiness | Verified |
-| Real A→B TESTNET broadcast | Blocked before broadcast |
-| Real FINAL / ARRIVED | Not claimed |
+| Real TESTNET broadcast | Verified in controlled runs |
+| Real FINAL / ARRIVED | Independently verified |
 | Mainnet | Disabled |
 
-The strongest production statement is also the most important evidence boundary: **approval ≠ broadcast ≠ FINAL**.
+The strongest production statement is also the most important evidence boundary: **approval ≠ broadcast ≠ INCLUDED ≠ FINAL**.
 
-Two controlled A→B attempts reached native Nimiq Pay approval and failed afterward. We independently checked chain history, recipient balance, backend intent state, and Neon finality state. Both attempts were classified `NOT_BROADCAST`; NimCarry did not move custody or manufacture ARRIVED.
+Controlled TESTNET runs demonstrated both sides of the ambiguity boundary: one no-hash approval was later independently rediscovered and reached FINAL, while another no-hash approval terminated fail-closed with no matching broadcast. NimCarry therefore preserves uncertainty, blocks duplicate resend, and advances financial state only after independent FINAL verification.
+
+See [Approval Is Not Final](docs/APPROVAL-IS-NOT-FINAL.md) for the reusable integration pattern and the public wallet-side investigation.
 
 ### Real usage — privacy-safe, anti-gaming, judge-verifiable
 
@@ -202,15 +204,13 @@ After a failed wallet attempt, a stale pass intent remained. NimCarry now reuses
 
 ### Refusing to confuse approval with proof
 
-Two controlled A→B attempts reached the native Nimiq Pay approval screen and failed afterward. NimCarry kept custody at the last verified holder and classified both attempts `NOT_BROADCAST` after independent checks.
+Controlled TESTNET runs proved that the same client-visible no-hash state can resolve differently: one attempt was later rediscovered and reached FINAL, while another terminated with no matching broadcast. NimCarry therefore never maps approval directly to success or failure. See [Approval Is Not Final](docs/APPROVAL-IS-NOT-FINAL.md).
 
-### Current TESTNET limitation
+### Current TESTNET investigation
 
-Provider initialization, account access, consensus, block height, recipient presence, value, fee, and payload size all passed validation. Wallet approval opens, but no transaction hash returns. The current classification remains:
+Nimiq Pay 2.19.1 TESTNET has shown an intermittent/path-dependent post-approval state in which the calling app may receive no provable transaction hash. Because later outcomes have differed, NimCarry treats this as an uncertainty state rather than a deterministic failure.
 
-`LIKELY_EXTERNAL_NIMIQ_PAY_TESTNET_SUBMISSION_REGRESSION_NOT_YET_CONFIRMED`
-
-NimCarry does not claim that Nimiq has officially confirmed the cause.
+The wallet-side investigation is public in [nimiq/wallet issue #314](https://github.com/nimiq/wallet/issues/314). NimCarry does not claim that Nimiq has confirmed a root cause.
 
 ---
 
@@ -273,6 +273,7 @@ For production returning-user email recovery, configure `RESEND_API_KEY` as a de
 - [Continuous Product Intelligence](product-intelligence/README.md)
 - [LLM Product Council prompts](product-intelligence/LLM-COUNCIL/RUNBOOK.md)
 - [Architecture](docs/ARCHITECTURE.md)
+- [Approval Is Not Final](docs/APPROVAL-IS-NOT-FINAL.md)
 - [Security](SECURITY.md)
 - [Release notes](docs/release/RELEASE-NOTES-V1.0.0.md)
 - [v1.0.0 release](https://github.com/Faadil1/nimcarry/releases/tag/v1.0.0)
