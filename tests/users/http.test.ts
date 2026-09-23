@@ -252,6 +252,40 @@ describe("human user HTTP API", () => {
     expect(newSessionWorks.body.user_id).toBe(originalUserId);
   });
 
+  it("keeps auth request responses enumeration-safe while delivery remains internal", async () => {
+    const { base, sentLoginCodes } = await listen();
+
+    await json(base, "/users/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        display_name: "Known Person",
+        email: "known@example.com",
+        privacy_consent: true,
+        privacy_notice_version: "2026-09-19",
+      }),
+    });
+
+    const known = await json(base, "/users/auth/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "known@example.com" }),
+    });
+    const missing = await json(base, "/users/auth/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "missing@example.com" }),
+    });
+
+    expect(known.status).toBe(202);
+    expect(missing.status).toBe(202);
+    expect(known.body.message).toBe(missing.body.message);
+    expect(known.body.accepted).toBe(true);
+    expect(missing.body.accepted).toBe(true);
+    expect(sentLoginCodes).toHaveLength(1);
+    expect(sentLoginCodes[0].to).toBe("known@example.com");
+  });
+
   it("does not reveal whether a sign-in email exists", async () => {
     const { base, sentLoginCodes } = await listen();
     const response = await json(base, "/users/auth/request", {
