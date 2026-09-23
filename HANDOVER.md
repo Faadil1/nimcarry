@@ -1,6 +1,6 @@
 # NimCarry — Handover
 
-Updated: 2026-09-21  
+Updated: 2026-09-23  
 Repository: `Faadil1/nimcarry`
 
 This file is intentionally operational. A new conversation should be able to read this file plus `CANONICAL-STATE.yaml` and continue without reconstructing prior chat history.
@@ -9,13 +9,16 @@ This file is intentionally operational. A new conversation should be able to rea
 
 Current main baseline:
 
-- Product/runtime baseline: `724f0d88877e32b2048a4e6eb9f6254b51f0de97` (PR #122 on top of PR #121/#120).
+- Product/runtime/docs baseline: `943248664c4c66d628af4623bc2c6250886b74d0` (PR #125 on top of the live reconciliation / Destination Claim baseline and PR #123 motion polish).
 - PR #114 **Move FINAL reconciliation into the background** is merged.
 - PR #117 **Hand ambiguous Nimiq Pay submissions to background reconciliation** is merged as `bad96d463064e418ec47a949acd792224d8fde24`.
 - PR #119 **Resume missions safely after a full app close** is merged as `50187e5e9387f47762a7ca011b9931ff91df769a`.
 - PR #120 **Add non-custodial Destination Claim v1** is merged as `2bfb3730f06052e52456193a029400000d716732`.
 - PR #121 **Keep direct Destination Claim pending UI truthful** is merged as `b35674c5ceea116e576e6f9eeedc6aee1415e6ef`.
 - PR #122 **Repair stranded FINAL mission projections automatically** is merged as `724f0d88877e32b2048a4e6eb9f6254b51f0de97`.
+- PR #123 **Add domain-native motion polish v1** is merged as `2d276aeb6d0a243d7b321e06badb2d34bd52d05f`; production Cloudflare/guided-flow validation passed.
+- PR #125 **Document approval-before-finality integration pattern** is merged as `943248664c4c66d628af4623bc2c6250886b74d0`.
+- PR #124 **Fix returning-user sign-in code recovery UX** remains OPEN with green automated checks and is not part of `main` yet.
 - Migration `007_destination_claim_v1.sql` is applied to Neon production and validated against existing data.
 - PR #120/#121 are green for Cloudflare, CI, smoke, and **Guided flow — mobile + tablet + desktop**. PR #122 production Cloudflare build, smoke, and CI are also **SUCCESS**.
 - Vercel status is not the production gate for NimCarry.
@@ -179,6 +182,39 @@ Verified afterward:
 The existing Faadil user account and linked identity/wallet/session records were deliberately **preserved** so testing can continue without re-registration.
 
 Historical evidence files and Git history still describe prior test missions. Treat those as evidence only; **do not try to resume, reconcile, repair, or mutate the deleted mission ids**.
+
+## 1E. Public integration pattern — Approval Is Not Final
+
+On 2026-09-23, the live TESTNET reconciliation lessons were promoted into a reusable public engineering pattern:
+
+- document: `docs/APPROVAL-IS-NOT-FINAL.md`
+- PR: **#125**
+- merge SHA: `943248664c4c66d628af4623bc2c6250886b74d0`
+- external wallet investigation: `https://github.com/nimiq/wallet/issues/314`
+
+Canonical rule:
+
+`approval != broadcast != INCLUDED != FINAL`
+
+The public write-up is intentionally broader than NimCarry's mission model. It documents:
+
+- why wallet approval alone is not settlement evidence;
+- why a no-hash return must remain **unknown**, not be classified automatically as success or failure;
+- why users must not resend while an earlier payment could still exist;
+- why finality reconciliation must survive browser close/restart;
+- why durable FINAL must be able to repair a lagging product projection idempotently;
+- a generic reference algorithm that other wallet-integrated apps can reuse.
+
+The live evidence supporting the pattern contains both outcomes of the same client-visible ambiguity:
+
+1. one no-hash approval was later independently rediscovered and reached INCLUDED -> FINAL without a resend;
+2. another no-hash approval terminated fail-closed with no matching broadcast and no custody movement.
+
+A separate close-before-FINAL run also proved that backend reconciliation can complete delivery after the sender client is closed.
+
+Evidence boundary: **Nimiq has not confirmed a root cause.** Issue #314 is the canonical wallet-side investigation. NimCarry has screen recordings, app-side states/errors, timestamps, durable relay evidence, and later chain observations, but does not have the raw internal Nimiq Pay logs from the original failing approvals.
+
+The README was refreshed in the same PR because it still contained stale pre-proof text claiming that no real FINAL/ARRIVED existed. It now reflects the later live TESTNET evidence without claiming a Nimiq-confirmed regression.
 
 ## 2. Automatic reconciliation workstream
 
