@@ -147,6 +147,64 @@ describe("Nimiq Pay verified multiwallet payment sources", () => {
 });
 
 describe("Nimiq Pay HTLC payment-rail verification", () => {
+
+  it("freezes a verified HTLC rail before payment and still validates after the live HTLC metadata changes", async () => {
+    const rpc = new HtlcRpc();
+    const service = new CanonicalRelayService(new RelayStore(), rpc);
+    const intent = service.initiatePass("mission-frozen-htlc", HOLDER, BRIDGE, {
+      requireOpaqueTag: true,
+      authorizedPaymentWallets: [HOLDER],
+    });
+
+    rpc.accounts.set(HTLC, {
+      address: HTLC,
+      balance: HTLC_TOTAL,
+      type: "htlc",
+      sender: HOLDER,
+      totalAmount: HTLC_TOTAL,
+    });
+    rpc.history = [fundingTx()];
+
+    const frozen = await service.freezeVerifiedPaymentRails("mission-frozen-htlc", [HTLC]);
+    expect(frozen.authorizedPaymentWallets).toContain(`rail:${HTLC.replace(/\s+/g, "").toUpperCase()}`);
+
+    // Simulate the post-send race that triggered the real device failure:
+    // the provider rail no longer exposes its original HTLC metadata after use.
+    rpc.accounts.delete(HTLC);
+    const payment = paymentTx(intent);
+    rpc.history = [fundingTx(), payment];
+    rpc.head = payment.blockNumber! + NIMIQ_POLICY.blocksPerBatch;
+
+    const reconciled = await service.reconcile("mission-frozen-htlc");
+    expect(reconciled).toMatchObject({ txHash: payment.hash, status: "FINAL" });
+    expect(service.getPublicView("mission-frozen-htlc")).toMatchObject({
+      current_holder: BRIDGE,
+      hop_count: 1,
+    });
+  });
+
+  it("refuses to freeze an HTLC rail whose funding is not independently tied to an authorized wallet", async () => {
+    const rpc = new HtlcRpc();
+    const service = new CanonicalRelayService(new RelayStore(), rpc);
+    service.initiatePass("mission-reject-frozen-htlc", HOLDER, BRIDGE, {
+      requireOpaqueTag: true,
+      authorizedPaymentWallets: [HOLDER],
+    });
+
+    rpc.accounts.set(HTLC, {
+      address: HTLC,
+      balance: HTLC_TOTAL,
+      type: "htlc",
+      sender: HOLDER,
+      totalAmount: HTLC_TOTAL,
+    });
+    rpc.history = [fundingTx(ATTACKER)];
+
+    await expect(
+      service.freezeVerifiedPaymentRails("mission-reject-frozen-htlc", [HTLC])
+    ).rejects.toMatchObject({ reason: "PAYMENT_RAIL_UNVERIFIED" });
+  });
+
   it("accepts a FINAL payment from an HTLC only when its on-chain origin is the signed holder", async () => {
     const rpc = new HtlcRpc();
     const service = new CanonicalRelayService(new RelayStore(), rpc);
