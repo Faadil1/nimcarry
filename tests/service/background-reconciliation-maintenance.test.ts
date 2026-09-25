@@ -20,6 +20,9 @@ describe("server-owned background reconciliation wiring", () => {
     expect(coordinatorSource).toContain("async reconcilePending()");
     expect(coordinatorSource).toContain("this.relay.getPendingReconciliationBatonIds()");
     expect(coordinatorSource).toContain("getFinalizedProjectionBatonIds()");
+    expect(coordinatorSource).toContain("getRecoverableInvalidBroadcastBatonIds()");
+    expect(coordinatorSource).toContain("MAX_INVALID_BROADCAST_REPAIR_ATTEMPTS");
+    expect(coordinatorSource).toContain("invalidBroadcastRepairAttempts");
     expect(coordinatorSource).toContain("projectionSettled");
     expect(coordinatorSource).toContain("await this.reconcile(missionId)");
     const start = coordinatorSource.indexOf("async reconcilePending()");
@@ -27,6 +30,7 @@ describe("server-owned background reconciliation wiring", () => {
     const helper = coordinatorSource.slice(start, end);
     expect(helper).not.toContain("authorizePass");
     expect(helper).not.toContain("recordBroadcast");
+    expect(helper).toContain("invalidRepairCandidates");
   });
 
   it("runs reconciliation independently from invitation expiry maintenance", () => {
