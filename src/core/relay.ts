@@ -159,6 +159,45 @@ export class RelayStore {
     if (changed) this.onMutation();
   }
 
+  /**
+   * Freeze independently verified Nimiq Pay payment rails into the active
+   * pre-broadcast intent. Rails are derivative payment sources for wallets that
+   * were already authorized at AUTHORIZE_PASS; they never change the canonical
+   * holder, recipient, amount, nonce, or opaque recipient-data commitment.
+   *
+   * Once any transaction hash is recorded for the intent, the source snapshot
+   * is immutable. Repeating the same rail set before broadcast is idempotent.
+   */
+  freezeVerifiedPaymentRails(batonId: string, rails: string[]): PassIntent {
+    const intent = this.getActiveIntent(batonId);
+    if (!intent) {
+      throw new RelayValidationError("NO_ACTIVE_INTENT", `No active intent for baton ${batonId}`);
+    }
+    const hop = this.getHop(batonId, intent.sequence);
+    if (hop?.txHash) {
+      throw new RelayValidationError(
+        "PAYMENT_RAIL_SNAPSHOT_LOCKED",
+        `Cannot change payment sources for baton ${batonId} after a transaction hash is recorded`
+      );
+    }
+
+    const next = [...intent.authorizedPaymentWallets];
+    for (const rail of rails) {
+      const key = addressKey(rail);
+      if (!key) continue;
+      if (!next.some((candidate) => addressKey(candidate) === key)) next.push(rail);
+    }
+
+    const changed =
+      next.length !== intent.authorizedPaymentWallets.length
+      || next.some((candidate, index) => addressKey(candidate) !== addressKey(intent.authorizedPaymentWallets[index] ?? ""));
+    if (!changed) return intent;
+
+    intent.authorizedPaymentWallets = next;
+    this.onMutation();
+    return intent;
+  }
+
   /** Record a hop for (batonId, sequence), replacing the same slot on retry. */
   recordHop(hop: Hop) {
     if (hop.txHash) {
