@@ -99,9 +99,14 @@ describe("PgRelayStore", () => {
     });
     expect(intent.recipientData).toMatch(/^co:v1:/);
     expect(intent.authorizedPaymentWallets).toEqual([creator, paymentWallet]);
+
+    const rail = normalizeNimiqAddress(wallet());
+    relay.freezeVerifiedPaymentRails(mission.id, [rail]);
+    expect(intent.authorizedPaymentWallets).toContain(`rail:${rail}`);
     await relay.flush();
 
-    // Reload from DB in a brand new store
+    // Reload from DB in a brand new store. The independently verified
+    // pre-payment rail marker must survive a process/container restart.
     const fresh = await PgRelayStore.load(pool);
     const reloaded = fresh.getActiveIntent(mission.id);
     expect(reloaded).toBeDefined();
