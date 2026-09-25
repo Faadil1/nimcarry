@@ -288,6 +288,23 @@ import "/nc-wax.js";
       );
     }
 
+    if (htlcAccounts.length > 0) {
+      const missionId = intent?.intent_id || intent?.id;
+      if (!missionId) {
+        throw new Error("PAYMENT_RAIL_SNAPSHOT_CONTRACT_MISMATCH: pass intent is missing its mission id.");
+      }
+      const railAddresses = htlcAccounts.map((account) => account.address);
+      passDiagnostic("payment_rail_snapshot_requested", { rail_count: railAddresses.length });
+      const snapshot = await api(
+        `/missions/${encodeURIComponent(missionId)}/pass-intent/payment-rails`,
+        { method: "POST", body: { rail_addresses: railAddresses } }
+      );
+      if (snapshot?.payment_rail_snapshot !== "FROZEN_BEFORE_PAYMENT") {
+        throw new Error("PAYMENT_RAIL_SNAPSHOT_CONTRACT_MISMATCH: server did not freeze the verified rail proof.");
+      }
+      passDiagnostic("payment_rail_snapshot_completed", { rail_count: railAddresses.length });
+    }
+
     passDiagnostic("payment_source_preflight_completed", {
       exposed_account_count: classified.length,
       basic_account_count: basicAccounts.length,
