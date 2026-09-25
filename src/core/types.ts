@@ -21,9 +21,14 @@ export interface PassIntent {
   currentHolder: string; // wallet identity authorized to make this pass
   recipient: string; // intended next holder
   /**
-   * Frozen at AUTHORIZE_PASS. The holder remains the custody authority, but
-   * any wallet in this snapshot may fund the exact committed 1 NIM payment.
-   * The set is never expanded during later reconciliation.
+   * Base wallets are frozen at AUTHORIZE_PASS. The holder remains the custody
+   * authority, but any verified same-profile wallet in this snapshot may fund
+   * the exact committed 1 NIM payment.
+   *
+   * Before the wallet transaction is requested, the server may append
+   * independently verified derivative Nimiq Pay rails as reserved `rail:`
+   * markers. Those markers do not add a new human wallet authority and are
+   * never learned/expanded during later reconciliation.
    */
   authorizedPaymentWallets: string[];
   nonce: string; // uniqueness guard against duplicate/replayed intents

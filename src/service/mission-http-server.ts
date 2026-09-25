@@ -229,6 +229,9 @@ async function handleMission(deps: MissionHttpDeps, req: IncomingMessage, res: S
   if (req.method === "POST" && tail.length === 1 && tail[0] === "pass-intent") {
     return sendMutation(deps, req, res, () => authorizePass(deps, req, missionId));
   }
+  if (req.method === "POST" && tail.length === 2 && tail[0] === "pass-intent" && tail[1] === "payment-rails") {
+    return sendMutation(deps, req, res, () => freezePaymentRails(deps, req, missionId));
+  }
   if (req.method === "POST" && tail.length === 1 && tail[0] === "broadcast") {
     return sendMutation(deps, req, res, () => broadcast(deps, req, missionId));
   }
@@ -440,6 +443,43 @@ async function authorizePass(deps: MissionHttpDeps, req: IncomingMessage, missio
     { now, ttlMs }
   );
   return { status: 200, body: toPassIntentPayload(intent, issued) };
+}
+
+async function freezePaymentRails(deps: MissionHttpDeps, req: IncomingMessage, missionId: string) {
+  const obj = await jsonBody(req);
+  const rawRails = obj.rail_addresses;
+  const capability = asOpaqueToken(obj.broadcast_capability, "broadcast_capability");
+  rejectUnknownKeys(obj, ["rail_addresses", "broadcast_capability"]);
+
+  if (!Array.isArray(rawRails) || rawRails.length < 1 || rawRails.length > 12) {
+    throw new RequestValidationError(
+      "INVALID_PAYMENT_RAILS",
+      "rail_addresses must contain between 1 and 12 Nimiq addresses"
+    );
+  }
+  const rails = rawRails.map((value, index) => asAddress(value, `rail_addresses[${index}]`));
+
+  const active = deps.relay.getActiveIntent(missionId);
+  if (!active) throw new MissionValidationError("NO_ACTIVE_PASS", "No authorized delivery exists for this mission");
+
+  capabilityStore(deps).assert(capability, {
+    missionId,
+    invitationId: active.invitationId ?? null,
+    sequence: active.sequence,
+    intentNonce: active.nonce,
+    holderWallet: normalizeNimiqAddress(active.currentHolder),
+  });
+
+  const updated = await deps.relay.freezeVerifiedPaymentRails(missionId, rails);
+  return {
+    status: 200,
+    body: {
+      intent_id: updated.batonId,
+      sequence: updated.sequence,
+      verified_payment_rails: rails,
+      payment_rail_snapshot: "FROZEN_BEFORE_PAYMENT",
+    },
+  };
 }
 
 async function broadcast(deps: MissionHttpDeps, req: IncomingMessage, missionId: string) {

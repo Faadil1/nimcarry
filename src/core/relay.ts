@@ -25,6 +25,19 @@ function addressKey(value: string): string {
   return String(value ?? "").replace(/\s+/g, "").toUpperCase();
 }
 
+const PAYMENT_RAIL_MARKER_PREFIX = "rail:";
+
+export function paymentRailMarker(address: string): string {
+  return `${PAYMENT_RAIL_MARKER_PREFIX}${addressKey(address)}`;
+}
+
+export function paymentRailAddress(value: string): string | null {
+  const raw = String(value ?? "");
+  if (!raw.toLowerCase().startsWith(PAYMENT_RAIL_MARKER_PREFIX)) return null;
+  const address = raw.slice(PAYMENT_RAIL_MARKER_PREFIX.length);
+  return addressKey(address) || null;
+}
+
 /**
  * Canonical relay store. It is in-memory by default, but exposes a stable
  * snapshot/hydration boundary and a mutation hook so durable adapters can
@@ -157,6 +170,45 @@ export class RelayStore {
   cancelIntent(batonId: string) {
     const changed = this.intents.delete(this.key(batonId));
     if (changed) this.onMutation();
+  }
+
+  /**
+   * Freeze independently verified Nimiq Pay payment rails into the active
+   * pre-broadcast intent. Rails are derivative payment sources for wallets that
+   * were already authorized at AUTHORIZE_PASS; they never change the canonical
+   * holder, recipient, amount, nonce, or opaque recipient-data commitment.
+   *
+   * Once any transaction hash is recorded for the intent, the source snapshot
+   * is immutable. Repeating the same rail set before broadcast is idempotent.
+   */
+  freezeVerifiedPaymentRails(batonId: string, rails: string[]): PassIntent {
+    const intent = this.getActiveIntent(batonId);
+    if (!intent) {
+      throw new RelayValidationError("NO_ACTIVE_INTENT", `No active intent for baton ${batonId}`);
+    }
+    const hop = this.getHop(batonId, intent.sequence);
+    if (hop?.txHash) {
+      throw new RelayValidationError(
+        "PAYMENT_RAIL_SNAPSHOT_LOCKED",
+        `Cannot change payment sources for baton ${batonId} after a transaction hash is recorded`
+      );
+    }
+
+    const next = [...intent.authorizedPaymentWallets];
+    for (const rail of rails) {
+      const marker = paymentRailMarker(rail);
+      if (marker === PAYMENT_RAIL_MARKER_PREFIX) continue;
+      if (!next.some((candidate) => candidate.toLowerCase() === marker.toLowerCase())) next.push(marker);
+    }
+
+    const changed =
+      next.length !== intent.authorizedPaymentWallets.length
+      || next.some((candidate, index) => candidate !== intent.authorizedPaymentWallets[index]);
+    if (!changed) return intent;
+
+    intent.authorizedPaymentWallets = next;
+    this.onMutation();
+    return intent;
   }
 
   /** Record a hop for (batonId, sequence), replacing the same slot on retry. */

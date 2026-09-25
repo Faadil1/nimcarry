@@ -53,6 +53,15 @@ function normalizeRecipientData(value: unknown): string | undefined {
   return raw;
 }
 
+export function normalizeNimiqAccountType(value: unknown): string {
+  const type = String(value ?? "").trim().toLowerCase().replace(/[\s_-]+/g, "");
+  if (type === "basic" || type === "basicaccount" || type === "0") return "basic";
+  if (type === "vesting" || type === "vestingcontract" || type === "1") return "vesting";
+  if (type === "htlc" || type === "hashedtimelockcontract" || type === "hashedtimelockedcontract" || type === "2") return "htlc";
+  if (type === "staking" || type === "stakingcontract" || type === "3") return "staking";
+  return type || "unknown";
+}
+
 function rpcFieldKey(value: unknown): string {
   return String(value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
@@ -167,8 +176,8 @@ export class HttpNimiqRpcClient implements NimiqRpcClient {
     if (!result || typeof result !== "object") return null;
     const account = result as Record<string, any>;
     const typeRaw = deepRpcField(account, ["type", "accountType"]);
-    const type = String(typeRaw ?? "").toLowerCase();
-    if (!account.address || !type) return null;
+    const type = normalizeNimiqAccountType(typeRaw);
+    if (!account.address || type === "unknown") return null;
     const lookup: NimiqAccountLookup = {
       address: String(account.address),
       balance: Number(account.balance ?? 0),

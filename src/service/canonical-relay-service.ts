@@ -1,5 +1,5 @@
 import type { Hop, HopStatus, NimiqTxLookup, PassIntent } from "../core/types.js";
-import { RelayStore, RelayValidationError, isDormant, isIntentStale, validateTransactionAgainstIntent } from "../core/relay.js";
+import { RelayStore, RelayValidationError, isDormant, isIntentStale, paymentRailAddress, validateTransactionAgainstIntent } from "../core/relay.js";
 import type { NimiqRpcClient } from "../nimiq/rpc-client.js";
 import { hasReachedFinality, isIncluded } from "../nimiq/rpc-client.js";
 
@@ -120,6 +120,26 @@ export class CanonicalRelayService {
     )];
   }
 
+  /**
+   * Active intents with an exact transaction hash that was previously marked
+   * INVALID are safe to re-verify after a validator/runtime upgrade.
+   *
+   * This is read-only chain recovery: it never authorizes, signs, or broadcasts
+   * another payment. The coordinator bounds attempts per process so a genuinely
+   * invalid transaction cannot create an endless reconciliation loop.
+   */
+  getRecoverableInvalidBroadcastBatonIds(): string[] {
+    const snapshot = this.store.snapshot();
+    return snapshot.intents
+      .filter((intent) => {
+        const hop = snapshot.hops.find(
+          (candidate) => candidate.batonId === intent.batonId && candidate.sequence === intent.sequence
+        );
+        return hop?.status === "INVALID" && Boolean(hop.txHash);
+      })
+      .map((intent) => intent.batonId);
+  }
+
   hasRecordedBroadcast(batonId: string): boolean {
     const intent = this.store.getActiveIntent(batonId);
     if (!intent) return false;
@@ -175,6 +195,80 @@ export class CanonicalRelayService {
     this.store.cancelIntent(batonId);
   }
 
+  private paymentSourceSnapshot(intent: PassIntent): {
+    wallets: Set<string>;
+    rails: Set<string>;
+  } {
+    const sources = intent.authorizedPaymentWallets?.length
+      ? intent.authorizedPaymentWallets
+      : [intent.currentHolder];
+    const wallets = new Set<string>();
+    const rails = new Set<string>();
+    for (const source of sources) {
+      const rail = paymentRailAddress(source);
+      if (rail) rails.add(addressKey(rail));
+      else wallets.add(addressKey(source));
+    }
+    return { wallets, rails };
+  }
+
+  private async independentlyVerifyHtlcRail(intent: PassIntent, railAddress: string): Promise<boolean> {
+    if (!this.rpc.getAccountByAddress || !this.rpc.getTransactionsByAddress) return false;
+    const { wallets } = this.paymentSourceSnapshot(intent);
+    const rail = addressKey(railAddress);
+    if (!rail) return false;
+
+    const account = await this.rpc.getAccountByAddress(railAddress);
+    if (!account || String(account.type).toLowerCase() !== "htlc") return false;
+    if (!account.sender || !wallets.has(addressKey(account.sender))) return false;
+    if (!Number.isFinite(account.totalAmount) || Number(account.totalAmount) <= 0) return false;
+
+    const history = await this.rpc.getTransactionsByAddress(railAddress);
+    return history.some((candidate) =>
+      candidate.blockNumber !== null
+      && addressKey(candidate.to) === rail
+      && addressKey(candidate.from) === addressKey(account.sender!)
+      && candidate.value === Number(account.totalAmount)
+    );
+  }
+
+  /**
+   * Freeze Nimiq Pay HTLC rails before the wallet transaction is requested.
+   *
+   * The client may tell us which exposed accounts look like rails, but the
+   * server independently proves each rail from live chain metadata + its funding
+   * transaction. Only rails derived from the wallets already frozen at
+   * AUTHORIZE_PASS can be added. Persisting this pre-spend proof prevents a
+   * consumed HTLC from becoming unverifiable during later reconciliation.
+   */
+  async freezeVerifiedPaymentRails(batonId: string, candidateRails: string[]): Promise<PassIntent> {
+    const intent = this.store.getActiveIntent(batonId);
+    if (!intent) throw new RelayValidationError("NO_ACTIVE_INTENT", `No active intent for baton ${batonId}`);
+    if (isIntentStale(intent)) {
+      this.store.cancelIntent(batonId);
+      throw new RelayValidationError("STALE_INTENT", `Intent for baton ${batonId} at sequence ${intent.sequence} has expired`);
+    }
+
+    const { rails: alreadyFrozen } = this.paymentSourceSnapshot(intent);
+    const unique = candidateRails.filter((rail, index, all) => {
+      const key = addressKey(rail);
+      return Boolean(key) && all.findIndex((candidate) => addressKey(candidate) === key) === index;
+    });
+    const pending = unique.filter((rail) => !alreadyFrozen.has(addressKey(rail)));
+    for (const rail of pending) {
+      if (!await this.independentlyVerifyHtlcRail(intent, rail)) {
+        throw new RelayValidationError(
+          "PAYMENT_RAIL_UNVERIFIED",
+          `Nimiq Pay account ${rail} could not be independently proven as a payment rail for an authorized wallet`
+        );
+      }
+    }
+
+    const updated = this.store.freezeVerifiedPaymentRails(batonId, pending);
+    await this.flushDurability();
+    return updated;
+  }
+
   /**
    * A pass keeps one custody holder, but its AUTHORIZE_PASS snapshot may include
    * additional wallets that the same signed-in NimCarry profile verified before
@@ -182,33 +276,20 @@ export class CanonicalRelayService {
    * without becoming the canonical holder.
    *
    * Direct basic-wallet payments are accepted only when the observed sender is
-   * in the frozen snapshot. HTLC rails are accepted only when their on-chain
-   * declared sender is in that snapshot and that same wallet funded the HTLC's
-   * original total amount.
+   * in the frozen wallet snapshot. HTLC rails use the durable pre-payment rail
+   * snapshot when present. Older intents fall back to independent live
+   * verification so already-created missions remain recoverable.
    */
   private async verifiedPaymentRail(intent: PassIntent, tx: NimiqTxLookup): Promise<string | null> {
-    const authorizedWallets = new Set(
-      (intent.authorizedPaymentWallets?.length ? intent.authorizedPaymentWallets : [intent.currentHolder])
-        .map(addressKey)
-    );
+    const { wallets: authorizedWallets, rails: frozenRails } = this.paymentSourceSnapshot(intent);
+    const sender = addressKey(tx.from);
 
-    if (authorizedWallets.has(addressKey(tx.from))) {
-      return addressKey(tx.from) === addressKey(intent.currentHolder) ? null : tx.from;
+    if (authorizedWallets.has(sender)) {
+      return sender === addressKey(intent.currentHolder) ? null : tx.from;
     }
-    if (!this.rpc.getAccountByAddress || !this.rpc.getTransactionsByAddress) return null;
+    if (frozenRails.has(sender)) return tx.from;
 
-    const account = await this.rpc.getAccountByAddress(tx.from);
-    if (!account || String(account.type).toLowerCase() !== "htlc") return null;
-    if (!account.sender || !authorizedWallets.has(addressKey(account.sender))) return null;
-    if (!Number.isFinite(account.totalAmount) || Number(account.totalAmount) <= 0) return null;
-
-    const history = await this.rpc.getTransactionsByAddress(tx.from);
-    const creationFunding = history.find((candidate) =>
-      addressKey(candidate.to) === addressKey(tx.from)
-      && addressKey(candidate.from) === addressKey(account.sender!)
-      && candidate.value === Number(account.totalAmount)
-    );
-    return creationFunding ? tx.from : null;
+    return await this.independentlyVerifyHtlcRail(intent, tx.from) ? tx.from : null;
   }
 
   private async validateObservedTransaction(intent: PassIntent, tx: NimiqTxLookup): Promise<void> {

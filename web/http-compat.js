@@ -205,6 +205,22 @@ import { getNimiqProvider } from "/nimiq-provider.js";
 
     body = removeEmptyOptionalFields(flattenSignedEnvelope(body));
 
+    // Freeze independently verified Nimiq Pay HTLC rails before opening the
+    // provider transaction sheet. The same short-lived AUTHORIZE_PASS capability
+    // proves this request belongs to the active pass, but is not consumed here.
+    const paymentRailSnapshot = path.match(/^\/missions\/([^/]+)\/pass-intent\/payment-rails$/);
+    if (paymentRailSnapshot) {
+      const missionId = decodeURIComponent(paymentRailSnapshot[1]);
+      const pass = passByMission.get(missionId);
+      if (!pass?.broadcastCapability) {
+        throw new Error("BROADCAST_CAPABILITY_MISSING: authorize the delivery again before freezing payment rails.");
+      }
+      body = {
+        rail_addresses: Array.isArray(body?.rail_addresses) ? body.rail_addresses : [],
+        broadcast_capability: pass.broadcastCapability,
+      };
+    }
+
     // The visible shell still calls its historical intent-specific URL. Adapt it
     // to the canonical invitation-bound endpoint and attach the one-time
     // capability that AUTHORIZE_PASS returned. A missing capability fails closed.

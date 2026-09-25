@@ -30,6 +30,7 @@ export class BroadcastCapabilityError extends Error {
 
 export interface BroadcastCapabilityStore {
   issue(binding: BroadcastCapabilityBinding, options?: { now?: number; ttlMs?: number }): IssuedBroadcastCapability;
+  assert(token: string, expected: BroadcastCapabilityBinding, now?: number): void;
   consume(token: string, expected: BroadcastCapabilityBinding, now?: number): void;
 }
 
@@ -57,7 +58,24 @@ export class MemoryBroadcastCapabilityStore implements BroadcastCapabilityStore 
     return { token, expiresAt };
   }
 
+  assert(token: string, expected: BroadcastCapabilityBinding, now = Date.now()): void {
+    this.requireValid(token, expected, now);
+  }
+
   consume(token: string, expected: BroadcastCapabilityBinding, now = Date.now()): void {
+    const record = this.requireValid(token, expected, now);
+
+    // Mark consumed synchronously before the caller attaches the tx hash. A
+    // second concurrent request cannot pass this check. Same-request retries are
+    // handled by the HTTP idempotency layer before this method is reached.
+    record.consumedAt = now;
+  }
+
+  private requireValid(
+    token: string,
+    expected: BroadcastCapabilityBinding,
+    now: number
+  ): BroadcastCapabilityRecord {
     this.prune(now, token);
     const record = this.records.get(token);
     if (!record) {
@@ -82,11 +100,7 @@ export class MemoryBroadcastCapabilityStore implements BroadcastCapabilityStore 
         "Broadcast capability is bound to different mission state"
       );
     }
-
-    // Mark consumed synchronously before the caller attaches the tx hash. A
-    // second concurrent request cannot pass this check. Same-request retries are
-    // handled by the HTTP idempotency layer before this method is reached.
-    record.consumedAt = now;
+    return record;
   }
 
   private prune(now: number, preserveToken?: string): void {
