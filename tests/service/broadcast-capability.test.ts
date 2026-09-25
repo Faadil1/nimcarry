@@ -24,6 +24,15 @@ function reasonOf(run: () => void): string {
 }
 
 describe("MemoryBroadcastCapabilityStore", () => {
+  it("can validate a correctly bound capability without consuming it", () => {
+    const store = new MemoryBroadcastCapabilityStore();
+    const issued = store.issue(binding, { now: 1_000, ttlMs: 10_000 });
+
+    expect(() => store.assert(issued.token, binding, 2_000)).not.toThrow();
+    expect(() => store.assert(issued.token, binding, 2_001)).not.toThrow();
+    expect(() => store.consume(issued.token, binding, 2_002)).not.toThrow();
+  });
+
   it("consumes a correctly bound capability exactly once", () => {
     const store = new MemoryBroadcastCapabilityStore();
     const issued = store.issue(binding, { now: 1_000, ttlMs: 10_000 });
