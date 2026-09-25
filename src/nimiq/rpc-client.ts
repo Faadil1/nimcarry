@@ -133,6 +133,8 @@ export class HttpNimiqRpcClient implements NimiqRpcClient {
   async getTransactionByHash(hash: string): Promise<NimiqTxLookup | null> {
     const r = await this.rpc<any>("getTransactionByHash", [hash]);
     if (!r) return null;
+    const senderType = normalizeNimiqAccountType(r.fromType ?? r.senderType);
+    const recipientType = normalizeNimiqAccountType(r.toType ?? r.recipientType);
     return {
       hash: r.hash,
       from: r.fromAddress ?? r.from,
@@ -140,6 +142,8 @@ export class HttpNimiqRpcClient implements NimiqRpcClient {
       value: r.value,
       blockNumber: r.blockNumber ?? null,
       confirmations: r.confirmations ?? 0,
+      ...(senderType !== "unknown" ? { senderType } : {}),
+      ...(recipientType !== "unknown" ? { recipientType } : {}),
       recipientData: rpcRecipientData(r),
     };
   }
@@ -159,6 +163,8 @@ export class HttpNimiqRpcClient implements NimiqRpcClient {
       if (!row || typeof row !== "object") return [];
       const tx = row as Record<string, any>;
       if (!tx.hash || !tx.fromAddress && !tx.from || !tx.toAddress && !tx.to || tx.value === undefined) return [];
+      const senderType = normalizeNimiqAccountType(tx.fromType ?? tx.senderType);
+      const recipientType = normalizeNimiqAccountType(tx.toType ?? tx.recipientType);
       return [{
         hash: String(tx.hash),
         from: String(tx.fromAddress ?? tx.from),
@@ -166,6 +172,8 @@ export class HttpNimiqRpcClient implements NimiqRpcClient {
         value: Number(tx.value),
         blockNumber: tx.blockNumber ?? null,
         confirmations: Number(tx.confirmations ?? 0),
+        ...(senderType !== "unknown" ? { senderType } : {}),
+        ...(recipientType !== "unknown" ? { recipientType } : {}),
         recipientData: rpcRecipientData(tx),
       }];
     });

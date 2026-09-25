@@ -190,6 +190,82 @@ describe("Nimiq Pay HTLC payment-rail verification", () => {
     expect(service.getRecoverableInvalidBroadcastBatonIds()).not.toContain("mission-invalid-repair");
   });
 
+  it("recovers a pre-fix hashed INVALID rail from immutable historic HTLC creation after live account metadata is gone", async () => {
+    const rpc = new HtlcRpc();
+    const service = new CanonicalRelayService(new RelayStore(), rpc);
+    const intent = service.initiatePass("mission-legacy-history-repair", HOLDER, BRIDGE, {
+      requireOpaqueTag: true,
+      authorizedPaymentWallets: [HOLDER],
+    });
+    const payment = {
+      ...paymentTx(intent),
+      senderType: "htlc",
+      recipientType: "basic",
+    };
+    service.recordBroadcast("mission-legacy-history-repair", payment.hash);
+
+    // First observation has the exact hash but cannot yet prove where the rail
+    // came from, so it must fail closed.
+    rpc.history = [payment];
+    await expect(service.reconcile("mission-legacy-history-repair")).rejects.toMatchObject({
+      reason: "WRONG_SENDER",
+    });
+
+    // The consumed HTLC no longer exists in current account state. The history
+    // node still carries the immutable HTLC-creation transaction from HOLDER.
+    rpc.accounts.delete(HTLC);
+    rpc.history = [
+      {
+        ...fundingTx(HOLDER),
+        senderType: "basic",
+        recipientType: "htlc",
+      },
+      payment,
+    ];
+    rpc.head = payment.blockNumber! + NIMIQ_POLICY.blocksPerBatch;
+
+    const repaired = await service.reconcile("mission-legacy-history-repair");
+    expect(repaired).toMatchObject({ txHash: payment.hash, status: "FINAL" });
+    expect(service.getPublicView("mission-legacy-history-repair")).toMatchObject({
+      current_holder: BRIDGE,
+      hop_count: 1,
+    });
+  });
+
+  it("does not treat an ordinary historic transfer to the rail address as HTLC authority", async () => {
+    const rpc = new HtlcRpc();
+    const service = new CanonicalRelayService(new RelayStore(), rpc);
+    const intent = service.initiatePass("mission-history-basic-reject", HOLDER, BRIDGE, {
+      requireOpaqueTag: true,
+      authorizedPaymentWallets: [HOLDER],
+    });
+    const payment = {
+      ...paymentTx(intent),
+      senderType: "htlc",
+      recipientType: "basic",
+    };
+    service.recordBroadcast("mission-history-basic-reject", payment.hash);
+
+    rpc.history = [
+      {
+        ...fundingTx(HOLDER),
+        senderType: "basic",
+        recipientType: "basic",
+      },
+      payment,
+    ];
+    rpc.head = payment.blockNumber! + NIMIQ_POLICY.blocksPerBatch;
+
+    await expect(service.reconcile("mission-history-basic-reject")).rejects.toMatchObject({
+      reason: "WRONG_SENDER",
+    });
+    expect(service.getPublicView("mission-history-basic-reject")).toMatchObject({
+      current_holder: HOLDER,
+      hop_count: 0,
+      status: "INVALID",
+    });
+  });
+
   it("freezes a verified HTLC rail before payment and still validates after the live HTLC metadata changes", async () => {
     const rpc = new HtlcRpc();
     const service = new CanonicalRelayService(new RelayStore(), rpc);

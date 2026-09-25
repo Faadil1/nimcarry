@@ -73,4 +73,60 @@ describe("HttpNimiqRpcClient account normalization", () => {
     });
   });
 
+
+  it("preserves historic transaction sender/recipient account types from the RPC", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body || "{}"));
+      if (body.method === "getTransactionByHash") {
+        return new Response(JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          result: {
+            data: {
+              hash: "aa".repeat(32),
+              from: "NQ87 PAYMENT RAIL",
+              fromType: 2,
+              to: "NQ54 DESTINATION",
+              toType: 0,
+              value: 100000,
+              blockNumber: 123,
+              confirmations: 10,
+            },
+          },
+        }), { status: 200, headers: { "content-type": "application/json" } });
+      }
+      if (body.method === "getTransactionsByAddress") {
+        return new Response(JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          result: {
+            data: [{
+              hash: "bb".repeat(32),
+              from: "NQ46 VERIFIED BASIC",
+              fromType: 0,
+              to: "NQ87 PAYMENT RAIL",
+              toType: 2,
+              value: 11000000000,
+              blockNumber: 100,
+              confirmations: 50,
+            }],
+          },
+        }), { status: 200, headers: { "content-type": "application/json" } });
+      }
+      throw new Error(`Unexpected RPC method ${body.method}`);
+    }));
+
+    const rpc = new HttpNimiqRpcClient("https://rpc.example.test");
+    await expect(rpc.getTransactionByHash("aa".repeat(32))).resolves.toMatchObject({
+      senderType: "htlc",
+      recipientType: "basic",
+    });
+    await expect(rpc.getTransactionsByAddress!("NQ87 PAYMENT RAIL")).resolves.toEqual([
+      expect.objectContaining({
+        senderType: "basic",
+        recipientType: "htlc",
+      }),
+    ]);
+  });
+
 });
