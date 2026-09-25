@@ -578,6 +578,7 @@ async function handleDestinationClaim(
         status: result.mission.status,
         target_wallet_bound: result.mission.target_wallet_bound,
       },
+      sender_label: result.senderLabel,
     });
   }
 

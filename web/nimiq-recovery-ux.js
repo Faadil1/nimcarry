@@ -266,15 +266,14 @@
     panel.dataset.kind = "access";
     const actions = ids.map((id, index) => {
       const fingerprint = id.length > 12 ? `${id.slice(0, 8)}…${id.slice(-4)}` : id;
-      return `<a class="button ${index === 0 ? "primary" : "ghost"}" href="${esc(recoveryPathForMission(id))}">Resume recent mission ${esc(fingerprint)}</a>`;
+      return `<a class="button ${index === 0 ? "primary" : "ghost"}" href="${esc(recoveryPathForMission(id))}">Open payment ${esc(fingerprint)}</a>`;
     }).join("");
     panel.innerHTML = `
-      <div class="nr-stamp">ROUTE SAFE</div>
+      <div class="nr-stamp">NOTHING LOST</div>
       <div class="nr-copy">
-        <div class="nr-eyebrow">Previous mission found on this device</div>
-        <h2>Resume without creating a new mission.</h2>
-        <p>NimCarry remembers only a non-secret mission locator across app closes. Re-sign VIEW_ROUTE to mint fresh read-only access. The bearer capability itself remains session-only; this does not send NIM, re-invite a bridge, or change custody.</p>
-        <div class="nr-rule"><span>Custody rule</span><strong>Recovery is read-only · only FINAL changes custody</strong></div>
+        <div class="nr-eyebrow">A payment in progress on this device</div>
+        <h2>Pick up where you left off.</h2>
+        <p>Resume without creating a new mission: confirm it’s you in Nimiq Pay to see it again. This only reads it. It never sends NIM a second time.</p>
       </div>
       <div class="nr-actions">${actions}</div>`;
     return true;

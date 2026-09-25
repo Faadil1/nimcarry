@@ -6,30 +6,25 @@ const provider = readFileSync("web/nimiq-provider.js", "utf8");
 const sdk = readFileSync("web/vendor/nimiq-mini-app-sdk.js", "utf8");
 const compat = readFileSync("web/http-compat.js", "utf8");
 const recoveryUx = readFileSync("web/nimiq-recovery-ux.js", "utf8");
-const demoUx = readFileSync("web/demo-ux.js", "utf8");
-const winning = readFileSync("web/winning-intelligence.js", "utf8");
-const finalHuman = readFileSync("web/final-human-craft.js", "utf8");
-const finalHumanCss = readFileSync("web/final-human-craft.css", "utf8");
 const favicon = readFileSync("web/favicon.svg", "utf8");
 const mark = readFileSync("web/nimcarry-mark.svg", "utf8");
 const manifest = readFileSync("web/manifest.webmanifest", "utf8");
-const css = readFileSync("web/styles.css", "utf8");
+const css = readFileSync("web/nimcarry.css", "utf8");
 
 describe("static Mini App skeleton", () => {
   it("ships a mobile-first app shell without external UI/script dependencies", () => {
     expect(html).toContain('name="viewport"');
-    expect(html).toContain('<body class="carried-letter-v2">');
+    expect(html).toContain('<body class="nimcarry" data-ground="forest">');
     expect(html).toContain('src="/http-compat.js"');
     expect(html.indexOf('src="/http-compat.js"')).toBeLessThan(html.indexOf('src="/app.js"'));
-    expect(html).toContain('src="/demo-ux.js"');
-    expect(html.indexOf('src="/app.js"')).toBeLessThan(html.indexOf('src="/demo-ux.js"'));
-    expect(html).toContain('src="/winning-intelligence.js"');
-    expect(html).toContain('src="/final-human-craft.js"');
-    expect(html.indexOf('src="/winning-intelligence.js"')).toBeLessThan(html.indexOf('src="/final-human-craft.js"'));
-    expect(html).toContain('href="/styles.css"');
-    expect(html).toContain('href="/winning-intelligence.css"');
-    expect(html).toContain('href="/final-human-craft.css"');
+    // One stylesheet and only the scripts that carry logic.
+    expect(html.match(/rel="stylesheet"/g)?.length).toBe(1);
+    expect(html).toContain('href="/nimcarry.css"');
+    for (const removed of ["demo-ux", "demo-tour", "winning-intelligence", "final-human-craft", "carried-letter-v2", "route-shell-polish", "hero-copy-clarity", "nimcarry-motion", "wallet-onboarding", "styles.css"]) {
+      expect(html).not.toContain(removed);
+    }
     expect(html).toContain('href="/favicon.svg"');
+    expect(html).toContain('href="/fonts/fraunces.woff2"');
     expect(html).not.toContain('src="/living-route.js"');
     expect(html).not.toContain('src="/trace-winner-convergence.js"');
     expect(html).not.toContain('src="/mature-positioning.js"');
@@ -112,8 +107,8 @@ describe("static Mini App skeleton", () => {
     expect(js).toContain('from "/nimiq-provider.js"');
     expect(js).toContain("getNimiqProvider");
     expect(js).toContain("classifyNimiqAccounts");
-expect(js).toContain("You already accepted this handoff.");
-    expect(js).toContain("Opening this link again never creates a second acceptance");
+expect(js).toContain("You already<br><em>said yes.</em>");
+    expect(js).toContain("opening this link again changes nothing");
 expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(js).toContain("isHtlcNimiqAccountType");
     expect(compat).toContain('import { getNimiqProvider } from "/nimiq-provider.js"');
@@ -156,8 +151,8 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(recoveryUx).toContain('const RECENT_MISSIONS_KEY = "nimcarry.recentMissions.v1"');
     expect(recoveryUx).toContain("persistentMissionIds");
     expect(recoveryUx).toContain("knownMissionIds");
-    expect(recoveryUx).toContain("Resume recent mission");
-    expect(recoveryUx).toContain("bearer capability itself remains session-only");
+    expect(recoveryUx).toContain("Resume without creating a new mission");
+    expect(recoveryUx).toContain("It never sends NIM a second time.");
     expect(recoveryUx).toContain("/route-access-recovery.html");
   });
   it("adapts nested UI signatures to the active flat Mission HTTP envelope", () => {
@@ -204,18 +199,17 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(js).toContain('const path = recoveringExpiredCurrentSequence');
   });
   it("keeps demo mode explicit and visually distinct from real mode", () => {
-    expect(html).toContain("DEMO MODE — no wallet or network writes");
+    expect(html).toContain("PRACTICE MODE — nothing is signed or sent");
+    expect(js).toContain('els.network.textContent = state.demo ? "PRACTICE"');
     expect(js).toContain('query.get("demo") === "1"');
   });
   it("backgrounds an already-recorded handoff without offering a second payment", () => {
     expect(js).not.toContain("Recheck existing handoff");
     expect(js).not.toContain("async function recheckExistingHandoff");
-    expect(js).toContain("Checking existing send — no action needed");
-    expect(js).toContain('!m.invitation && m.target_wallet_bound === true && m.destination_claim?.status === "CLAIMED"');
+    expect(js).toContain("Checking the payment — no action needed");
+    expect(js).toContain("Confirming on the Nimiq network. No action needed, and please don’t send again.");
     expect(js).toContain('data-target-wallet-bound="${m.target_wallet_bound ? "true" : "false"}"');
     expect(js).toContain('data-destination-claim-status="${esc(m.destination_claim?.status || "")}"');
-    expect(winning).toContain('const directClaimFlow = !invitationStatus && targetWalletBound && destinationClaimStatus === "CLAIMED"');
-    expect(winning).toContain('if (directClaimFlow && primaryAction === "WAIT") return 3');
     expect(js).toContain("finalizing in the background");
     expect(js).toContain("You can safely close this page. Do not resend 1 NIM.");
     expect(js).toContain("/reconcile");
@@ -224,9 +218,9 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
   });
   it("keeps the accepted bridge in one continuous session until FINAL", () => {
     expect(js).toContain('mission.viewer_role === "INVITEE" && invitationStatus === "ACCEPTED"');
-    expect(js).toContain("Accepted — waiting for delivery");
-    expect(js).toContain("received the 1 NIM. Your bridge step is complete.");
-    expect(js).toContain("Your bridge step is complete once FINAL lands.");
+    expect(js).toContain("Accepted — waiting for the payment");
+    expect(js).toContain("received the 1 NIM. Your part is done.");
+    expect(js).toContain("Your part is done once it’s confirmed on Nimiq.");
     expect(js).not.toContain("You now carry this letter — choose the next bridge.");
     expect(compat).toContain("activateBridgeContinuationAfterAcceptance");
     expect(compat).toContain("acceptedInvitation?.view_token");
@@ -244,9 +238,10 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(js).toContain('mission.current_holder?.is_viewer === true && invitationStatus === "INVITED"');
     expect(js).toContain('mission.primary_action === "WAIT"');
     expect(js).toContain("senderWaitingForFinal");
-    expect(js).toContain("Introducer accepted. The direct destination delivery is ready.");
-    expect(js).toContain("The destination still needs the private claim to bind their wallet.");
-    expect(js).toContain("Delivered.");
+    expect(js).toContain("Your introducer said yes. You can send now.");
+    expect(js).toContain("still needs to open your link.");
+    expect(js).toContain("It arrived.");
+    expect(js).toContain('const recipientWaitingForPayment = mission.viewer_role === "TARGET"');
     expect(js).toContain('addEventListener("focus", () => { void refreshWatchedMission(); })');
     expect(js).toContain('document.addEventListener("visibilitychange"');
     const start = js.indexOf("async function refreshWatchedMission");
@@ -258,12 +253,15 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(watcher).not.toContain('method: "POST"');
   });
 
-  it("derives the five-step progress indicator from lifecycle state", () => {
-    expect(winning).toContain("function routeProgressIndex");
-    expect(winning).toContain('if (status === "ARRIVED") return 4');
-    expect(winning).toContain('primaryAction === "SEND_1_NIM"');
-    expect(winning).toContain('if (invitationStatus === "INVITED") return 2');
-    expect(winning).not.toContain('else if (/^\\/mission\\//.test(path)) current = 1');
+  it("lets each lifecycle state choose its own screen, color and action", () => {
+    expect(js).toContain("function missionScene(m, { action, activity, to, letter })");
+    expect(js).toContain('if (m.status === "ARRIVED") {');
+    expect(js).toContain('if (action === "SHARE_CLAIM") {');
+    expect(js).toContain('if (action === "SEND_1_NIM" || action === "PASS_1_NIM") {');
+    expect(js).toContain('if (m.viewer_role === "TARGET") {');
+    expect(js).toContain('if (m.viewer_role === "INVITEE") {');
+    expect(js).toContain('ground: "vermilion"');
+    expect(js).toContain('ground: "night"');
   });
 
   it("preserves route-view capability when Home opens the pass screen", () => {
@@ -271,11 +269,12 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(js).toContain('sessionStorage.getItem(`carryone.view.${missionId}`) || undefined');
     expect(js).toContain('const viewToken = extractViewToken(missionId)');
   });
-  it("makes successful demo acceptance visibly return to Mission Home", () => {
-    expect(demoUx).toContain('query.get("demo") !== "1"');
-    expect(demoUx).toContain('stored?.invitation?.status !== "ACCEPTED"');
-    expect(demoUx).toContain('history.pushState({}, "", `/mission/${encodeURIComponent(missionId)}?demo=1`)');
-    expect(demoUx).toContain('new PopStateEvent("popstate")');
+  it("makes successful practice acceptance visibly return to the payment", () => {
+    const start = js.indexOf("async function acceptInvitation");
+    const accept = js.slice(start, js.indexOf("async function declineInvitation", start));
+    expect(accept).toContain("if (state.demo) {");
+    expect(accept).toContain('navigate(`/mission/${encodeURIComponent(stored.mission.mission_id)}`)');
+    expect(accept).toContain('stored.mission.target_wallet_bound ? "PASS_1_NIM" : "SHARE_CLAIM"');
   });
   it("ships the final human-craft browser, install and social identity", () => {
     expect(favicon).toContain('<svg');
@@ -291,15 +290,10 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(html).toContain('property="og:title"');
     expect(html).toContain('/social-card.svg');
   });
-  it("keeps route progress and finality truthful in the final product language", () => {
-    expect(winning).toContain('node("div", "wi-flow")');
-    expect(winning).toContain("Only FINAL delivery counts.");
-    expect(winning).toContain("A pending transaction never proves that the destination received the 1 NIM.");
-    expect(finalHuman).toContain("A finite human route in progress.");
-    expect(finalHuman).toContain("Pending activity never rewrites the verified path.");
-    expect(finalHuman).not.toContain("sendBasicTransactionWithData");
-    expect(finalHumanCss).toContain("hc-route-arrived");
-    expect(finalHumanCss).toContain("hc-route-person");
+  it("keeps the receipt and finality truthful in the product language", () => {
+    expect(js).toContain("Only payments confirmed on Nimiq appear here. Full wallet addresses are never shown.");
+    expect(js).toContain("Nothing counts until the Nimiq network confirms it.");
+    expect(js).toContain("Nothing confirmed yet.");
   });
   it("propagates only server-authorized finalized carrier marks into route and receipt UI", () => {
     expect(compat).toContain("entry.current_holder?.display_label || null");
@@ -307,23 +301,22 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(compat).toContain("entry.recipient?.display_label || null");
     expect(js).toContain('data-carrier-mark="${esc(bridgeMark || "")}"');
     expect(js).toContain('class="${bridgeMark ? "carrier-mark" : ""}"');
-    expect(winning).toContain("const carrierMark = step.dataset.carrierMark ||");
-    expect(winning).toContain('carrierMark ? "wi-carrier-mark" : ""');
+    expect(js).toContain("const bridgeMark = entry.via?.display_label || null;");
   });
 
   it("makes ARRIVED a human outcome plus privacy-safe proof rather than a transaction toast", () => {
-    expect(winning).toContain("Each displayed row is a destination delivery that reached independent FINAL.");
-    expect(winning).toContain("Private destination wallet data stays hidden from this receipt.");
-    expect(finalHuman).toContain("It arrived because people carried it.");
-    expect(finalHuman).toContain("craft-arrival.svg");
-    expect(finalHumanCss).toContain("hc-arrived-moment");
-    expect(finalHumanCss).toContain("wi-receipt");
+    expect(js).toContain("It <em>arrived.</em>");
+    expect(js).toContain("received 1 NIM. Confirmed on the Nimiq network.");
+    expect(js).toContain("confettiMarkup()");
+    expect(js).toContain('state: arrived ? "arrived" : "sealed"');
   });
   it("keeps the finality-state UI responsive across mobile, tablet and desktop layouts", () => {
-    expect(css).toContain("width:min(760px,100%)");
-    expect(css).toContain(".button-row{display:flex;gap:9px;flex-wrap:wrap");
-    expect(css).toContain("@media(min-width:620px)");
-    expect(css).toContain("prefers-reduced-motion:reduce");
+    expect(css).toContain(".app-shell{position:relative;width:100%;max-width:1280px");
+    expect(css).toContain(".button-row{display:flex;flex-wrap:wrap");
+    expect(css).toContain("@media (min-width:640px)");
+    expect(css).toContain("@media (min-width:980px)");
+    expect(css).toContain('grid-template-areas:"copy object" "actions object"');
+    expect(css).toContain("@media (prefers-reduced-motion:reduce)");
   });
 
   it("keeps private claim bearer links session-only and safely reissues lost links", () => {
@@ -334,11 +327,11 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(js).toContain('/destination-claim');
     expect(js).toContain("The previous one no longer works.");
     expect(js).toContain('claim.status !== "PENDING"');
-    expect(js).toContain("This link can’t be used.");
+    expect(js).toContain("This link can’t<br><em>be used.</em>");
   });
 
-  it("honors reduced-motion in both base and final identity CSS", () => {
-    expect(css).toContain("prefers-reduced-motion:reduce");
-    expect(finalHumanCss).toContain("prefers-reduced-motion:reduce");
+  it("honors reduced-motion across the whole stylesheet", () => {
+    expect(css).toContain("@media (prefers-reduced-motion:reduce)");
+    expect(css).toContain("::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}");
   });
 });

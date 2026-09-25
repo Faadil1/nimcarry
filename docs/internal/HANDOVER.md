@@ -16,13 +16,13 @@ Done on `main`:
 - Step indicator defaults to the payment-link steps.
 - README rewritten user-first; team notes moved to `docs/internal/`.
 
-Still open, for the UI/UX pass:
+UI v3 "the letter, remastered" (branch `v2-ticket-ui`, PR pending) closed the UI items: practice mode runs the payment link, introduction screens use plain language, profile forms fold into one sheet, and the frontend is one stylesheet plus a shared UI module.
 
-- **Practice mode (`?demo=1`) still demonstrates the introduction flow**, not the payment link. It needs a simulated claim journey.
-- Introduction screens (`/i/…`) and mission states still use the "letter / carrier" vocabulary.
-- The home page stacks two profile forms (sign-in + register) under the hero; they should collapse behind one action.
-- `web/index.html` loads 7 stylesheets and 16 scripts layered as successive patches; consolidate while redesigning.
-- The README no longer embeds the old V3.2 screenshots; capture new ones after the redesign.
+Still open:
+
+- New README screenshots once v3 is merged.
+- `scripts/record-explainer-ui.mjs` and `scripts/demo-video-v2-*.mjs` drive the old demo selectors; they only matter if the submitted video is re-recorded.
+- The route-access-recovery, testnet-preflight and payment-identity diagnostic pages use the new stylesheet but keep their technical wording.
 
 Unchanged and outside the code: 0 verified / 0 activated users. The next evidence needed is real Nimiq Pay users completing a link payment.
 

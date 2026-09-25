@@ -17,9 +17,9 @@ describe("route access self-recovery", () => {
     expect(ux).toContain('const RECENT_MISSIONS_KEY = "nimcarry.recentMissions.v1"');
     expect(ux).toContain("persistentMissionIds");
     expect(ux).toContain("knownMissionIds");
-    expect(ux).toContain("Previous mission found on this device");
+    expect(ux).toContain("A payment in progress on this device");
     expect(ux).toContain("Resume without creating a new mission");
-    expect(ux).toContain("bearer capability itself remains session-only");
+    expect(ux).toContain("This only reads it. It never sends NIM a second time.");
     expect(ux).toContain("recoveryPathForMission(id)");
     expect(ux).not.toContain('localStorage.setItem(`carryone.view.');
   });

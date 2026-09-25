@@ -299,6 +299,7 @@ describe("Reach Mission HTTP bindings", () => {
     expect(claimView.status).toBe(200);
     expect(claimView.body.claim.status).toBe("PENDING");
     expect(claimView.body.mission.target_wallet_bound).toBe(false);
+    expect(claimView.body).toHaveProperty("sender_label");
     expect(JSON.stringify(claimView.body)).not.toContain(destination.address.replaceAll(" ", ""));
 
     const claimCh = await challenge(destination.address, "CLAIM_DESTINATION", { mission_id: missionId });

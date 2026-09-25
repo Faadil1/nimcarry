@@ -17,15 +17,11 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/nimcarry-mark.svg" />
   <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="stylesheet" href="/styles.css" />
-  <link rel="stylesheet" href="/winning-intelligence.css" />
-  <link rel="stylesheet" href="/final-human-craft.css" />
-  <link rel="stylesheet" href="/final-human-craft-max.css" />
-  <link rel="stylesheet" href="/nimiq-recovery-ux.css" />
-  <link rel="stylesheet" href="/carried-letter-v2.css" />
-  <link rel="stylesheet" href="/nimcarry-motion.css" />
+  <link rel="preload" href="/fonts/fraunces.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="/nimcarry.css" />
 </head>
-<body class="carried-letter-v2">
+<body class="nimcarry" data-ground="forest">
   <div id="app-shell" class="app-shell">
     <header class="brandbar">
       <button id="brand-home" class="brand" type="button" aria-label="NimCarry home">
@@ -34,10 +30,10 @@
       </button>
       <div class="network-chip"><span class="pulse"></span><span id="network-label">TESTNET REQUIRED</span></div>
     </header>
-    <div id="demo-banner" class="demo-banner" hidden>DEMO MODE — no wallet or network writes</div>
+    <div id="demo-banner" class="demo-banner" hidden>PRACTICE MODE — nothing is signed or sent</div>
     <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
     <main id="screen" class="screen" tabindex="-1"></main>
-    <footer class="footer"><span>Send NIM to a person, not an address.</span><span>Nimiq Pay · Testnet · <a href="/real-usage">Usage evidence</a> · <a href="/privacy.html">Privacy</a></span></footer>
+    <footer class="footer"><span>Send NIM to a person, not an address.</span><span>Nimiq Pay · Testnet · <a href="/real-usage">Usage</a> · <a href="/privacy.html">Privacy</a></span></footer>
   </div>
 
   <dialog id="wallet-dialog" class="wallet-dialog">
@@ -48,7 +44,7 @@
 
   <dialog id="invite-dialog" class="invite-dialog">
     <form method="dialog" id="invite-form">
-      <div class="dialog-kicker">Next human bridge</div><h2>Who can move this introduction closer?</h2><label>Bridge label<input id="candidate-label" maxlength="60" placeholder="Opeyemi" /></label><label>Why them?<textarea id="why-you" maxlength="120" placeholder="You know the next person in this network and can move the introduction closer."></textarea></label><label>Known wallet (optional)<input id="candidate-wallet" autocomplete="off" placeholder="NQ…" /></label><div class="dialog-actions"><button value="cancel" class="button ghost">Cancel</button><button id="invite-confirm" value="default" class="button primary">Create private invite</button></div>
+      <div class="dialog-kicker">Ask for an introduction</div><h2>Who knows them?</h2><p>They say yes with one tap. The NIM still goes straight to the recipient; the introducer never holds it.</p><div class="form-grid"><label>Their name<input id="candidate-label" maxlength="60" placeholder="Opeyemi" /></label><label>Why them? <span>(optional)</span><textarea id="why-you" maxlength="120" placeholder="You know David and can tell him this is from me."></textarea></label><label>Their Nimiq address <span>(optional)</span><input id="candidate-wallet" autocomplete="off" placeholder="NQ…" /></label></div><div class="dialog-actions"><button value="cancel" class="button ghost">Cancel</button><button id="invite-confirm" value="default" class="button primary">Create introduction link</button></div>
     </form>
   </dialog>
 
@@ -57,17 +53,7 @@
   <script type="module" src="/app.js"></script>
   <script type="module" src="/user-profile.js"></script>
   <script src="/network-label-guard.js" defer></script>
-  <script src="/wallet-onboarding.js" defer></script>
-  <script src="/winning-intelligence.js" defer></script>
-  <script src="/final-human-craft.js" defer></script>
-  <script src="/final-human-craft-max.js" defer></script>
   <script src="/nimiq-submission-guard.js" defer></script>
   <script src="/nimiq-recovery-ux.js" defer></script>
-  <script src="/route-shell-polish.js" defer></script>
-  <script src="/demo-ux.js" defer></script>
-  <script src="/demo-tour.js" defer></script>
-  <script src="/hero-copy-clarity.js" defer></script>
-  <script src="/carried-letter-v2.js" defer></script>
-  <script src="/nimcarry-motion.js" defer></script>
 </body>
 </html>

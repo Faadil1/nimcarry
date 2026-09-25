@@ -19,6 +19,7 @@ const mime = {
   ".svg": "image/svg+xml",
   ".png": "image/png",
   ".webmanifest": "application/manifest+json",
+  ".woff2": "font/woff2",
   ".json": "application/json; charset=utf-8",
 };
 
@@ -79,7 +80,7 @@ const report = {
   generated_at: new Date().toISOString(),
   base_url: baseUrl,
   target: localWebRoot ? "PR_LOCAL_BRANCH_RUNTIME" : "PRODUCTION_RUNTIME",
-  mode: "DEMO MODE — no wallet or network writes",
+  mode: "PRACTICE MODE — nothing is signed or sent",
   viewports: {},
 };
 
@@ -104,12 +105,24 @@ async function captureState(page, viewport, label, expectedMode) {
     const root = document.documentElement;
     const shell = document.querySelector(".app-shell");
     const screen = document.querySelector("#screen");
+    const copy = document.querySelector(".nc-copy");
+    const object = document.querySelector(".nc-object .nc-letter");
+    // Every visible control must be a comfortable touch target.
+    const small = [...document.querySelectorAll("#screen button, #screen a.button, #screen summary, #screen input:not([type=checkbox]), #screen textarea")]
+      .filter((node) => node.offsetParent !== null)
+      .map((node) => ({ node, rect: node.getBoundingClientRect() }))
+      .filter(({ rect }) => rect.width > 0 && rect.height > 0 && rect.height < 43.5)
+      .map(({ node, rect }) => `${node.id || node.className || node.tagName}:${Math.round(rect.height)}`);
     return {
-      mode: screen?.dataset.clv2Screen || null,
+      mode: screen?.dataset.screen || null,
+      ground: document.body.dataset.ground || null,
       inner_width: window.innerWidth,
       document_width: root.scrollWidth,
       shell_width: shell?.getBoundingClientRect().width || 0,
       screen_width: screen?.getBoundingClientRect().width || 0,
+      copy_right: copy ? copy.getBoundingClientRect().right : null,
+      letter_left: object ? object.getBoundingClientRect().left : null,
+      small_targets: small,
       expected_mode: mode,
     };
   }, expectedMode);
@@ -123,11 +136,32 @@ async function captureState(page, viewport, label, expectedMode) {
   if (viewport.width >= 1024 && geometry.shell_width < 1080) {
     throw new Error(`${label}: desktop shell stayed mobile-width at ${Math.round(geometry.shell_width)}px`);
   }
+  if (viewport.width >= 1024 && geometry.copy_right !== null && geometry.letter_left !== null && geometry.letter_left < geometry.copy_right - 40) {
+    throw new Error(`${label}: desktop did not put the letter beside the copy`);
+  }
+  if (geometry.small_targets.length) {
+    throw new Error(`${label}: touch targets below 44px: ${geometry.small_targets.join(", ")}`);
+  }
 
   const file = `${viewport.name}-${label}.png`;
   await page.screenshot({ path: join(outputRoot, file), fullPage: true });
   return { label, file, ...geometry };
 }
+
+async function dragSealOntoRecipient(page) {
+  await page.locator("#nc-drop").scrollIntoViewIfNeeded();
+  const knob = await page.locator("#nc-drop-knob").boundingBox();
+  const target = await page.locator(".nc-drop__target").boundingBox();
+  if (!knob || !target) throw new Error("Drop gesture is not rendered");
+  const y = knob.y + knob.height / 2;
+  const fromX = knob.x + knob.width / 2;
+  const toX = target.x + target.width / 2;
+  await page.mouse.move(fromX, y);
+  await page.mouse.down();
+  for (let i = 1; i <= 12; i += 1) await page.mouse.move(fromX + ((toX - fromX) * i) / 12, y);
+  await page.mouse.up();
+}
+
 async function run(viewport) {
   const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, reducedMotion: "reduce" });
   const page = await context.newPage();
@@ -144,15 +178,13 @@ async function run(viewport) {
   try {
     activeStep = "live-home";
     await page.goto(`${baseUrl}/`, { waitUntil: "networkidle", timeout: 20000 });
-    await page.locator(".clv2-home").waitFor({ state: "visible" });
-    const liveBodyClass = await page.locator("body").getAttribute("class");
-    if (!/carried-letter-v2/.test(liveBodyClass || "")) throw new Error("Live site did not enter carried-letter visual system");
-    if (/carried-letter-v2-demo/.test(liveBodyClass || "")) throw new Error("Live site leaked demo visual identity");
+    await page.locator(".nc-home").waitFor({ state: "visible" });
+    if (await page.locator("#demo-banner").isVisible()) throw new Error("Live site showed the practice banner");
+    if ((await page.locator("body").getAttribute("data-ground")) !== "forest") throw new Error("Live home did not use the forest ground");
     captures.push(await captureState(page, viewport, "00-live-home", "home"));
 
-    // Destination Claim is a first-class product surface. Exercise it at every
-    // viewport without signing or mutating any real runtime. Document requests
-    // still load the SPA; only the app's JSON GET is fulfilled synthetically.
+    // The recipient's payment link is a first-class surface. Exercise it at every viewport
+    // without signing or mutating any real runtime: only the app's JSON GET is synthetic.
     activeStep = "destination-claim-responsive";
     const claimToken = "judge-destination-claim";
     const claimUrlPattern = `**/c/${claimToken}`;
@@ -170,20 +202,9 @@ async function run(viewport) {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          claim: {
-            id: "22222222-2222-4222-8222-222222222222",
-            mission_id: "33333333-3333-4333-8333-333333333333",
-            status: "PENDING",
-            expires_at: "2026-09-22T04:00:00.000Z",
-            claimed_at: null,
-          },
-          mission: {
-            mission_id: "33333333-3333-4333-8333-333333333333",
-            target_label: "David",
-            mission_note: "A private delivery for David.",
-            status: "ACTIVE",
-            target_wallet_bound: false,
-          },
+          claim: { id: "22222222-2222-4222-8222-222222222222", mission_id: "33333333-3333-4333-8333-333333333333", status: "PENDING", expires_at: "2026-09-22T04:00:00.000Z", claimed_at: null },
+          mission: { mission_id: "33333333-3333-4333-8333-333333333333", target_label: "David", mission_note: "your share of dinner!", status: "ACTIVE", target_wallet_bound: false },
+          sender_label: "Faadil",
         }),
       });
     });
@@ -191,30 +212,23 @@ async function run(viewport) {
     await page.locator('[data-destination-claim-status="PENDING"]').waitFor({ state: "visible", timeout: 5000 });
     await page.locator("#claim-destination").waitFor({ state: "visible" });
     const claimCopy = await page.locator('[data-destination-claim-status="PENDING"]').textContent();
-    if (!/Receive in my wallet/i.test(claimCopy || "")) {
-      throw new Error(`Destination Claim surface missing binding action: ${claimCopy || "empty"}`);
-    }
-    captures.push(await captureState(page, viewport, "00c-destination-claim", null));
+    if (!/Receive in my wallet/i.test(claimCopy || "")) throw new Error(`Payment link surface missing its action: ${claimCopy || "empty"}`);
+    if (!/Faadil sent/i.test(claimCopy || "")) throw new Error("Payment link did not name the sender");
+    captures.push(await captureState(page, viewport, "00c-payment-link", "claim"));
     await page.unroute(claimUrlPattern);
 
-    // A full mini-app close drops sessionStorage. The home screen must still
-    // rediscover a non-secret mission locator from localStorage and route the
-    // user through fresh read-only VIEW_ROUTE recovery. Never persist bearer access.
+    // A full mini-app close drops sessionStorage. Home must rediscover a non-secret mission
+    // locator and route through fresh read-only VIEW_ROUTE recovery. Never persist bearer access.
     activeStep = "persistent-resume-home";
     const resumeMissionId = "11111111-1111-4111-8111-111111111111";
     await page.evaluate((missionId) => {
       sessionStorage.clear();
       localStorage.setItem("nimcarry.recentMissions.v1", JSON.stringify([missionId]));
     }, resumeMissionId);
-    // The preceding Destination Claim check leaves us on /c/:token. A real
-    // reopen lands on NimCarry home, so navigate home explicitly while keeping
-    // the non-secret locator and the cleared session storage.
     await page.goto(`${baseUrl}/`, { waitUntil: "networkidle", timeout: 20000 });
     await page.locator("#nimiq-recovery-panel").waitFor({ state: "visible", timeout: 5000 });
     const resumeCopy = await page.locator("#nimiq-recovery-panel").textContent();
-    if (!/Resume without creating a new mission/i.test(resumeCopy || "")) {
-      throw new Error(`Persistent mission locator did not surface safe resume UI: ${resumeCopy || "empty"}`);
-    }
+    if (!/Resume without creating a new mission/i.test(resumeCopy || "")) throw new Error(`Persistent mission locator did not surface safe resume UI: ${resumeCopy || "empty"}`);
     const resumeHref = await page.locator("#nimiq-recovery-panel a").first().getAttribute("href");
     if (!resumeHref?.includes("/route-access-recovery.html") || !resumeHref.includes(resumeMissionId)) {
       throw new Error(`Resume UI did not require fresh VIEW_ROUTE recovery: ${resumeHref || "missing href"}`);
@@ -222,7 +236,7 @@ async function run(viewport) {
     captures.push(await captureState(page, viewport, "00b-resume-home", "home"));
     await page.evaluate(() => localStorage.removeItem("nimcarry.recentMissions.v1"));
 
-    activeStep = "home";
+    activeStep = "practice-home";
     await page.goto(`${baseUrl}/?demo=1&tour=1&reset=1`, { waitUntil: "networkidle", timeout: 20000 });
     await page.locator("#demo-banner").waitFor({ state: "visible" });
     await page.locator('#demo-tour-guide[data-step="1"]').waitFor({ state: "visible" });
@@ -233,99 +247,73 @@ async function run(viewport) {
     await page.locator("#create-button").click();
     steps.push(await expectPath(page, /^\/create$/, "create"));
     await page.locator("#create-form").waitFor({ state: "visible" });
-
-    await page.locator('input[name="target_label"]').fill("Nimiq Community Lead");
-    await page.locator('input[name="target_wallet"]').fill("NQDEMO_TARGET_0001");
-    await page.locator('textarea[name="mission_note"]').fill("I need a warm introduction to one specific person I cannot reach directly.");
-    await page.locator('input[name="creator_display_label"]').fill("Creator");
-    await page.locator('input[name="target_consent_confirmed"]').check();
+    await page.locator('#demo-tour-guide[data-step="2"]').waitFor({ state: "visible" });
+    await page.locator('input[name="target_label"]').fill("David");
+    await page.locator('textarea[name="mission_note"]').fill("your share of dinner!");
+    await page.locator(".nc-more > summary").click();
+    await page.locator('input[name="creator_display_label"]').fill("Faadil");
+    const letterName = await page.locator("[data-letter-name]").textContent();
+    if (letterName?.trim() !== "David") throw new Error(`Letter did not fill in live: ${letterName || "empty"}`);
+    if (await page.locator("#target-consent-row").isVisible()) throw new Error("Address confirmation shown without an address");
     captures.push(await captureState(page, viewport, "02-write", "create"));
-    activeStep = "mission-home";
+
+    activeStep = "sealed";
     await page.locator("#create-form button[type='submit']").click();
-    steps.push(await expectPath(page, /^\/mission\/[^/]+$/, "mission-home"));
-    await page.locator("#invite-button").waitFor({ state: "visible" });
-    captures.push(await captureState(page, viewport, "03-mission", "mission"));
+    steps.push(await expectPath(page, /^\/mission\/[^/]+$/, "sealed"));
+    await page.locator('[data-primary-action="SHARE_CLAIM"]').waitFor({ state: "visible" });
+    await page.locator('.nc-letter[data-state="sealed"]').waitFor({ state: "visible" });
+    await page.locator('#demo-tour-guide[data-step="3"]').waitFor({ state: "visible" });
+    captures.push(await captureState(page, viewport, "03-sealed", "mission"));
+    await page.locator("#claim-share-button").click();
+    const shareNotice = await page.locator("#notice").textContent();
+    if (!/Practice/i.test(shareNotice || "")) throw new Error("Practice share did not stay local");
 
-    activeStep = "invite-created";
-    await page.locator("#invite-button").click();
-    await page.locator("#invite-dialog").waitFor({ state: "visible" });
-    await page.locator("#candidate-label").fill("Bridge B");
-    await page.locator("#why-you").fill("You know someone closer to the destination.");
-    await page.locator("#candidate-wallet").fill("NQDEMO_BRIDGE_0001");
-    await page.locator("#invite-confirm").click();
-    await page.locator("#demo-tour-open-invite").waitFor({ state: "visible" });
-    steps.push({ label: "invite-created", path: new URL(page.url()).pathname });
+    activeStep = "recipient";
+    await page.locator("#demo-open-claim").click();
+    steps.push(await expectPath(page, /^\/c\/practice-/, "recipient"));
+    await page.locator('[data-destination-claim-status="PENDING"]').waitFor({ state: "visible" });
+    captures.push(await captureState(page, viewport, "04-recipient", "claim"));
+    await page.locator("#claim-destination").click();
 
-    activeStep = "invitation-bridge-b";
-    await page.locator("#demo-tour-open-invite").click();
-    await page.waitForURL(/\/i\//, { timeout: 8000 });
-    await page.locator("#accept").waitFor({ state: "visible" });
-    steps.push({ label: "invitation-bridge-b", path: new URL(page.url()).pathname });
-    captures.push(await captureState(page, viewport, "04-consent", "invitation"));
-    await page.locator("#accept").click();
-    steps.push(await expectPath(page, /^\/mission\/[^/]+$/, "mission-after-bridge-accept"));
-
-    const missionId = await readMissionId(page);
-    if (!missionId) throw new Error("Demo mission id missing after invitation acceptance");
-    await page.locator("#pass-button").waitFor({ state: "visible" });
-
-    activeStep = "pass-bridge-b";
-    await page.locator("#pass-button").click();
-    steps.push(await expectPath(page, /^\/mission\/[^/]+\/pass$/, "pass-bridge-b"));
-    await page.locator(".clv2-handoff-manifest").waitFor({ state: "visible" });
+    activeStep = "opened";
+    steps.push(await expectPath(page, /^\/mission\/[^/]+$/, "opened"));
+    await page.locator('[data-primary-action="SEND_1_NIM"]').waitFor({ state: "visible" });
     await page.locator('#demo-tour-guide[data-step="4"]').waitFor({ state: "visible" });
-    await page.locator(".hc-pass-ritual").waitFor({ state: "detached", timeout: 3000 }).catch(() => {});
-    if (await page.locator(".hc-pass-ritual").count()) throw new Error("Legacy pass ritual leaked into V2 handoff surface");
-    captures.push(await captureState(page, viewport, "05-handoff", "pass"));
-    await page.locator("#send").click();
-    await page.locator('.clv2-wax-scene[data-phase="verification-pending"]').waitFor({ state: "visible", timeout: 3000 });
-    const warmCopy = await page.locator(".clv2-wax-kicker").textContent();
-    if (!/PRACTICE VERIFICATION/i.test(warmCopy || "")) throw new Error(`Expected practice warm-wax state, got ${warmCopy || "empty"}`);
-    captures.push(await captureState(page, viewport, "06-warm-wax", "pass"));
-    await page.locator('.clv2-wax-scene[data-phase="final"]').waitFor({ state: "visible", timeout: 5000 });
-    const postmark = await page.locator(".clv2-postmark").textContent();
-    if (!/PRACTICE/i.test(postmark || "")) throw new Error(`Expected practice postmark, got ${postmark || "empty"}`);
-    activeStep = "arrived-route-after-bridge";
-    steps.push(await expectPath(page, /^\/mission\/[^/]+\/route$/, "arrived-route-after-bridge"));
-    await page.locator(".clv2-route-ledger-head").waitFor({ state: "visible" });
-    await page.locator(".clv2-hop-stamp").first().waitFor({ state: "visible" });
+    captures.push(await captureState(page, viewport, "05-opened", "mission"));
 
+    activeStep = "send";
+    await page.locator("#pass-button").click();
+    steps.push(await expectPath(page, /^\/mission\/[^/]+\/pass$/, "send"));
+    await page.locator("#nc-drop").waitFor({ state: "visible" });
+    const dropTop = await page.locator("#nc-drop").evaluate((node) => node.getBoundingClientRect().top);
+    if (dropTop > viewport.height) throw new Error(`Send gesture starts below the fold at ${Math.round(dropTop)}px`);
+    captures.push(await captureState(page, viewport, "06-send", "pass"));
+    await dragSealOntoRecipient(page);
+    await page.locator('#nc-phase[data-phase="verification-pending"]').waitFor({ state: "visible", timeout: 3000 });
+
+    activeStep = "arrived";
+    steps.push(await expectPath(page, /^\/mission\/[^/]+\/route$/, "arrived"));
+    await page.locator(".nc-stamp--arrived").waitFor({ state: "visible" });
     const arrived = await page.locator(".status-pill").textContent();
-    if (!/ARRIVED/i.test(arrived || "")) throw new Error(`Expected ARRIVED after the first bridge-assisted payment, got ${arrived || "empty status"}`);
-    await page.locator(".hc-arrived-moment").waitFor({ state: "visible" });
+    if (!/ARRIVED/i.test(arrived || "")) throw new Error(`Expected ARRIVED, got ${arrived || "empty status"}`);
     await page.locator('#demo-tour-guide[data-step="5"]').waitFor({ state: "visible" });
-    await page.locator(".demo-tour-complete").waitFor({ state: "visible" });
-
-    const postmarks = await page.locator(".clv2-hop-stamp").count();
-    if (postmarks !== 1) throw new Error(`Expected exactly 1 verified delivery postmark, got ${postmarks}`);
-    const bridgeRows = await page.locator(".route-step").count();
-    if (bridgeRows !== 1) throw new Error(`Expected exactly 1 bridge entry in the completed route, got ${bridgeRows}`);
+    const rows = await page.locator(".route-step").count();
+    if (rows !== 1) throw new Error(`Expected exactly 1 confirmed payment, got ${rows}`);
     const routeText = await page.locator(".route-step").first().textContent();
-    if (!/Bridge B/i.test(routeText || "")) throw new Error(`Expected Bridge B to appear once in the completed route, got ${routeText || "empty"}`);
-    if (!/Nimiq Community Lead/i.test(routeText || "")) throw new Error(`Expected direct delivery to the destination, got ${routeText || "empty"}`);
-    captures.push(await captureState(page, viewport, "07-arrived-direct", "route"));
+    if (!/Sent directly/i.test(routeText || "") || !/David/i.test(routeText || "")) throw new Error(`Unexpected receipt row: ${routeText || "empty"}`);
+    captures.push(await captureState(page, viewport, "07-arrived", "route"));
 
-    // Recovery/reload must preserve the same one-bridge completed route. The
-    // bridge is not promoted to a new holder and there is no second invite.
-    activeStep = "refresh-arrived-direct-route";
-    const beforeRefresh = new URL(page.url());
-    if (beforeRefresh.searchParams.get("demo") !== "1" || beforeRefresh.searchParams.get("tour") !== "1") {
-      throw new Error(`Practice context missing before refresh: ${beforeRefresh.search}`);
-    }
+    // Reload must keep practice mode and the same single payment.
+    activeStep = "refresh-arrived";
     await page.reload({ waitUntil: "networkidle", timeout: 20000 });
     const afterRefresh = new URL(page.url());
     if (afterRefresh.searchParams.get("demo") !== "1" || afterRefresh.searchParams.get("tour") !== "1") {
       throw new Error(`Practice context missing after refresh: ${afterRefresh.search}`);
     }
     await page.locator("#demo-banner").waitFor({ state: "visible" });
-    const postmarksAfterRefresh = await page.locator(".clv2-hop-stamp").count();
-    if (postmarksAfterRefresh !== 1) throw new Error(`Expected one bridge after refresh, got ${postmarksAfterRefresh}`);
-    if (await page.locator("#demo-tour-continue").count()) {
-      throw new Error("A completed direct route must not ask the bridge to choose another bridge.");
-    }
-    const legacyRouteMottos = await page.locator(".hc-max-route-motto").count();
-    if (legacyRouteMottos !== 0) throw new Error(`Expected zero legacy route mottos on V2 route, got ${legacyRouteMottos}`);
-    steps.push({ label: "refresh-preserved-direct-arrival", path: afterRefresh.pathname, search: afterRefresh.search });
+    const rowsAfterRefresh = await page.locator(".route-step").count();
+    if (rowsAfterRefresh !== 1) throw new Error(`Expected one payment after refresh, got ${rowsAfterRefresh}`);
+    steps.push({ label: "refresh-preserved-arrival", path: afterRefresh.pathname, search: afterRefresh.search });
 
     if (pageErrors.length) {
       const compact = pageErrors.map((entry) => `${entry.step}: ${entry.message}`).join(" | ");
@@ -347,7 +335,7 @@ let failed = false;
 for (const viewport of viewports) {
   try {
     report.viewports[viewport.name] = await run(viewport);
-    console.log(`PASS ${viewport.name} — full guided flow reached ARRIVED`);
+    console.log(`PASS ${viewport.name} — practice payment link reached ARRIVED`);
   } catch (error) {
     failed = true;
     report.viewports[viewport.name] = {
