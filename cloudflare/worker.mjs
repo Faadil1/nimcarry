@@ -258,6 +258,9 @@ async function testnetHeadResponse(request, env) {
   }
 }
 
+// The production container image is built from ../Dockerfile.cloudflare, which
+// copies src/**. Keep Worker Builds subscribed to this file/path as well so
+// backend-only recovery changes can be deliberately promoted to production.
 export class NimCarryContainer extends Container {
   defaultPort = 8787;
   sleepAfter = "2h";
