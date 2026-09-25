@@ -15,6 +15,14 @@ export class ReachMissionCoordinator {
    */
   private readonly projectionSettled = new Set<string>();
 
+  /**
+   * A validator upgrade may make a previously false-negative INVALID broadcast
+   * provable again. Retry those exact hashed transactions only a few times per
+   * process; no wallet action occurs and genuinely invalid hashes stay closed.
+   */
+  private readonly invalidBroadcastRepairAttempts = new Map<string, number>();
+  private static readonly MAX_INVALID_BROADCAST_REPAIR_ATTEMPTS = 3;
+
   constructor(
     private readonly missions: ReachMissionService,
     private readonly repository: MissionRepository,
@@ -216,7 +224,16 @@ export class ReachMissionCoordinator {
     const finalizedCandidates = this.relay
       .getFinalizedProjectionBatonIds()
       .filter((missionId) => !this.projectionSettled.has(missionId));
-    const missionIds = [...new Set([...pendingIds, ...finalizedCandidates])];
+    const invalidRepairCandidates = new Set(
+      this.relay
+        .getRecoverableInvalidBroadcastBatonIds()
+        .filter(
+          (missionId) =>
+            (this.invalidBroadcastRepairAttempts.get(missionId) ?? 0)
+            < ReachMissionCoordinator.MAX_INVALID_BROADCAST_REPAIR_ATTEMPTS
+        )
+    );
+    const missionIds = [...new Set([...pendingIds, ...finalizedCandidates, ...invalidRepairCandidates])];
 
     let checked = 0;
     let arrived = 0;
@@ -236,10 +253,17 @@ export class ReachMissionCoordinator {
         }
 
         checked += 1;
+        if (invalidRepairCandidates.has(missionId)) {
+          this.invalidBroadcastRepairAttempts.set(
+            missionId,
+            (this.invalidBroadcastRepairAttempts.get(missionId) ?? 0) + 1
+          );
+        }
         const result = await this.reconcile(missionId);
         if (result.mission.status === "ARRIVED") {
           arrived += 1;
           this.projectionSettled.add(missionId);
+          this.invalidBroadcastRepairAttempts.delete(missionId);
         } else if (!pendingIds.has(missionId) && result.mission.status !== "ACTIVE") {
           this.projectionSettled.add(missionId);
         }
