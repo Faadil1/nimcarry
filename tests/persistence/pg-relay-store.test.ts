@@ -102,7 +102,7 @@ describe("PgRelayStore", () => {
 
     const rail = normalizeNimiqAddress(wallet());
     relay.freezeVerifiedPaymentRails(mission.id, [rail]);
-    expect(intent.authorizedPaymentWallets).toContain(`rail:${rail}`);
+    expect(intent.authorizedPaymentWallets).toContain(`rail:${rail.replace(/\s+/g, "").toUpperCase()}`);
     await relay.flush();
 
     // Reload from DB in a brand new store. The independently verified
