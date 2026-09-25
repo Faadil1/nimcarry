@@ -1,3 +1,13 @@
+## 2026-09-25 — Payment-link positioning
+
+- Reposition NimCarry around one job: send NIM to someone even without their wallet address, via a private link (Destination Claim). Introductions become an optional path.
+- Rewrite the home, create, recipient-link and send screens in plain language; remove protocol vocabulary (custody, baton, bind, FINAL) from the main path.
+- Fix the create screen contradicting the payment link: it no longer says a known Nimiq destination is required, and the address confirmation is hidden when no address is entered.
+- Default the step indicator to Create → Share link → They open it → Send → Arrived; the introduction steps appear only when an introduction is used.
+- Update page metadata, web manifest and social card to the new positioning.
+- Rewrite the README user-first with the real usage numbers up front.
+- Move team working notes (handover, canonical state, product intelligence, submission, usage sprint) to `docs/internal/`.
+
 ## 2026-09-20 — Journey health contract
 
 - Add a canonical regression contract for the full 1→5 user journey: create → invite → accept → pass → FINAL/arrive.

@@ -1,7 +1,7 @@
 {
-  "name": "NimCarry — People move opportunity forward",
+  "name": "NimCarry — Send NIM with a private link",
   "short_name": "NimCarry",
-  "description": "Human routes for warm introductions, referrals, opportunities and community access. One destination; consenting human bridges; exactly 1 NIM as the verified custody baton.",
+  "description": "Send NIM to someone even without their wallet address. Share a private link, they choose their wallet, you see when it arrives.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

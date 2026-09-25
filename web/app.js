@@ -454,7 +454,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     else if (state.demo) { const demo = demoMission(); state.mission = demo?.mission || null; state.invitation = demo?.invitation || null; }
 
     if (!state.mission) {
-      els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Human-resolved delivery</div><h1>Send to the person, even before you know their wallet.</h1><p class="lede">Name the destination. If their Nimiq address is unknown, they bind it privately themselves. An introducer appears only when the relationship actually needs one.</p><div class="promise-strip"><div class="promise orange"><span>01</span><strong>Name</strong><span>Who this is for</span></div><div class="promise green"><span>02</span><strong>Resolve</strong><span>Direct or private claim</span></div><div class="promise violet"><span>03</span><strong>Deliver</strong><span>Only FINAL completes</span></div></div><div class="button-row"><button id="create-button" class="button primary">Create a private delivery</button></div></section>`;
+      els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Send NIM with a private link</div><h1>Send NIM to someone, even without their wallet address.</h1><p class="lede">Type their name and a short note. NimCarry gives you a private link to send them. They open it, choose their own Nimiq wallet, and you send. You see when it has arrived.</p><div class="promise-strip"><div class="promise orange"><span>01</span><strong>Name</strong><span>Who it’s for</span></div><div class="promise green"><span>02</span><strong>Share</strong><span>A private link</span></div><div class="promise violet"><span>03</span><strong>Arrived</strong><span>Confirmed on Nimiq</span></div></div><div class="button-row"><button id="create-button" class="button primary">Create a payment link</button></div></section>`;
       document.querySelector("#create-button").addEventListener("click", () => navigate("/create")); els.screen.focus(); return;
     }
 
@@ -486,10 +486,10 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     if (action === "SHARE_CLAIM") {
       const introduction = m.invitation
         ? `<button class="button ghost" disabled>${m.invitation.status === "ACCEPTED" ? "Introducer accepted" : "Introduction pending"}</button>`
-        : `<button id="invite-button" class="button ghost">Add an introducer</button>`;
-      return `<button id="claim-share-button" class="button primary">Share private claim</button>${introduction}<button id="route-button" class="button ghost">View mission</button>`;
+        : `<button id="invite-button" class="button ghost">Ask someone to introduce you</button>`;
+      return `<button id="claim-share-button" class="button primary">Send them the link</button>${introduction}<button id="route-button" class="button ghost">View mission</button>`;
     }
-    if (action === "SEND_1_NIM") return `<button id="pass-button" class="button primary">Send 1 NIM to ${esc(m.target_label || "destination")}</button><button id="invite-button" class="button ghost">Add an introducer instead</button><button id="route-button" class="button ghost">View mission</button>`;
+    if (action === "SEND_1_NIM") return `<button id="pass-button" class="button primary">Send 1 NIM to ${esc(m.target_label || "destination")}</button><button id="invite-button" class="button ghost">Ask someone to introduce you</button><button id="route-button" class="button ghost">View mission</button>`;
     if (action === "CREATE_INVITATION" || action === "REROUTE") return `<button id="invite-button" class="button primary">${action === "REROUTE" ? "Choose another bridge" : "Add an introducer"}</button><button id="pass-button" class="button ghost">Send directly instead</button><button id="route-button" class="button ghost">Follow route</button>`;
     if (action === "WAIT" && m.viewer_role === "INVITEE" && m.invitation?.status === "ACCEPTED") return `<button class="button primary" disabled>Accepted — waiting for delivery</button><button id="route-button" class="button ghost">Follow route</button>`;
     if (action === "WAIT" && !m.invitation && m.target_wallet_bound === true && m.destination_claim?.status === "CLAIMED") return `<button class="button primary" disabled>Checking existing send — no action needed</button><button id="route-button" class="button ghost">Follow route</button>`;
@@ -511,7 +511,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     let claimUrl = sessionStorage.getItem(claimStorageKey(mission.mission_id));
     if (!claimUrl) {
       setBusy(true);
-      notice("Creating a fresh private claim link. The previous unshared link will be revoked…");
+      notice("Creating a fresh link. The previous one will stop working…");
       try {
         const auth = await signedAuth("CREATE_DESTINATION_CLAIM", { missionId: mission.mission_id });
         const refreshed = await api(`/missions/${encodeURIComponent(mission.mission_id)}/destination-claim`, {
@@ -525,7 +525,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
           ...state.mission,
           destination_claim: refreshed.claim || state.mission?.destination_claim || null,
         };
-        notice("Fresh private claim created. The previous pending link is revoked.");
+        notice("Fresh link created. The previous one no longer works.");
       } catch (error) {
         notice(error.message, true);
         return;
@@ -535,25 +535,25 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     }
     const shareData = {
       title: `NimCarry delivery for ${mission.target_label || "you"}`,
-      text: `${mission.target_label || "You"} can privately bind the destination wallet for this NimCarry delivery.`,
+      text: `${mission.target_label || "Hi"}, open this private link to receive NIM from me.`,
       url: claimUrl,
     };
     try {
       if (navigator.share) {
         await navigator.share(shareData);
-        notice("Private destination claim shared.");
+        notice("Link shared.");
         return;
       }
       await navigator.clipboard.writeText(claimUrl);
-      notice("Private destination claim copied. Send it only to the intended destination.");
+      notice("Link copied. Send it only to the person it’s for.");
     } catch (error) {
       if (/cancel|abort/i.test(String(error?.message || error || ""))) return;
-      notice("Could not share automatically. Keep this private claim link only with the intended destination.", true);
+      notice("Could not share automatically. Copy the link and send it only to the person it’s for.", true);
     }
   }
 
   async function renderCreate() {
-    els.screen.innerHTML = `<button class="back-link" id="back">← Back</button><section class="form-card"><div class="kicker">Private delivery · destination first</div><h2>Who is this for?</h2><p class="lede">You do not need their Nimiq address yet. If you leave it blank, NimCarry creates a private claim that only the destination can use to bind their own wallet.</p><form id="create-form" class="form-grid"><label>Destination name or label<input name="target_label" maxlength="60" required placeholder="David" /></label><label>Nimiq address <span>(optional)</span><input id="target-wallet-input" name="target_wallet" autocomplete="off" placeholder="Leave blank if you don’t know it" /><small>If unknown, the destination binds their own wallet through a private expiring claim.</small></label><label>What are you sending / why?<textarea name="mission_note" maxlength="180" required placeholder="A short private reason for this delivery…"></textarea></label><label>Your display label <span>(optional)</span><input name="creator_display_label" maxlength="60" placeholder="Faadil" /></label><label id="target-consent-row" class="checkline" hidden><input name="target_consent_confirmed" type="checkbox" /><span>I confirm this exact Nimiq address belongs to the consenting destination.</span></label><button data-busy-lock="1" class="button primary" type="submit">Create private delivery</button></form></section>`;
+    els.screen.innerHTML = `<button class="back-link" id="back">← Back</button><section class="form-card"><div class="kicker">New payment link</div><h2>Who is it for?</h2><p class="lede">You don’t need their Nimiq address. Leave it blank and you’ll get a private link to send them.</p><form id="create-form" class="form-grid"><label>Their name<input name="target_label" maxlength="60" required placeholder="David" /></label><label>Nimiq address <span>(optional)</span><input id="target-wallet-input" name="target_wallet" autocomplete="off" placeholder="Leave blank if you don’t know it" /><small>If you leave it blank, they choose their own wallet when they open your link.</small></label><label>Note<textarea name="mission_note" maxlength="180" required placeholder="What it’s for, e.g. “Your share of dinner”"></textarea></label><label>Your name <span>(optional)</span><input name="creator_display_label" maxlength="60" placeholder="Faadil" /></label><label id="target-consent-row" class="checkline" hidden><input name="target_consent_confirmed" type="checkbox" /><span>I confirm this address belongs to this person and they expect it.</span></label><button data-busy-lock="1" class="button primary" type="submit">Create payment link</button></form></section>`;
     const targetWalletInput = document.querySelector("#target-wallet-input");
     const consentRow = document.querySelector("#target-consent-row");
     const consentInput = consentRow?.querySelector('input[name="target_consent_confirmed"]');
@@ -573,7 +573,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
   }
 
   async function createMission(event) {
-    event.preventDefault(); if (state.busy) return; setBusy(true); notice("Creating mission…");
+    event.preventDefault(); if (state.busy) return; setBusy(true); notice("Creating your payment link…");
     const form = new FormData(event.currentTarget); const input = Object.fromEntries(form.entries());
     try {
       if (state.demo) {
@@ -602,7 +602,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       state.mission = mission;
       navigate(`/mission/${encodeURIComponent(missionId)}`);
       if (mission.destination_claim_url) {
-        notice(`Private claim created for ${mission.target_label || input.target_label}. Share it only with that destination.`);
+        notice(`Link ready for ${mission.target_label || input.target_label}. Send it only to them.`);
       }
     } catch (error) { notice(error.message, true); } finally { setBusy(false); }
   }
@@ -656,7 +656,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       payload = await api(`/c/${encodeURIComponent(token)}`);
     } catch (error) {
       notice(error.message, true);
-      els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Private destination claim</div><h1 class="target-title">This claim is unavailable.</h1><p class="lede">The link may be invalid or expired. No wallet was bound and no funds moved.</p><div class="button-row"><button id="claim-home" class="button ghost">NimCarry home</button></div></section>`;
+      els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Private payment link</div><h1 class="target-title">This link doesn’t work anymore.</h1><p class="lede">It may have expired or been replaced. Nothing was sent. Ask the sender for a new link.</p><div class="button-row"><button id="claim-home" class="button ghost">NimCarry home</button></div></section>`;
       document.querySelector("#claim-home")?.addEventListener("click", () => navigate("/"));
       return;
     }
@@ -670,14 +670,14 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     }
 
     if (claim.status === "CLAIMED" || mission.target_wallet_bound) {
-      els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Destination claim completed</div><h1 class="target-title">Your wallet is already bound.</h1><p class="lede">${esc(targetLabel)} is now the private destination for this mission. Binding a wallet did not move any NIM.</p><div class="button-row"><button id="claim-home" class="button ghost">NimCarry home</button></div></section>`;
+      els.screen.innerHTML = `<section class="hero-card"><div class="kicker">You’re all set</div><h1 class="target-title">Your wallet is connected.</h1><p class="lede">The sender can now pay ${esc(targetLabel)} directly. You’ll receive the NIM in this wallet.</p><div class="button-row"><button id="claim-home" class="button ghost">NimCarry home</button></div></section>`;
       document.querySelector("#claim-home")?.addEventListener("click", () => navigate("/"));
       els.screen.focus();
       return;
     }
 
     if (claim.status !== "PENDING") {
-      els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Private destination claim closed</div><h1 class="target-title">This claim can’t be used.</h1><p class="lede">Its status is ${esc(claim.status)}. No wallet was bound by this link and no NIM moved. Ask the sender for the current private claim.</p><div class="button-row"><button id="claim-home" class="button ghost">NimCarry home</button></div></section>`;
+      els.screen.innerHTML = `<section class="hero-card"><div class="kicker">Private payment link</div><h1 class="target-title">This link can’t be used.</h1><p class="lede">Nothing was sent and no wallet was connected. Ask the sender for a new link.</p><div class="button-row"><button id="claim-home" class="button ghost">NimCarry home</button></div></section>`;
       document.querySelector("#claim-home")?.addEventListener("click", () => navigate("/"));
       els.screen.focus();
       return;
@@ -685,7 +685,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
 
     const expiresAt = claim.expires_at ? new Date(claim.expires_at).toLocaleString() : "soon";
     const deeplink = `nimiqpay://miniapp?url=${encodeURIComponent(location.href)}`;
-    els.screen.innerHTML = `<section class="hero-card clv2-utility-surface" data-destination-claim-status="${esc(claim.status)}"><div class="kicker">Private destination claim</div><h1 class="target-title">This delivery is for ${esc(targetLabel)}.</h1><p class="lede">${esc(mission.mission_note || "A private NimCarry delivery is waiting.")}</p><div class="card" style="margin-top:16px"><div class="kicker">What claiming does</div><p>Your Nimiq signature binds <strong>your own wallet</strong> as this mission’s private destination. The sender cannot replace it afterward. No funds move when you claim.</p></div><div class="warning" style="margin-top:14px">This private claim expires ${esc(expiresAt)}. Only accept it if you are the intended destination.</div><div class="button-row"><button data-busy-lock="1" id="claim-destination" class="button primary">Bind my wallet as destination</button><a class="button green" href="${esc(deeplink)}">Open in Nimiq Pay</a><button id="claim-home" class="button ghost">Not mine</button></div></section>`;
+    els.screen.innerHTML = `<section class="hero-card clv2-utility-surface" data-destination-claim-status="${esc(claim.status)}"><div class="kicker">Someone wants to send you NIM</div><h1 class="target-title">This payment is for ${esc(targetLabel)}.</h1><p class="lede">${esc(mission.mission_note || "A private NimCarry payment is waiting for you.")}</p><div class="card" style="margin-top:16px"><div class="kicker">What happens next</div><p>Choose the Nimiq wallet where you want to receive it. The sender then pays you directly, and can’t change the wallet afterward. Connecting costs nothing.</p></div><div class="warning" style="margin-top:14px">This link expires ${esc(expiresAt)}. Only continue if it was meant for you.</div><div class="button-row"><button data-busy-lock="1" id="claim-destination" class="button primary">Receive in my wallet</button><a class="button green" href="${esc(deeplink)}">Open in Nimiq Pay</a><button id="claim-home" class="button ghost">This isn’t for me</button></div></section>`;
     document.querySelector("#claim-destination")?.addEventListener("click", () => acceptDestinationClaim(token, mission.mission_id));
     document.querySelector("#claim-home")?.addEventListener("click", () => navigate("/"));
     els.screen.focus();
@@ -694,7 +694,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
   async function acceptDestinationClaim(token, missionId) {
     if (state.busy) return;
     setBusy(true);
-    notice("Binding your wallet to this destination claim…");
+    notice("Connecting your wallet…");
     try {
       const auth = await signedAuth("CLAIM_DESTINATION", { missionId, sequence: 0 });
       const claimed = await api(`/c/${encodeURIComponent(token)}/claim`, { method: "POST", body: { auth } });
@@ -705,7 +705,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
       rememberMissionLocator(claimed.mission.mission_id);
       state.mission = claimed.mission;
       state.invitation = claimed.mission.invitation || null;
-      notice("Destination wallet bound. No NIM moved. The sender can now deliver directly after independent wallet authorization.");
+      notice("Wallet connected. Nothing was sent yet. The sender can now pay you directly.");
       navigate(`/mission/${encodeURIComponent(claimed.mission.mission_id)}`);
     } catch (error) {
       notice(error.message, true);
@@ -786,7 +786,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
 
     if (!passReady) {
       let title = "This delivery is not ready.";
-      let body = "The destination must bind their wallet before a 1 NIM delivery can be authorized.";
+      let body = "They haven’t opened your link yet. Once they choose their wallet, you can send.";
       if (inv) {
         const bridge = inv?.candidate_label || inv?.candidate_display_label || "This bridge";
         const expired = inv?.status === "EXPIRED" || passWindowExpired;
@@ -804,11 +804,11 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtl
     }
 
     const viaCopy = directClaimReady
-      ? `Recipient <strong>${esc(m?.target_label || "Destination")}</strong> bound their own wallet through the private claim.`
+      ? `<strong>${esc(m?.target_label || "Destination")}</strong> opened your link and chose their own wallet.`
       : `Introduced by <strong>${esc(inv?.candidate_label || inv?.candidate_display_label || "Accepted introducer")}</strong> → recipient <strong>${esc(m?.target_label || "Destination")}</strong>.`;
-    const title = directClaimReady ? "Destination claimed. Deliver directly." : "Introduction accepted. Deliver directly.";
+    const title = directClaimReady ? `Ready to send to ${m?.target_label || "them"}.` : "Introduction accepted. Ready to send.";
     const button = directClaimReady ? `Send 1 NIM to ${esc(m?.target_label || "destination")}` : "Authorize + Send 1 NIM";
-    els.screen.innerHTML = `<button class="back-link" id="back">← Mission Home</button><section class="hero-card" data-delivery-mode="${directClaimReady ? "direct" : "introduced"}"><div class="kicker">Direct destination delivery</div><h1 class="target-title">${esc(title)}</h1><p class="lede">${viaCopy}</p><div class="promise-strip"><div class="promise orange"><span>Value</span><strong>1 NIM</strong><span>100,000 Luna</span></div><div class="promise green"><span>Requested fee</span><strong>0</strong><span>Wallet/network may still refuse</span></div><div class="promise violet"><span>Completion</span><strong>FINAL</strong><span>Never approval-only</span></div></div><div class="warning" style="margin-top:16px">The payment is always addressed directly to the destination wallet. After a transaction hash is recorded, NimCarry locks the send path and reconciles FINAL independently.</div><div class="button-row"><button data-busy-lock="1" id="send" class="button primary">${button}</button></div></section>`;
+    els.screen.innerHTML = `<button class="back-link" id="back">← Mission Home</button><section class="hero-card" data-delivery-mode="${directClaimReady ? "direct" : "introduced"}"><div class="kicker">Send</div><h1 class="target-title">${esc(title)}</h1><p class="lede">${viaCopy}</p><div class="promise-strip"><div class="promise orange"><span>Value</span><strong>1 NIM</strong><span>100,000 Luna</span></div><div class="promise green"><span>Requested fee</span><strong>0</strong><span>Wallet/network may still refuse</span></div><div class="promise violet"><span>Done when</span><strong>Confirmed</strong><span>on the Nimiq network</span></div></div><div class="warning" style="margin-top:16px">The payment goes straight to their wallet. Once it’s sent, NimCarry blocks a second send and tells you when the network has confirmed it. You can close the app meanwhile.</div><div class="button-row"><button data-busy-lock="1" id="send" class="button primary">${button}</button></div></section>`;
     document.querySelector("#back").addEventListener("click", () => navigate(`/mission/${encodeURIComponent(missionId)}`));
     document.querySelector("#send").addEventListener("click", () => executePass(missionId, inv || null));
     els.screen.focus();

@@ -287,7 +287,7 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(html).toContain('src="/nimcarry-mark.svg"');
     expect(html).toContain('rel="manifest" href="/manifest.webmanifest"');
     expect(manifest).toContain('"short_name": "NimCarry"');
-    expect(manifest).toContain("People move opportunity forward");
+    expect(manifest).toContain("Send NIM with a private link");
     expect(html).toContain('property="og:title"');
     expect(html).toContain('/social-card.svg');
   });
@@ -332,9 +332,9 @@ expect(js).toContain('replace(/\\s+/g, "").toUpperCase()');
     expect(js).not.toContain("localStorage.setItem(claimStorageKey");
     expect(js).toContain('signedAuth("CREATE_DESTINATION_CLAIM"');
     expect(js).toContain('/destination-claim');
-    expect(js).toContain("The previous pending link is revoked");
+    expect(js).toContain("The previous one no longer works.");
     expect(js).toContain('claim.status !== "PENDING"');
-    expect(js).toContain("This claim can’t be used.");
+    expect(js).toContain("This link can’t be used.");
   });
 
   it("honors reduced-motion in both base and final identity CSS", () => {

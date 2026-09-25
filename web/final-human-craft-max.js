@@ -105,7 +105,7 @@
 
     if (!card.querySelector(".hc-max-dossier-label")) {
       const label = el("div", "hc-max-dossier-label");
-      label.append(el("b", "", "Mission dossier"), el("span", "", "private · destination-bound"));
+      label.append(el("b", "", "Payment link"), el("span", "", "private · one person"));
       const grid = card.querySelector(".form-grid");
       (grid || card.firstElementChild || card).before(label);
     }
@@ -122,10 +122,10 @@
     const preview = screen.querySelector(".hc-create-preview");
     if (preview) {
       const introCopy = [...preview.querySelectorAll(":scope > p")][0];
-      setText(introCopy, "Human outcome first. 1 NIM is delivered only to the intended destination.");
+      setText(introCopy, "Only the person you name can open the link and receive the NIM.");
       const note = preview.querySelector(".hc-hand-note span");
-      setText(note, "Give the bridge one clear reason to make the introduction.");
-      disclosure(preview, "Preview the mission card", "hc-create-preview-more");
+      setText(note, "A short note tells them what it’s for.");
+      disclosure(preview, "Preview what they’ll see", "hc-create-preview-more");
     }
   }
 

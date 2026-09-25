@@ -1,0 +1,446 @@
+{
+  "generated_at": "2026-09-25T09:14:24.667Z",
+  "base_url": "http://127.0.0.1:4317",
+  "target": "PR_LOCAL_BRANCH_RUNTIME",
+  "mode": "DEMO MODE — no wallet or network writes",
+  "viewports": {
+    "mobile-375": {
+      "verdict": "PASS",
+      "steps": [
+        {
+          "label": "home",
+          "path": "/"
+        },
+        {
+          "label": "create",
+          "path": "/create"
+        },
+        {
+          "label": "mission-home",
+          "path": "/mission/demo-1790327669034"
+        },
+        {
+          "label": "invite-created",
+          "path": "/mission/demo-1790327669034"
+        },
+        {
+          "label": "invitation-bridge-b",
+          "path": "/i/demo_3551176380132035523038068076423955720803247"
+        },
+        {
+          "label": "mission-after-bridge-accept",
+          "path": "/mission/demo-1790327669034"
+        },
+        {
+          "label": "pass-bridge-b",
+          "path": "/mission/demo-1790327669034/pass"
+        },
+        {
+          "label": "arrived-route-after-bridge",
+          "path": "/mission/demo-1790327669034/route"
+        },
+        {
+          "label": "refresh-preserved-direct-arrival",
+          "path": "/mission/demo-1790327669034/route",
+          "search": "?demo=1&tour=1"
+        }
+      ],
+      "captures": [
+        {
+          "label": "00-live-home",
+          "file": "mobile-375-00-live-home.png",
+          "mode": "home",
+          "inner_width": 375,
+          "document_width": 375,
+          "shell_width": 375,
+          "screen_width": 355,
+          "expected_mode": "home"
+        },
+        {
+          "label": "00c-destination-claim",
+          "file": "mobile-375-00c-destination-claim.png",
+          "mode": "home",
+          "inner_width": 375,
+          "document_width": 375,
+          "shell_width": 375,
+          "screen_width": 355,
+          "expected_mode": null
+        },
+        {
+          "label": "00b-resume-home",
+          "file": "mobile-375-00b-resume-home.png",
+          "mode": "home",
+          "inner_width": 375,
+          "document_width": 375,
+          "shell_width": 375,
+          "screen_width": 355,
+          "expected_mode": "home"
+        },
+        {
+          "label": "01-home",
+          "file": "mobile-375-01-home.png",
+          "mode": "home",
+          "inner_width": 375,
+          "document_width": 375,
+          "shell_width": 375,
+          "screen_width": 355,
+          "expected_mode": "home"
+        },
+        {
+          "label": "02-write",
+          "file": "mobile-375-02-write.png",
+          "mode": "create",
+          "inner_width": 375,
+          "document_width": 375,
+          "shell_width": 375,
+          "screen_width": 355,
+          "expected_mode": "create"
+        },
+        {
+          "label": "03-mission",
+          "file": "mobile-375-03-mission.png",
+          "mode": "mission",
+          "inner_width": 375,
+          "document_width": 375,
+          "shell_width": 375,
+          "screen_width": 355,
+          "expected_mode": "mission"
+        },
+        {
+          "label": "04-consent",
+          "file": "mobile-375-04-consent.png",
+          "mode": "invitation",
+          "inner_width": 375,
+          "document_width": 375,
+          "shell_width": 375,
+          "screen_width": 355,
+          "expected_mode": "invitation"
+        },
+        {
+          "label": "05-handoff",
+          "file": "mobile-375-05-handoff.png",
+          "mode": "pass",
+          "inner_width": 375,
+          "document_width": 375,
+          "shell_width": 375,
+          "screen_width": 355,
+          "expected_mode": "pass"
+        },
+        {
+          "label": "06-warm-wax",
+          "file": "mobile-375-06-warm-wax.png",
+          "mode": "pass",
+          "inner_width": 375,
+          "document_width": 375,
+          "shell_width": 375,
+          "screen_width": 355,
+          "expected_mode": "pass"
+        },
+        {
+          "label": "07-arrived-direct",
+          "file": "mobile-375-07-arrived-direct.png",
+          "mode": "route",
+          "inner_width": 375,
+          "document_width": 375,
+          "shell_width": 375,
+          "screen_width": 355,
+          "expected_mode": "route"
+        }
+      ],
+      "final_status": "ARRIVED",
+      "page_errors": []
+    },
+    "tablet-768": {
+      "verdict": "PASS",
+      "steps": [
+        {
+          "label": "home",
+          "path": "/"
+        },
+        {
+          "label": "create",
+          "path": "/create"
+        },
+        {
+          "label": "mission-home",
+          "path": "/mission/demo-1790327679370"
+        },
+        {
+          "label": "invite-created",
+          "path": "/mission/demo-1790327679370"
+        },
+        {
+          "label": "invitation-bridge-b",
+          "path": "/i/demo_2199580669522356960425215683340546732441256"
+        },
+        {
+          "label": "mission-after-bridge-accept",
+          "path": "/mission/demo-1790327679370"
+        },
+        {
+          "label": "pass-bridge-b",
+          "path": "/mission/demo-1790327679370/pass"
+        },
+        {
+          "label": "arrived-route-after-bridge",
+          "path": "/mission/demo-1790327679370/route"
+        },
+        {
+          "label": "refresh-preserved-direct-arrival",
+          "path": "/mission/demo-1790327679370/route",
+          "search": "?demo=1&tour=1"
+        }
+      ],
+      "captures": [
+        {
+          "label": "00-live-home",
+          "file": "tablet-768-00-live-home.png",
+          "mode": "home",
+          "inner_width": 768,
+          "document_width": 768,
+          "shell_width": 768,
+          "screen_width": 724,
+          "expected_mode": "home"
+        },
+        {
+          "label": "00c-destination-claim",
+          "file": "tablet-768-00c-destination-claim.png",
+          "mode": "home",
+          "inner_width": 768,
+          "document_width": 768,
+          "shell_width": 768,
+          "screen_width": 724,
+          "expected_mode": null
+        },
+        {
+          "label": "00b-resume-home",
+          "file": "tablet-768-00b-resume-home.png",
+          "mode": "home",
+          "inner_width": 768,
+          "document_width": 768,
+          "shell_width": 768,
+          "screen_width": 724,
+          "expected_mode": "home"
+        },
+        {
+          "label": "01-home",
+          "file": "tablet-768-01-home.png",
+          "mode": "home",
+          "inner_width": 768,
+          "document_width": 768,
+          "shell_width": 768,
+          "screen_width": 724,
+          "expected_mode": "home"
+        },
+        {
+          "label": "02-write",
+          "file": "tablet-768-02-write.png",
+          "mode": "create",
+          "inner_width": 768,
+          "document_width": 768,
+          "shell_width": 768,
+          "screen_width": 724,
+          "expected_mode": "create"
+        },
+        {
+          "label": "03-mission",
+          "file": "tablet-768-03-mission.png",
+          "mode": "mission",
+          "inner_width": 768,
+          "document_width": 768,
+          "shell_width": 768,
+          "screen_width": 724,
+          "expected_mode": "mission"
+        },
+        {
+          "label": "04-consent",
+          "file": "tablet-768-04-consent.png",
+          "mode": "invitation",
+          "inner_width": 768,
+          "document_width": 768,
+          "shell_width": 768,
+          "screen_width": 724,
+          "expected_mode": "invitation"
+        },
+        {
+          "label": "05-handoff",
+          "file": "tablet-768-05-handoff.png",
+          "mode": "pass",
+          "inner_width": 768,
+          "document_width": 768,
+          "shell_width": 768,
+          "screen_width": 724,
+          "expected_mode": "pass"
+        },
+        {
+          "label": "06-warm-wax",
+          "file": "tablet-768-06-warm-wax.png",
+          "mode": "pass",
+          "inner_width": 768,
+          "document_width": 768,
+          "shell_width": 768,
+          "screen_width": 724,
+          "expected_mode": "pass"
+        },
+        {
+          "label": "07-arrived-direct",
+          "file": "tablet-768-07-arrived-direct.png",
+          "mode": "route",
+          "inner_width": 768,
+          "document_width": 768,
+          "shell_width": 768,
+          "screen_width": 724,
+          "expected_mode": "route"
+        }
+      ],
+      "final_status": "ARRIVED",
+      "page_errors": []
+    },
+    "desktop-1280": {
+      "verdict": "PASS",
+      "steps": [
+        {
+          "label": "home",
+          "path": "/"
+        },
+        {
+          "label": "create",
+          "path": "/create"
+        },
+        {
+          "label": "mission-home",
+          "path": "/mission/demo-1790327691120"
+        },
+        {
+          "label": "invite-created",
+          "path": "/mission/demo-1790327691120"
+        },
+        {
+          "label": "invitation-bridge-b",
+          "path": "/i/demo_5958381541369486413382036310358500282442430"
+        },
+        {
+          "label": "mission-after-bridge-accept",
+          "path": "/mission/demo-1790327691120"
+        },
+        {
+          "label": "pass-bridge-b",
+          "path": "/mission/demo-1790327691120/pass"
+        },
+        {
+          "label": "arrived-route-after-bridge",
+          "path": "/mission/demo-1790327691120/route"
+        },
+        {
+          "label": "refresh-preserved-direct-arrival",
+          "path": "/mission/demo-1790327691120/route",
+          "search": "?demo=1&tour=1"
+        }
+      ],
+      "captures": [
+        {
+          "label": "00-live-home",
+          "file": "desktop-1280-00-live-home.png",
+          "mode": "home",
+          "inner_width": 1280,
+          "document_width": 1280,
+          "shell_width": 1228,
+          "screen_width": 1180,
+          "expected_mode": "home"
+        },
+        {
+          "label": "00c-destination-claim",
+          "file": "desktop-1280-00c-destination-claim.png",
+          "mode": "home",
+          "inner_width": 1280,
+          "document_width": 1280,
+          "shell_width": 1228,
+          "screen_width": 1180,
+          "expected_mode": null
+        },
+        {
+          "label": "00b-resume-home",
+          "file": "desktop-1280-00b-resume-home.png",
+          "mode": "home",
+          "inner_width": 1280,
+          "document_width": 1280,
+          "shell_width": 1228,
+          "screen_width": 1180,
+          "expected_mode": "home"
+        },
+        {
+          "label": "01-home",
+          "file": "desktop-1280-01-home.png",
+          "mode": "home",
+          "inner_width": 1280,
+          "document_width": 1280,
+          "shell_width": 1228,
+          "screen_width": 1180,
+          "expected_mode": "home"
+        },
+        {
+          "label": "02-write",
+          "file": "desktop-1280-02-write.png",
+          "mode": "create",
+          "inner_width": 1280,
+          "document_width": 1280,
+          "shell_width": 1228,
+          "screen_width": 1180,
+          "expected_mode": "create"
+        },
+        {
+          "label": "03-mission",
+          "file": "desktop-1280-03-mission.png",
+          "mode": "mission",
+          "inner_width": 1280,
+          "document_width": 1280,
+          "shell_width": 1228,
+          "screen_width": 1180,
+          "expected_mode": "mission"
+        },
+        {
+          "label": "04-consent",
+          "file": "desktop-1280-04-consent.png",
+          "mode": "invitation",
+          "inner_width": 1280,
+          "document_width": 1280,
+          "shell_width": 1228,
+          "screen_width": 1180,
+          "expected_mode": "invitation"
+        },
+        {
+          "label": "05-handoff",
+          "file": "desktop-1280-05-handoff.png",
+          "mode": "pass",
+          "inner_width": 1280,
+          "document_width": 1280,
+          "shell_width": 1228,
+          "screen_width": 1180,
+          "expected_mode": "pass"
+        },
+        {
+          "label": "06-warm-wax",
+          "file": "desktop-1280-06-warm-wax.png",
+          "mode": "pass",
+          "inner_width": 1280,
+          "document_width": 1280,
+          "shell_width": 1228,
+          "screen_width": 1180,
+          "expected_mode": "pass"
+        },
+        {
+          "label": "07-arrived-direct",
+          "file": "desktop-1280-07-arrived-direct.png",
+          "mode": "route",
+          "inner_width": 1280,
+          "document_width": 1280,
+          "shell_width": 1228,
+          "screen_width": 1180,
+          "expected_mode": "route"
+        }
+      ],
+      "final_status": "ARRIVED",
+      "page_errors": []
+    }
+  }
+}

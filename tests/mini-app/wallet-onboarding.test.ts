@@ -11,9 +11,10 @@ describe("human-first Nimiq wallet onboarding", () => {
   });
 
   it("separates NimCarry user identity from Nimiq protocol custody", () => {
-    expect(onboarding).toContain("You can be a NimCarry user with just your name and email.");
-    expect(onboarding).toContain("A Nimiq wallet is required only when you create or accept custody");
-    expect(onboarding).toContain("ARRIVED is verified against that private wallet");
+    expect(onboarding).toContain("Your NimCarry profile is just a name and email.");
+    expect(onboarding).toContain("To send, you approve the payment in Nimiq Pay.");
+    // The payment-link flow must never tell senders they need the recipient's address up front.
+    expect(onboarding).not.toContain("still needs a known Nimiq destination");
   });
 
   it("lets invitees register human-first and connect Nimiq only before custody", () => {

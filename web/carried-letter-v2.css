@@ -392,7 +392,7 @@
   background:rgba(255,248,233,.48);
 }
 .carried-letter-v2 .clv2-compose-technical::before{
-  content:"SEALED DELIVERY DETAIL";
+  content:"PRIVATE · OPTIONAL";
   display:block;
   margin-bottom:6px;
   color:var(--cl-gold-dark);
@@ -1625,3 +1625,5 @@
   .clv2-broken-seal::after{animation:none!important}
   .clv2-wax-scene.is-final .clv2-postmark{opacity:1;transform:rotate(-14deg) scale(1)}
 }
+/* A hidden row must stay hidden even when a later layer styles .checkline. */
+#target-consent-row[hidden]{display:none!important}

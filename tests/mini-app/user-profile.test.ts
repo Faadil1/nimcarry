@@ -13,7 +13,7 @@ describe("human-first user onboarding surface", () => {
     expect(profile).toContain('"/users/auth/request"');
     expect(profile).toContain('"/users/auth/verify"');
     expect(profile).toContain("Sign in to my profile");
-    expect(profile).toContain("Name + email creates your NimCarry user profile.");
+    expect(profile).toContain("A name and email is enough to start.");
   });
 
   it("makes missing-code recovery explicit without revealing account existence", () => {

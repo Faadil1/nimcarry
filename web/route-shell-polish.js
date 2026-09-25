@@ -17,16 +17,16 @@
     if (!card) return;
 
     const kicker = card.querySelector(".kicker");
-    if (kicker) kicker.textContent = "STEP 1 OF 5 · CREATE MISSION";
+    if (kicker) kicker.textContent = "STEP 1 · CREATE THE LINK";
 
     const lede = card.querySelector(".lede");
     if (lede) {
-      lede.textContent = "Use a known, consenting Nimiq destination. The destination wallet stays private and is never shown in normal route views.";
+      lede.textContent = "You don’t need their Nimiq address. Leave it blank and you’ll get a private link to send them.";
     }
 
     const consent = card.querySelector(".checkline span");
     if (consent) {
-      consent.textContent = "I confirm this target is known to me and has consented to be the destination for this mission.";
+      consent.textContent = "I confirm this address belongs to this person and they expect it.";
     }
   }
 

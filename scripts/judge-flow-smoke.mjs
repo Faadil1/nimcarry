@@ -191,7 +191,7 @@ async function run(viewport) {
     await page.locator('[data-destination-claim-status="PENDING"]').waitFor({ state: "visible", timeout: 5000 });
     await page.locator("#claim-destination").waitFor({ state: "visible" });
     const claimCopy = await page.locator('[data-destination-claim-status="PENDING"]').textContent();
-    if (!/Bind my wallet as destination/i.test(claimCopy || "")) {
+    if (!/Receive in my wallet/i.test(claimCopy || "")) {
       throw new Error(`Destination Claim surface missing binding action: ${claimCopy || "empty"}`);
     }
     captures.push(await captureState(page, viewport, "00c-destination-claim", null));

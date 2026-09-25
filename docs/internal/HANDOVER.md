@@ -3,7 +3,28 @@
 Updated: 2026-09-23  
 Repository: `Faadil1/nimcarry`
 
-This file is intentionally operational. A new conversation should be able to read this file plus `CANONICAL-STATE.yaml` and continue without reconstructing prior chat history.
+This file is intentionally operational. A new conversation should be able to read this file plus `docs/internal/CANONICAL-STATE.yaml` and continue without reconstructing prior chat history.
+
+## 0. Positioning decision (2026-09-25)
+
+Decided by the repo lead: **NimCarry is "send NIM with a private link".** Destination Claim is the primary journey; introductions (bridges) are optional.
+
+Done on `main`:
+
+- Home, create, recipient link (`/c/…`), send screen, metadata, manifest and social card rewritten in plain language.
+- Create screen no longer claims a known destination is required; address confirmation hidden when the address is blank.
+- Step indicator defaults to the payment-link steps.
+- README rewritten user-first; team notes moved to `docs/internal/`.
+
+Still open, for the UI/UX pass:
+
+- **Practice mode (`?demo=1`) still demonstrates the introduction flow**, not the payment link. It needs a simulated claim journey.
+- Introduction screens (`/i/…`) and mission states still use the "letter / carrier" vocabulary.
+- The home page stacks two profile forms (sign-in + register) under the hero; they should collapse behind one action.
+- `web/index.html` loads 7 stylesheets and 16 scripts layered as successive patches; consolidate while redesigning.
+- The README no longer embeds the old V3.2 screenshots; capture new ones after the redesign.
+
+Unchanged and outside the code: 0 verified / 0 activated users. The next evidence needed is real Nimiq Pay users completing a link payment.
 
 ## 1. Current baseline
 

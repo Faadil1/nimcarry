@@ -68,8 +68,8 @@ try {
   record("public-brand-visible", /NimCarry/.test(root.text), "NimCarry must be visible in served HTML");
   record("final-human-craft-runtime-wired", /final-human-craft\.css/.test(root.text) && /final-human-craft-max\.css/.test(root.text), "approved runtime identity must be wired in production HTML");
   record("recovery-ux-runtime-wired", /nimiq-recovery-ux\.css/.test(root.text) && /nimiq-recovery-ux\.js/.test(root.text), "fail-closed recovery guidance must be wired after promotion");
-  record("final-only-proof-copy", /Only FINAL changes custody/.test(root.text), "judge-facing custody law must remain visible");
-  record("mature-positioning-copy", /Real people · one destination/.test(root.text) || /People move opportunity forward/.test(root.text), "human-route positioning must remain visible");
+  record("send-to-person-copy", /Send NIM to a person, not an address\./.test(root.text), "payment-link promise must remain visible");
+  record("payment-link-positioning-copy", /Send NIM with a private link/.test(root.text), "payment-link positioning must remain visible");
   record("privacy-link-visible", /privacy\.html/.test(root.text), "public UI must disclose the Privacy Notice");
   record("usage-evidence-link-visible", /real-usage/.test(root.text), "public UI must expose aggregate usage evidence");
 

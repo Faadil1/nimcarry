@@ -26,9 +26,9 @@
 
     const card = onboardingCard(
       "wallet-onboarding-create",
-      "Protocol step",
-      "Your NimCarry profile and your Nimiq wallet are different things.",
-      "You can be a NimCarry user with just your name and email. A Nimiq wallet is required only when you create or accept custody, pass the 1 NIM baton, or become the verified destination. This mission still needs a known Nimiq destination because ARRIVED is verified against that private wallet.",
+      "Before you send",
+      "You’ll pay from Nimiq Pay. They don’t need anything yet.",
+      "Your NimCarry profile is just a name and email. To send, you approve the payment in Nimiq Pay. The person you’re paying only needs a wallet when they open your link, and they choose it themselves.",
       `${link(NIMIQ_WALLET_URL, "Create Nimiq wallet", "button secondary")}${link(NIMIQ_PAY_URL, "Open Nimiq Pay", "button ghost")}`,
     );
 

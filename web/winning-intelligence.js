@@ -51,7 +51,7 @@
 
   function routeProgressIndex(card, path) {
     if (path === "/create") return 0;
-    if (/^\/c\//.test(path)) return 1;
+    if (/^\/c\//.test(path)) return 2;
     if (/^\/i\//.test(path)) return 2;
     if (/\/pass$/.test(path)) return 3;
 
@@ -96,17 +96,17 @@
     const current = routeProgressIndex(card, path);
     if (current < 0) return;
 
-    const directFlow =
-      /^\/c\//.test(path) ||
-      ["SHARE_CLAIM", "SEND_1_NIM"].includes(String(card.dataset.primaryAction || "").toUpperCase()) ||
+    // The payment link is the default journey. The introducer lane is shown
+    // only once a mission actually uses an introduction.
+    const bridgeFlow =
+      !/^\/c\//.test(path) &&
       (
-        String(card.dataset.invitationStatus || "").trim() === "" &&
-        String(card.dataset.targetWalletBound || "").toLowerCase() === "true" &&
-        String(card.dataset.destinationClaimStatus || "").toUpperCase() === "CLAIMED"
+        String(card.dataset.invitationStatus || "").trim() !== "" ||
+        ["CREATE_INVITATION", "REROUTE", "PASS_1_NIM"].includes(String(card.dataset.primaryAction || "").toUpperCase())
       );
-    const labels = directFlow
-      ? ["Create", "Claim", "Authorize", "Send", "Arrive"]
-      : ["Create", "Invite", "Accept", "Send", "Arrive"];
+    const labels = bridgeFlow
+      ? ["Create", "Introduce", "Accept", "Send", "Arrived"]
+      : ["Create", "Share link", "They open it", "Send", "Arrived"];
     const flow = node("div", "wi-flow");
     flow.setAttribute("aria-label", "NimCarry five-step route");
     labels.forEach((label, index) => {

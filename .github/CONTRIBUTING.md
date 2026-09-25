@@ -6,7 +6,7 @@ NimCarry is being built for the Nimiq Mini Apps Competition — Cycle II. The cu
 
 ## Before you change code
 
-1. Read `CANONICAL-STATE.yaml` and `HANDOVER.md` first. They are the source of truth for the current gate and blockers.
+1. Read `docs/internal/CANONICAL-STATE.yaml` and `docs/internal/HANDOVER.md` first. They are the source of truth for the current gate and blockers.
 2. Read the relevant product/security contracts in `docs/`.
 3. Do not change frozen product laws, custody/finality rules, privacy boundaries, or the 1-NIM baton semantics without explicit product approval.
 
@@ -43,4 +43,4 @@ A PR should explain:
 - tests added or changed;
 - whether real-device/testnet proof is still required.
 
-After a meaningful merged milestone, update both `CANONICAL-STATE.yaml` and `HANDOVER.md` so another conversation or contributor can immediately take the lead.
+After a meaningful merged milestone, update both `docs/internal/CANONICAL-STATE.yaml` and `docs/internal/HANDOVER.md` so another conversation or contributor can immediately take the lead.

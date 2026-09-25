@@ -12,9 +12,9 @@ describe("NimCarry V2 compose and invitation ritual", () => {
     expect(app).toContain('name="target_wallet"');
     expect(app).toContain('name="mission_note"');
     expect(app).toContain('target_consent_confirmed');
-    expect(v2).toContain("One person. One destination.");
-    expect(v2).toContain("Write the human reason first. Delivery details stay sealed underneath.");
-    expect(css).toContain("SEALED DELIVERY DETAIL");
+    expect(v2).toContain("One person. One link.");
+    expect(v2).toContain("Only the person you send it to can use it.");
+    expect(css).toContain("PRIVATE · OPTIONAL");
   });
 
   it("turns a fresh mission into a clear first-human decision", () => {

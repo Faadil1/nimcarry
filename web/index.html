@@ -4,16 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#183f36" />
-  <meta name="description" content="NimCarry helps people move warm introductions, referrals and opportunities toward one specific person through consenting human bridges." />
-  <meta property="og:title" content="NimCarry — People move opportunity forward." />
-  <meta property="og:description" content="One destination. Real people. A warm introduction you can actually follow until it arrives." />
+  <meta name="description" content="Send NIM to someone even without their wallet address. Share a private link, they choose their own wallet, and you see when it has arrived." />
+  <meta property="og:title" content="NimCarry — Send NIM with a private link" />
+  <meta property="og:description" content="No wallet address needed. Share a link, they choose their wallet, you see when it arrives." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="/social-card.svg" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="NimCarry — People move opportunity forward." />
-  <meta name="twitter:description" content="Human routes for warm introductions, referrals, opportunities and community access — with Nimiq Pay when custody moves." />
+  <meta name="twitter:title" content="NimCarry — Send NIM with a private link" />
+  <meta name="twitter:description" content="Send NIM to someone even without their wallet address. A Nimiq Pay mini app." />
   <meta name="twitter:image" content="/social-card.svg" />
-  <title>NimCarry — People move opportunity forward.</title>
+  <title>NimCarry — Send NIM with a private link</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/nimcarry-mark.svg" />
   <link rel="manifest" href="/manifest.webmanifest" />
@@ -30,19 +30,19 @@
     <header class="brandbar">
       <button id="brand-home" class="brand" type="button" aria-label="NimCarry home">
         <img class="brand-logo" src="/nimcarry-mark.svg" alt="" width="44" height="44" />
-        <span><strong>NimCarry</strong><small>Real people · one destination</small></span>
+        <span><strong>NimCarry</strong><small>Send NIM with a private link</small></span>
       </button>
       <div class="network-chip"><span class="pulse"></span><span id="network-label">TESTNET REQUIRED</span></div>
     </header>
     <div id="demo-banner" class="demo-banner" hidden>DEMO MODE — no wallet or network writes</div>
     <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
     <main id="screen" class="screen" tabindex="-1"></main>
-    <footer class="footer"><span>Nimiq Pay · exactly 1 NIM custody baton</span><span>Only FINAL changes custody · <a href="/real-usage">Usage evidence</a> · <a href="/privacy.html">Privacy</a></span></footer>
+    <footer class="footer"><span>Send NIM to a person, not an address.</span><span>Nimiq Pay · Testnet · <a href="/real-usage">Usage evidence</a> · <a href="/privacy.html">Privacy</a></span></footer>
   </div>
 
   <dialog id="wallet-dialog" class="wallet-dialog">
     <form method="dialog" id="wallet-form">
-      <div class="dialog-kicker">Nimiq Pay</div><h2>Choose the wallet identity for this action</h2><p>This choice authorizes the action; it does not choose the payment source. For a 1 NIM pass, NimCarry accepts multiple exposed accounts only when each was already verified on the same NimCarry profile as the current holder, then independently verifies the exact payment and any HTLC rail on-chain.</p><div id="wallet-options" class="wallet-options"></div><div class="dialog-actions"><button value="cancel" class="button ghost">Cancel</button><button id="wallet-confirm" value="default" class="button primary">Continue</button></div>
+      <div class="dialog-kicker">Nimiq Pay</div><h2>Choose your wallet</h2><p>Pick the Nimiq wallet to approve this with. You can pay from any wallet already verified on the same NimCarry profile. NimCarry checks the payment on the Nimiq network itself before showing it as sent.</p><div id="wallet-options" class="wallet-options"></div><div class="dialog-actions"><button value="cancel" class="button ghost">Cancel</button><button id="wallet-confirm" value="default" class="button primary">Continue</button></div>
     </form>
   </dialog>
 

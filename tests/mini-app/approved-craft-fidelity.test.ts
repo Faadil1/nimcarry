@@ -60,7 +60,7 @@ describe("final human-craft product identity", () => {
     expect(js).toContain("Community access");
     expect(js).toContain("One destination");
     expect(js).toContain("The introduction is the valuable thing");
-    expect(html).toContain("Real people · one destination");
+    expect(html).toContain("Send NIM with a private link");
     expect(maxJs).toContain("The human outcome is the reason for the route.");
   });
 

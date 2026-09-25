@@ -52,7 +52,7 @@ describe("NimCarry V2 carried-letter foundation", () => {
   });
 
   it("preserves privacy and FINAL semantics in the new metaphor", () => {
-    expect(js).toContain("Their address stays sealed from every carrier.");
+    expect(js).toContain("You don’t need their Nimiq address.");
     expect(js).toContain("Only independently verified handoffs are inked onto this letter.");
     expect(js).toContain("The destination bound their own wallet. The sender pays that wallet directly");
     expect(js).toContain("The 1 NIM is sent to the destination, not the introducer.");

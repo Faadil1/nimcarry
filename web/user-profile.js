@@ -124,7 +124,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType } from
     if (!profile) return "";
     const count = Array.isArray(profile.wallets) ? profile.wallets.length : 0;
     if (count > 0) return `${count} Nimiq wallet${count === 1 ? "" : "s"} linked and verified.`;
-    return "You are a NimCarry user. Connect Nimiq only when you need custody actions.";
+    return "You’re signed in. You’ll only need Nimiq Pay when you send or receive.";
   }
 
   function renderLoggedOut(host) {
@@ -153,7 +153,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType } from
       <div style="margin:22px 0 18px;border-top:1px solid var(--line,#d8cbbb);padding-top:18px">
         <div class="kicker">New to NimCarry?</div>
         <h3>Create your profile without a wallet.</h3>
-        <p>Name + email creates your NimCarry user profile. A Nimiq wallet is only required later for custody actions such as accepting, holding, or passing the 1 NIM baton.</p>
+        <p>A name and email is enough to start. You’ll only need a Nimiq wallet when you send or receive NIM.</p>
       </div>
       <form id="nimcarry-user-register" class="form-grid">
         <label>Name<input name="display_name" maxlength="80" autocomplete="name" required placeholder="Your name" /></label>
@@ -189,7 +189,7 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType } from
       <div class="button-row" style="margin-top:12px">
         <button id="nimcarry-link-wallet" class="button secondary" type="button">${wallets.length ? "Add another Nimiq wallet" : "Connect Nimiq Pay when ready"}</button>
       </div>
-      <small>${profile.email_verified ? "Email verified for profile recovery." : "Email not verified yet."} Email is never protocol authority; wallet signatures remain the authority for custody. <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy Notice</a>.</small>
+      <small>${profile.email_verified ? "Email verified for profile recovery." : "Email not verified yet."} Your email is only used to sign in. Payments always need your Nimiq wallet’s approval. <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy Notice</a>.</small>
       <div class="button-row" style="margin-top:10px"><button id="nimcarry-delete-profile" class="button ghost" type="button">Delete my profile</button></div>
     `;
     host.appendChild(card);

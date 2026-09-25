@@ -4,250 +4,98 @@
 
 <h1 align="center">NimCarry</h1>
 
-<p align="center"><strong>One NIM. One bridge at a time.</strong></p>
-<p align="center">Get this to someone you cannot reach directly — one human bridge at a time.</p>
+<p align="center"><strong>Send NIM to someone, even without their wallet address.</strong></p>
+<p align="center">You share a private link. They choose their own wallet. You see when it has arrived.</p>
 
 <p align="center">
   <a href="https://nimcarry.faadil-casecraft.workers.dev"><strong>Live App</strong></a>
   ·
-  <a href="https://nimcarry.faadil-casecraft.workers.dev/?demo=1"><strong>Guided Demo</strong></a>
+  <a href="https://nimcarry.faadil-casecraft.workers.dev/?demo=1"><strong>Practice Mode</strong></a>
   ·
   <a href="https://youtu.be/SAyv8hyZG6Q"><strong>Demo Video</strong></a>
   ·
-  <a href="https://nimcarry.faadil-casecraft.workers.dev/real-usage"><strong>Live Usage Evidence</strong></a>
-  ·
-  <a href="https://github.com/Faadil1/nimcarry/releases/tag/v1.0.0"><strong>v1.0.0 Release</strong></a>
+  <a href="https://nimcarry.faadil-casecraft.workers.dev/real-usage"><strong>Live Usage</strong></a>
 </p>
 
-<p align="center"><sub>Cycle II Public Preview · Testnet · Mainnet disabled</sub></p>
+<p align="center"><sub>Nimiq Pay Mini App · Cycle II · Testnet only</sub></p>
 
-> **Current status**  
-> The live product and guided demo are available now. Real TESTNET runs have reached independently verified `FINAL` / `ARRIVED`, including a close-before-FINAL recovery and a Destination Claim payment that was initially ambiguous/no-hash and later independently rediscovered as FINAL. A separate no-hash attempt also terminated fail-closed with no matching broadcast. The wallet-side intermittent submission behavior remains under investigation in [nimiq/wallet issue #314](https://github.com/nimiq/wallet/issues/314).
+## The problem
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/nimiq/miniappscompetition-submissions/a0c2466264376f117667c1a2992fe7e250552f34/cycle2/Faadil1/screenshot-1.jpg" alt="NimCarry destination-bound human routing mission — final V3.2 UI" width="100%" />
-</p>
+You want to send NIM to someone, but you don't have their wallet address. Today that means a back-and-forth in chat ("what's your address?"), a copy-paste you can get wrong, and no clear moment where you both know the money has arrived.
 
-## Why NimCarry exists
+## How NimCarry works
 
-### The pain
+1. **Name them.** Type who it's for and a short note. Their address is optional.
+2. **Share the link.** NimCarry gives you a private, expiring link. Send it however you like.
+3. **They open it.** They choose the Nimiq wallet where they want to receive. It's locked in: you can't be tricked into paying another address.
+4. **You send.** You approve the payment in Nimiq Pay. It goes straight to their wallet.
+5. **Arrived.** NimCarry checks the Nimiq network itself and tells you when the payment is confirmed. You can close the app in the meantime.
 
-**Warm introductions disappear after the first handoff.** Someone you trust says “I’ll pass it on,” and from that moment the route becomes invisible.
+If you already know their address, you can skip the link and send directly.
 
-### The problem
+**Optional:** if you can't reach the person yourself, you can ask someone you both know to introduce you. They accept with one tap. The NIM still goes straight from you to the recipient; the introducer never holds it.
 
-Once an introduction moves beyond the first person, the creator usually cannot reliably know:
+## Why it's safe
 
-- who currently carries it;
-- whether the next person explicitly consented;
-- whether the handoff actually happened;
-- whether the route is still moving toward the intended destination;
-- when the intended destination has actually been reached.
+- **Only the right person can use the link.** Links are private, single-use and expire. Creating a new one cancels the old one.
+- **No double payment.** Once a payment is sent, NimCarry blocks a second send, even if the app is closed or the wallet response gets lost.
+- **"Sent" means confirmed.** A wallet approval is not treated as proof. NimCarry marks a payment as arrived only after it is confirmed on the Nimiq network.
+- **The recipient's address stays private.** It is stored encrypted and never shown to anyone else.
 
-A message can prove that someone *said* they forwarded something. It does not create shared custody state.
+## Status: honest numbers
 
-### Why NimCarry is different
+NimCarry is a public preview on **Testnet**. Mainnet is disabled.
 
-NimCarry turns that informal chain into a **destination-bound human route**.
+Production snapshot, 2026-09-19:
 
-- Exactly **1 NIM** acts as the custody baton — not a reward, wager, stake, or prize.
-- A bridge explicitly accepts before custody can move.
-- Wallet approval, a pending transaction, or a browser claim never advances the route.
-- Only independently verified `FINAL` changes custody.
-- The destination stays protected while the route remains understandable.
-- When the destination becomes the finalized recipient, NimCarry produces a privacy-safe **Route Receipt**.
+| | Count |
+|---|---:|
+| Registered profiles | 27 |
+| Users with a verified Nimiq wallet | 0 |
+| Users who created or completed a payment after verifying | 0 |
 
-**Create → Invite → Accept → Pass 1 NIM → FINAL → Next bridge → ARRIVED**
+We count only activity that can be verified on Nimiq, and old test activity is excluded. The numbers are live on the [usage page](https://nimcarry.faadil-casecraft.workers.dev/real-usage) ([JSON](https://nimcarry.faadil-casecraft.workers.dev/users/stats)); the counting rules are in [Real Usage Assurance v2](docs/evidence/REAL-USAGE-ASSURANCE-V2.md).
 
-Without Nimiq, a bridge can only say “I forwarded it.” With NimCarry, the handoff can become a verifiable custody event.
+**Known issue:** on Testnet, Nimiq Pay sometimes approves a payment without returning a transaction reference to the app. NimCarry handles this safely (it waits, searches the network, and never re-sends), but it can delay confirmation. The investigation is public in [nimiq/wallet#314](https://github.com/nimiq/wallet/issues/314).
+
+## Try it
+
+- **[Practice mode](https://nimcarry.faadil-casecraft.workers.dev/?demo=1)** runs the real interface with simulated payments. No wallet needed, nothing is sent. It currently walks through the optional introduction flow.
+- **[Live app](https://nimcarry.faadil-casecraft.workers.dev)**: open it inside Nimiq Pay (Testnet) to send a real Testnet payment link.
+- **[84-second video](https://youtu.be/SAyv8hyZG6Q)**
 
 ---
 
-## The route
+## For developers
 
-| Step | What happens |
-|---|---|
-| Mission Home | See the destination-bound mission and verified route |
-| Create Mission | Define the known destination and purpose |
-| Bridge Invitation | A chosen bridge explicitly accepts before payment |
-| Pass 1 NIM | The current holder approves the exact baton transfer |
-| Route / Arrival | Only finalized hops appear; ARRIVED produces the receipt |
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/nimiq/miniappscompetition-submissions/a0c2466264376f117667c1a2992fe7e250552f34/cycle2/Faadil1/screenshot-2.jpg" alt="NimCarry Pass 1 NIM custody baton screen — final V3.2 UI" width="100%" />
-</p>
-
-The product story is simple: **I need to reach someone I cannot contact directly. I ask someone I trust to bridge the mission. They choose whether to accept. If they do, 1 NIM becomes the baton. The route moves only after verified finality.**
-
----
-
-## Execution
-
-NimCarry separates user approval, mission state, durable storage, and chain verification so that no browser claim can move custody by itself.
+### Architecture
 
 ```mermaid
 flowchart TB
-    P[Nimiq Pay<br/>wallet approval] <--> U[NimCarry Browser UI]
+    P[Nimiq Pay<br/>wallet approval] <--> U[NimCarry web app]
     U --> W[Cloudflare Worker]
-    W --> B[Mission Backend / Container]
-    B --> D[(Neon / PostgreSQL<br/>durable mission state)]
-    B --> R[Nimiq chain reads<br/>independent finality]
-    U -. browser claims never change custody .-> B
+    W --> B[Backend service / Container]
+    B --> D[(PostgreSQL / Neon)]
+    B --> R[Nimiq network reads<br/>independent confirmation]
 ```
 
-- **Nimiq Pay / Mini App SDK** handles the wallet session, explicit approval, and transaction submission path.
-- **NimCarry frontend** provides the five-screen mission experience and scoped route navigation.
-- **TypeScript / Node mission service** enforces invitation, authorization, pass-intent, retry, reconciliation, and finality rules.
-- **Cloudflare Worker + Container** provides the production frontend and backend through one origin.
-- **Neon / PostgreSQL** stores missions, invitations, pass intents, audit data, participants, finalized hops, human profiles, recovery sessions, and short-lived login challenges.
-- **Returning-user recovery** restores the same existing profile with a 6-digit email code; successful recovery verifies the email and creates a new session without invalidating other devices. Email never authorizes custody.
-- **Independent Nimiq chain reads** verify transaction and finality evidence instead of trusting wallet callbacks.
-- **Cryptographic target protection** keeps the destination encrypted and uses an opaque `co:v1:` commitment rather than clear-text mission identifiers.
+- **Frontend** (`web/`): the Mini App, using the Nimiq Mini App SDK for wallet approvals.
+- **Backend** (`src/`, TypeScript/Node): links, payment intents, retries and confirmation checks.
+- **Storage** (`migrations/`): PostgreSQL on Neon, with database-level guards against duplicate payments.
+- **Hosting** (`cloudflare/`): one Cloudflare Worker + Container origin.
+- **Sign-in**: name + email profile, recovered with a 6-digit email code. Email never authorizes a payment; only a Nimiq wallet signature does.
 
-For the compact technical map, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+More detail: [Architecture](docs/ARCHITECTURE.md) · [Approval Is Not Final](docs/APPROVAL-IS-NOT-FINAL.md) (the pattern we use for uncertain wallet responses) · [Security](SECURITY.md).
 
----
+### Security details
 
-## Evidence
+- Recipient wallets are encrypted with AES-256-GCM and matched with a separate keyed HMAC-SHA256.
+- Payment requests carry an opaque `co:v1:` commitment instead of readable identifiers.
+- The client requests exactly 1 NIM (100,000 Luna) with fee 0; the backend independently verifies the sender and the confirmed on-chain transaction.
+- Email codes expire after 10 minutes, are stored hashed, are single-use and lock after repeated failures.
+- Access tokens for viewing a payment are scoped and short-lived.
 
-What is proven today:
-
-- A complete five-screen destination-bound routing flow.
-- Explicit bridge consent before any payment.
-- Exactly **1 NIM = one custody baton**.
-- FINAL-only custody transitions.
-- Privacy-safe destination handling and opaque on-chain commitments.
-- Fail-closed behavior for expired invites, stale intents, lost capabilities, and ambiguous broadcasts.
-- Production Cloudflare + Container + Neon/PostgreSQL runtime.
-- Live Nimiq Pay provider readiness proven on a real device.
-- Deterministic guided demo ending in a privacy-safe Route Receipt.
-- `v1.0.0 — Cycle II Preview` published.
-- 176/176 automated tests passing at the V1 release and production judge smoke 5/5 passing.
-
-| Area | Status |
-|---|---|
-| Live production app | Ready |
-| Guided demo | Ready |
-| Cloudflare / Postgres runtime | Ready |
-| Nimiq Pay provider readiness | Verified |
-| Real TESTNET broadcast | Verified in controlled runs |
-| Real FINAL / ARRIVED | Independently verified |
-| Mainnet | Disabled |
-
-The strongest production statement is also the most important evidence boundary: **approval ≠ broadcast ≠ INCLUDED ≠ FINAL**.
-
-Controlled TESTNET runs demonstrated both sides of the ambiguity boundary: one no-hash approval was later independently rediscovered and reached FINAL, while another no-hash approval terminated fail-closed with no matching broadcast. NimCarry therefore preserves uncertainty, blocks duplicate resend, and advances financial state only after independent FINAL verification.
-
-See [Approval Is Not Final](docs/APPROVAL-IS-NOT-FINAL.md) for the reusable integration pattern and the public wallet-side investigation.
-
-### Real usage — privacy-safe, anti-gaming, judge-verifiable
-
-NimCarry uses **Real Usage Assurance v2**. Registration is treated as an acquisition signal, not as the strongest proof of product use. The public funnel is deliberately ordered by increasing assurance:
-
-**Registered → Consented → Nimiq verified → Activated → Finalized**
-
-Production snapshot captured **2026-09-19 12:26:44 UTC**:
-
-| Metric | Snapshot | Assurance |
-|---|---:|---|
-| Registered profiles | **27** | Voluntary profile; useful acquisition signal, but low-cost to create |
-| Profiles with recorded privacy consent | **27** | Current Privacy Notice version + consent timestamp |
-| Nimiq-verified users | **0** | Valid Nimiq wallet signature |
-| Activated users | **0** | Verified wallet + mission creation, invitation acceptance, or FINAL hop **after wallet verification** |
-| Finalized users | **0** | Verified wallet + independently verified FINAL hop after wallet verification |
-
-The time-ordering rule is intentional. Linking an old wallet later cannot convert pre-registry development/test activity into traction. The earlier test state — **7 participation rows across 3 wallets** — remains excluded.
-
-Rate limits reduce operational abuse, but NimCarry does **not** treat an IP limit, email entry, wallet count, or screenshot as proof of a real user. Stronger usage claims require cryptographically verified Nimiq behavior and, at the highest tier, independently observed finality.
-
-Judges can verify current aggregate counts without access to personal data:
-
-- [Live usage evidence page](https://nimcarry.faadil-casecraft.workers.dev/real-usage)
-- [Aggregate user JSON](https://nimcarry.faadil-casecraft.workers.dev/users/stats)
-- [Protocol runtime aggregate JSON](https://nimcarry.faadil-casecraft.workers.dev/usage)
-- [Real Usage Assurance v2 policy](docs/evidence/REAL-USAGE-ASSURANCE-V2.md)
-- [Timestamped v2 snapshot](docs/evidence/real-usage-assurance-v2-2026-09-19.json)
-- [Original registration snapshot](docs/evidence/real-usage-2026-09-19.json)
-
-No screenshot containing a user's name or email is published as usage evidence. The public evidence surface exposes aggregate counts only.
-
----
-
-## Demo
-
-The recommended judge path is the deterministic [Guided Demo](https://nimcarry.faadil-casecraft.workers.dev/?demo=1). It uses the real product UI and state model without requiring wallet or network writes while the TESTNET submission issue remains unresolved.
-
-**Watch the final 84-second demo:** [NimCarry — One NIM. One Bridge at a Time.](https://youtu.be/SAyv8hyZG6Q)
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/nimiq/miniappscompetition-submissions/a0c2466264376f117667c1a2992fe7e250552f34/cycle2/Faadil1/screenshot-3.jpg" alt="NimCarry guided demo Route Receipt — final V3.2 UI" width="100%" />
-</p>
-<p align="center"><em>Guided Demo — simulated ARRIVED / Route Receipt. Presentation only; not real TESTNET finality evidence.</em></p>
-
-The final demo video pairs a short cinematic interpretation of the custody baton with real NimCarry screens; the cinematic layer is storytelling, while the live product remains the proof.
-
----
-
-## Engineering challenges
-
-### Reissuing an expired invitation without weakening invariants
-
-The first recovery path tried to create another invitation for the same mission sequence and hit a duplicate-key constraint. Instead of weakening the database rule, NimCarry now reissues the same row, rotates the private token, invalidates the old capability, and preserves the sequence invariant.
-
-### Keeping private route access intact during navigation
-
-The Pass 1 NIM screen initially failed closed with `ROUTE_VIEW_CAPABILITY_REQUIRED` because direct navigation lost the scoped route-view capability. The fix preserved that capability through internal navigation rather than making missions public.
-
-### Treating retries as security logic
-
-After a failed wallet attempt, a stale pass intent remained. NimCarry now reuses a valid intent, renews a stale one only when it is definitely unbroadcast, and refuses renewal if any broadcast evidence exists.
-
-### Refusing to confuse approval with proof
-
-Controlled TESTNET runs proved that the same client-visible no-hash state can resolve differently: one attempt was later rediscovered and reached FINAL, while another terminated with no matching broadcast. NimCarry therefore never maps approval directly to success or failure. See [Approval Is Not Final](docs/APPROVAL-IS-NOT-FINAL.md).
-
-### Current TESTNET investigation
-
-Nimiq Pay 2.19.1 TESTNET has shown an intermittent/path-dependent post-approval state in which the calling app may receive no provable transaction hash. Because later outcomes have differed, NimCarry treats this as an uncertainty state rather than a deterministic failure.
-
-The wallet-side investigation is public in [nimiq/wallet issue #314](https://github.com/nimiq/wallet/issues/314). NimCarry does not claim that Nimiq has confirmed a root cause.
-
----
-
-## Security model
-
-- Nimiq wallet signatures authorize holder-sensitive actions.
-- Returning-user email codes expire after 10 minutes, are stored only as keyed hashes, lock after repeated failed attempts, and are single-use.
-- Email verification restores profile access only; it is never protocol or custody authority.
-- New recovery sessions coexist with earlier valid sessions instead of silently logging other devices out.
-- Target wallets are encrypted with AES-256-GCM and matched at arrival with a separate keyed HMAC-SHA256.
-- Pass intents require opaque `co:v1:<commitment>` recipient data.
-- The client requests exactly `100000` Luna with requested fee `0`; the backend independently verifies sender and finalized chain evidence.
-- Route-view and broadcast capabilities are scoped and short-lived.
-- Infrastructure uncertainty surfaces as delayed verification, never as a false custody change.
-
-See [`SECURITY.md`](SECURITY.md) for release boundaries and vulnerability reporting.
-
----
-
-## Repository guide
-
-The public `main` branch is intentionally compact for judges and contributors:
-
-- `web/` — browser Mini App and guided demo
-- `src/` — mission, Nimiq, persistence, and service logic
-- `tests/` — deterministic unit/integration coverage
-- `migrations/` — PostgreSQL schema and concurrency guards
-- `cloudflare/` — production Worker / Container runtime
-- `docs/` — concise architecture, release, submission, and README assets
-- `product-intelligence/` — public product hypotheses, experiments, LLM council prompts, monetization, visual, safety, and analytics planning
-- `scripts/` — local development, smoke, migration, and safety utilities
-
-Raw private user research, sensitive transcripts, secrets, and operational handovers are intentionally not part of the public tree. Reusable product intelligence is kept public so assumptions and experiments remain inspectable.
-
----
-
-## Development
+### Run it locally
 
 ```bash
 npm ci
@@ -256,27 +104,22 @@ npm test
 npm run build
 ```
 
-For production returning-user email recovery, configure `RESEND_API_KEY` as a deployment secret and `NIMCARRY_EMAIL_FROM` with a verified sender identity. If either is absent, the recovery endpoint fails closed rather than pretending that a code was delivered.
+Email sign-in in production needs `RESEND_API_KEY` and a verified `NIMCARRY_EMAIL_FROM`. Without them, the endpoint refuses rather than pretending a code was sent.
+
+### Repository
+
+- `web/` — Mini App and practice mode
+- `src/` — backend, Nimiq integration, persistence
+- `tests/` — unit and integration tests
+- `migrations/` — database schema
+- `cloudflare/` — production runtime
+- `docs/` — architecture, evidence, release notes
+- `docs/internal/` — team working notes (handovers, hypotheses, submission material)
 
 ## Team
 
 - **Faadil Boussari** — product / repo lead
 - **Opeyemi (`opeblow`)** — collaborator / technical lead
-
-## Useful links
-
-- [Live App](https://nimcarry.faadil-casecraft.workers.dev)
-- [Guided Demo](https://nimcarry.faadil-casecraft.workers.dev/?demo=1)
-- [Demo Video](https://youtu.be/SAyv8hyZG6Q)
-- [Live usage evidence](https://nimcarry.faadil-casecraft.workers.dev/real-usage)
-- [Real usage snapshot](docs/evidence/real-usage-2026-09-19.json)
-- [Continuous Product Intelligence](product-intelligence/README.md)
-- [LLM Product Council prompts](product-intelligence/LLM-COUNCIL/RUNBOOK.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Approval Is Not Final](docs/APPROVAL-IS-NOT-FINAL.md)
-- [Security](SECURITY.md)
-- [Release notes](docs/release/RELEASE-NOTES-V1.0.0.md)
-- [v1.0.0 release](https://github.com/Faadil1/nimcarry/releases/tag/v1.0.0)
 
 ## License
 

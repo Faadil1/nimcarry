@@ -40,7 +40,7 @@
 
   function globalChrome() {
     const brandSmall = document.querySelector(".brand small");
-    text(brandSmall, "A private introduction · carried by people");
+    text(brandSmall, "Send NIM with a private link");
 
     const banner = document.querySelector("#demo-banner");
     if (banner && isDemo) {
@@ -52,8 +52,8 @@
     if (footer && footer.dataset.clv2Footer !== "1") {
       footer.dataset.clv2Footer = "1";
       const spans = footer.querySelectorAll("span");
-      text(spans[0], "A private introduction, carried by people.");
-      text(spans[1], isDemo ? "Practice route · nothing written to chain" : "Verified on Nimiq Pay · TESTNET");
+      text(spans[0], "Send NIM to a person, not an address.");
+      text(spans[1], isDemo ? "Practice mode · nothing is sent" : "Nimiq Pay · Testnet");
     }
   }
 
@@ -96,8 +96,8 @@
     if (!hero || hero.dataset.clv2Home === "1") return;
 
     const kicker = clean(hero.querySelector(".kicker")?.textContent);
-    const destinationFirst = /human-resolved delivery/i.test(kicker);
-    if (!/destination-bound human routing|private introduction|human-resolved delivery/i.test(kicker)) return;
+    const destinationFirst = /human-resolved delivery|send nim with a private link/i.test(kicker);
+    if (!/destination-bound human routing|private introduction|human-resolved delivery|send nim with a private link/i.test(kicker)) return;
     hero.dataset.clv2Home = "1";
     hero.classList.add("clv2-home");
 
@@ -159,11 +159,11 @@
     card.dataset.clv2Create = "1";
     card.classList.add("clv2-write-letter");
 
-    text(card.querySelector(".kicker"), "Write the letter");
+    text(card.querySelector(".kicker"), "New payment link");
     text(card.querySelector("h2"), "Who is this for?");
     text(
       card.querySelector(".lede"),
-      "Choose one person who has agreed to be the destination. Their address stays sealed from every carrier."
+      "You don’t need their Nimiq address. Leave it blank and you’ll get a private link to send them."
     );
 
     const targetLabel = card.querySelector('input[name="target_label"]');
@@ -180,41 +180,41 @@
       const sheet = el("section", "clv2-compose-sheet");
       sheet.setAttribute("aria-hidden", "true");
       sheet.append(
-        el("span", "clv2-compose-sheet-kicker", "PRIVATE LETTER"),
-        el("strong", "", "One person. One destination."),
-        el("p", "", "Write the human reason first. Delivery details stay sealed underneath."),
+        el("span", "clv2-compose-sheet-kicker", "PRIVATE LINK"),
+        el("strong", "", "One person. One link."),
+        el("p", "", "Only the person you send it to can use it."),
         el("span", "clv2-compose-mini-seal")
       );
       const form = card.querySelector("#create-form");
       if (form) form.before(sheet);
     }
-    setLabelText(targetLabel?.closest("label"), "Who is the letter for?");
-    setLabelText(targetWallet?.closest("label"), "Private destination address");
-    setLabelText(missionNote?.closest("label"), "What should they know?");
-    setLabelText(creatorLabel?.closest("label"), "Your name (optional)");
+    setLabelText(targetLabel?.closest("label"), "Who is it for?");
+    setLabelText(targetWallet?.closest("label"), "Their Nimiq address");
+    setLabelText(missionNote?.closest("label"), "Add a note");
+    setLabelText(creatorLabel?.closest("label"), "Your name");
 
     const consent = card.querySelector('input[name="target_consent_confirmed"]')?.closest("label")?.querySelector("span");
-    text(consent, "I confirm this person has agreed to be the destination for this letter.");
+    text(consent, "I confirm this address belongs to this person and they expect it.");
 
     const submit = card.querySelector('#create-form button[type="submit"]');
-    text(submit, "Seal the letter");
+    text(submit, "Create payment link");
 
     if (targetWallet && !card.querySelector(".clv2-private-note")) {
       const note = el(
         "p",
         "clv2-private-note",
-        "Sealed from every carrier. This address is used privately to know when the letter has truly arrived."
+        "Never shown to anyone else. Only used to confirm the payment arrived."
       );
       targetWallet.closest("label")?.after(note);
     }
 
     if (targetWallet && !card.querySelector(".clv2-delivery-caption")) {
-      const caption = el("small", "clv2-delivery-caption", "Delivery detail · required by the real route, hidden from carriers.");
+      const caption = el("small", "clv2-delivery-caption", "Only their name and a note are required.");
       targetWallet.closest("label")?.before(caption);
     }
 
     if (submit && !card.querySelector(".clv2-create-truth")) {
-      const truth = el("small", "clv2-create-truth", "Sealing creates the private mission. It does not move the 1 NIM handoff.");
+      const truth = el("small", "clv2-create-truth", "Nothing is sent yet. You send only after they’ve opened the link.");
       submit.before(truth);
     }
   }

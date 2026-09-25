@@ -1,6 +1,6 @@
 # NimCarry documentation
 
-The public documentation is intentionally small and judge-facing.
+Product and technical documentation for NimCarry.
 
 ## Product and architecture
 
@@ -12,14 +12,14 @@ The public documentation is intentionally small and judge-facing.
 
 ## Submission
 
-- [`submission/SUBMISSION-COPY-CYCLE-II.md`](submission/SUBMISSION-COPY-CYCLE-II.md) — prepared submission copy.
-- [`submission/DEMO-VIDEO-SCRIPT-CYCLE-II.md`](submission/DEMO-VIDEO-SCRIPT-CYCLE-II.md) — approved 60–90 second demo narration.
-- [`submission/DEMO-VIDEO-SHOTLIST-CYCLE-II.md`](submission/DEMO-VIDEO-SHOTLIST-CYCLE-II.md) — deterministic shot plan.
-- [`submission/DEMO-VIDEO-CAPTURE-RUNBOOK.md`](submission/DEMO-VIDEO-CAPTURE-RUNBOOK.md) — clean capture instructions.
-- [`submission/FINAL-SUBMISSION-CHECKLIST.md`](submission/FINAL-SUBMISSION-CHECKLIST.md) — final manual submission actions.
+- [`internal/submission/SUBMISSION-COPY-CYCLE-II.md`](internal/submission/SUBMISSION-COPY-CYCLE-II.md) — prepared submission copy.
+- [`internal/submission/DEMO-VIDEO-SCRIPT-CYCLE-II.md`](internal/submission/DEMO-VIDEO-SCRIPT-CYCLE-II.md) — approved 60–90 second demo narration.
+- [`internal/submission/DEMO-VIDEO-SHOTLIST-CYCLE-II.md`](internal/submission/DEMO-VIDEO-SHOTLIST-CYCLE-II.md) — deterministic shot plan.
+- [`internal/submission/DEMO-VIDEO-CAPTURE-RUNBOOK.md`](internal/submission/DEMO-VIDEO-CAPTURE-RUNBOOK.md) — clean capture instructions.
+- [`internal/submission/FINAL-SUBMISSION-CHECKLIST.md`](internal/submission/FINAL-SUBMISSION-CHECKLIST.md) — final manual submission actions.
 
 ## Assets
 
 - `assets/readme/` — public README screenshots.
 
-Internal research, strategy, transcript analysis, scoring work, and operational handovers are maintained outside the current public `main` tree.
+Team working notes (handovers, project state, product hypotheses, usage sprints) live in [`internal/`](internal/README.md).
