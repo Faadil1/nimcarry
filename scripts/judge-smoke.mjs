@@ -315,6 +315,7 @@ try {
     "/nimcarry-mark.svg",
     "/nimcarry.css",
     "/nc-ui.js",
+    "/nc-wax.js",
     "/fonts/fraunces.woff2",
     "/nimiq-recovery-ux.js",
   ]) {

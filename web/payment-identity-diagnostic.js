@@ -20,7 +20,7 @@ async function runDiagnostic() {
   run.disabled = true;
   copy.hidden = true;
   result.hidden = true;
-  status.textContent = "Waiting for Nimiq Pay provider…";
+  status.textContent = "Waiting for Nimiq Pay…";
   try {
     const nimiq = await getNimiqProvider();
     if (!nimiq || typeof nimiq.listAccounts !== "function") throw new Error("listAccounts() unavailable");
@@ -71,8 +71,8 @@ copy?.addEventListener("click", async () => {
   if (!latest) return;
   try {
     await navigator.clipboard.writeText(JSON.stringify(latest, null, 2));
-    status.textContent = "Diagnostic JSON copied. Treat the full account address as private testing data.";
+    status.textContent = "Copied. It contains your full test address, so keep it private.";
   } catch {
-    status.textContent = "Copy was unavailable. Select the JSON manually.";
+    status.textContent = "Couldn’t copy automatically. Select the text by hand.";
   }
 });

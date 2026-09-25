@@ -9,41 +9,36 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/nimcarry.css" />
 </head>
-<body data-ground="paper" class="nimcarry">
+<body data-ground="indigo" class="nimcarry">
   <div class="app-shell">
     <header class="brandbar">
       <a class="brand" href="/" aria-label="NimCarry home">
         <img class="brand-logo" src="/nimcarry-mark.svg" alt="" width="44" height="44" />
-        <span><strong>NimCarry</strong><small>Payment identity diagnostic</small></span>
+        <span><strong>NimCarry</strong><small>Wallet check</small></span>
       </a>
       <div class="network-chip"><span class="pulse"></span><span>TESTNET</span></div>
     </header>
-
     <main class="screen">
-      <section class="card clv2-utility-surface">
-        <div class="clv2-utility-grid">
-          <div class="clv2-utility-copy">
-            <div class="kicker">Read-only · diagnostic only</div>
-            <h1>Which address does Nimiq Pay expose?</h1>
-            <p class="lede">This page reads <code>listAccounts()</code>, consensus and block height. It does not sign, send, broadcast, or change a NimCarry route.</p>
-          </div>
-          <div class="clv2-utility-letter" aria-hidden="true">
-            <span class="clv2-utility-kicker">IDENTITY CHECK</span>
-            <strong>Read the address. Do not move the letter.</strong>
-            <span class="clv2-utility-note">Diagnostic only · full address stays private</span>
-            <span class="clv2-utility-seal"></span>
-          </div>
+      <section class="nc-scene card nc-utility" data-utility="identity">
+        <div class="nc-copy">
+          <p class="nc-kicker">Wallet check · read-only</p>
+          <h1 class="nc-giant nc-giant--m">Which wallet<br>is <em>this?</em></h1>
+          <p class="nc-lede">This shows which address Nimiq Pay shares with NimCarry, and whether it’s on the right network. Nothing is signed or sent.</p>
         </div>
-        <div class="notice error" style="display:block;margin:1rem 0;">Privacy note: the result contains your full TESTNET account address. Do not post the raw diagnostic publicly.</div>
-        <button id="run" class="button primary" type="button">Read Nimiq Pay identity</button>
-        <button id="copy" class="button ghost" type="button" hidden>Copy diagnostic JSON</button>
-        <p id="status" role="status" aria-live="polite">Ready.</p>
-        <pre id="result" style="white-space:pre-wrap;overflow-wrap:anywhere;background:#fffaf0;border:1px solid rgba(33,30,26,.14);padding:1rem;border-radius:7px;" hidden></pre>
+        <div class="nc-object" data-letter="incoming" data-to="You" data-note="just reading, not moving"></div>
+        <div class="nc-actions">
+          <p class="nc-status"><span class="nc-dot"></span>Read the address. Do not move the letter.</p>
+          <div class="notice error">The result contains your full test address. Don’t post it publicly.</div>
+          <button id="run" class="button primary big" type="button">Check my wallet</button>
+          <button id="copy" class="button ghost" type="button" hidden>Copy the result</button>
+          <p id="status" role="status" aria-live="polite">Ready.</p>
+          <pre id="result" class="nc-pre" hidden></pre>
+        </div>
       </section>
     </main>
-
-    <footer class="footer"><span>Diagnostic only · no transaction writes</span><span>Do not share full addresses publicly</span></footer>
+    <footer class="footer"><span>Diagnostic only · no transaction writes</span><span>Don’t share full addresses publicly</span></footer>
   </div>
   <script type="module" src="/payment-identity-diagnostic.js"></script>
+  <script type="module" src="/utility-letter.js"></script>
 </body>
 </html>

@@ -47,3 +47,26 @@ describe("NimCarry letter interface", () => {
     expect(profile).toContain("I agree to NimCarry storing my name and email to create my profile and measure real product usage.");
   });
 });
+
+describe("NimCarry live wax seal", () => {
+  const wax = readFileSync("web/nc-wax.js", "utf8");
+
+  it("is presentation-only", () => {
+    expect(wax).not.toContain("fetch(");
+    expect(wax).not.toContain("localStorage");
+    expect(wax).not.toContain("sessionStorage");
+    expect(wax).not.toContain("import ");
+  });
+
+  it("falls back to the SVG seal without WebGL and never animates with reduced motion", () => {
+    expect(wax).toContain('canvas.getContext("webgl"');
+    expect(wax).toContain("if (!renderer) return;");
+    expect(wax).toContain('if (reduced()) { paint(2.0); return; }');
+    expect(css).toContain(".is-wax>svg{visibility:hidden}");
+  });
+
+  it("pauses when the page is hidden and skips seals off screen", () => {
+    expect(wax).toContain('document.visibilityState === "visible"');
+    expect(wax).toContain("rect.bottom < 0 || rect.top > innerHeight");
+  });
+});

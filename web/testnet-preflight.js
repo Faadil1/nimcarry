@@ -21,7 +21,7 @@ import { getNimiqProvider } from "/nimiq-provider.js";
   button?.addEventListener("click", async () => {
     button.disabled = true;
     card.hidden = false;
-    status.textContent = "Checking Nimiq Pay against the independent TESTNET head…";
+    status.textContent = "Checking that Nimiq Pay is on the test network…";
     output.textContent = "";
     try {
       const provider = await getNimiqProvider();
@@ -37,7 +37,7 @@ import { getNimiqProvider } from "/nimiq-provider.js";
         writes_performed: false,
         safe_next_step: "PLAIN_TESTNET_CANARY_THEN_ONE_CONTROLLED_NIMCARRY_A_TO_B",
       };
-      status.textContent = "PASS — Nimiq Pay is aligned with NimCarry TESTNET. No transaction was requested.";
+      status.textContent = "All good — Nimiq Pay is on the test network. Nothing was sent.";
       output.textContent = JSON.stringify(report, null, 2);
     } catch (error) {
       const report = {
@@ -47,7 +47,7 @@ import { getNimiqProvider } from "/nimiq-provider.js";
         writes_performed: false,
         safe_next_step: "STOP_NO_PAYMENT",
       };
-      status.textContent = "FAIL CLOSED — TESTNET could not be proven. Do not send the baton.";
+      status.textContent = "Stop here — we couldn’t confirm the test network. Don’t send any NIM.";
       output.textContent = JSON.stringify(report, null, 2);
     } finally {
       button.disabled = false;

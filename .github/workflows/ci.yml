@@ -28,7 +28,7 @@ jobs:
         run: node scripts/secret-scan.mjs
 
       - name: Browser JavaScript syntax
-        run: for f in web/app.js web/nc-ui.js web/nimiq-provider.js web/http-compat.js web/invitation-resume.js web/nimiq-recovery-ux.js web/nimiq-submission-guard.js web/network-label-guard.js web/route-access-recovery.js web/user-profile.js web/usage-evidence.js web/testnet-preflight.js web/payment-identity-diagnostic.js; do node --check "$f"; done
+        run: for f in web/app.js web/nc-ui.js web/nc-wax.js web/utility-letter.js web/nimiq-provider.js web/http-compat.js web/invitation-resume.js web/nimiq-recovery-ux.js web/nimiq-submission-guard.js web/network-label-guard.js web/route-access-recovery.js web/user-profile.js web/usage-evidence.js web/testnet-preflight.js web/payment-identity-diagnostic.js; do node --check "$f"; done
 
       - name: Cloudflare runtime syntax and config
         run: node --check cloudflare/worker.mjs && node -e "JSON.parse(require('fs').readFileSync('cloudflare/wrangler.jsonc','utf8'))"

@@ -96,8 +96,9 @@ body[data-ground="paper"] .button.secondary,body[data-ground="arrived"] .button.
 .back-link{display:inline-flex;align-items:center;gap:8px;min-height:44px;border:0;background:transparent;color:var(--on);font-family:var(--mono);font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;padding:0;margin-bottom:6px}
 
 /* ---------- the letter (the payment link as an object) ---------- */
-.nc-letter{--ls:9.4px;--tilt:-3deg;position:relative;width:30em;min-height:41em;font-size:var(--ls);background:var(--paper);color:var(--ink);border-radius:1.8em;box-shadow:var(--shadow);padding:2.2em 2.4em 2em;transform:rotate(var(--tilt));view-transition-name:nc-letter;transition:transform .7s cubic-bezier(.2,.9,.25,1.15);isolation:isolate}
+.nc-letter{--ls:9.4px;--tilt:-3deg;position:relative;width:30em;min-height:41em;font-size:var(--ls);background:var(--paper);color:var(--ink);border-radius:1.8em;box-shadow:var(--shadow);padding:2.2em 2.4em 2em;transform:perspective(1400px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) rotate(var(--tilt));view-transition-name:nc-letter;transition:transform .7s cubic-bezier(.2,.9,.25,1.15);isolation:isolate;transform-style:preserve-3d}
 .nc-letter::before{content:"";position:absolute;inset:0;border-radius:inherit;background:repeating-linear-gradient(0deg,transparent 0 2.7em,rgba(78,75,134,.07) 2.7em calc(2.7em + 1px));pointer-events:none;z-index:-1}
+.nc-letter::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:3;opacity:.55;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9 .35' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .36 0 0 0 0 .25 0 0 0 .14 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23f)'/%3E%3C/svg%3E");background-size:220px 220px}
 .nc-letter__meta{display:flex;justify-content:space-between;gap:1em;font-family:var(--mono);font-size:1.05em;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
 .nc-letter__amount{display:flex;align-items:baseline;gap:.25em;margin-top:.6em;font-family:var(--display);font-weight:850;line-height:.9;font-variation-settings:"opsz" 144,"SOFT" 30}
 .nc-letter__amount b{font-size:8.4em;letter-spacing:-.05em;font-weight:inherit}
@@ -129,6 +130,9 @@ body[data-ground="paper"] .button.secondary,body[data-ground="arrived"] .button.
 
 /* ---------- the wax seal (1 NIM) ---------- */
 .nc-seal svg{width:100%;height:100%;display:block}
+.nc-wax{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+.is-wax>svg{visibility:hidden}
+.nc-phase__icon{position:relative;display:inline-block}
 
 /* ---------- drag the seal onto the recipient ---------- */
 .nc-drop{position:relative;height:132px;border-radius:999px;border:2px dashed color-mix(in srgb,var(--on) 38%,transparent);touch-action:none;user-select:none;-webkit-user-select:none}
@@ -268,6 +272,12 @@ dialog::backdrop{background:rgba(15,48,42,.55);backdrop-filter:blur(4px)}
 .wallet-dialog .button.ghost,.invite-dialog .button.ghost{color:var(--ink)}
 .invite-dialog input,.invite-dialog textarea{background:#fff}
 
+/* standalone utility pages */
+.nc-utility .nc-actions{max-width:620px}
+.nc-fieldset{border:0;margin:0;padding:0}
+.nc-pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:0;padding:14px;border-radius:14px;background:var(--paper);color:var(--ink);font-family:var(--mono);font-size:.74rem;line-height:1.5;border:1px solid rgba(33,30,26,.14)}
+.nc-more p{margin:0;font-size:.9rem;line-height:1.5}
+
 /* legacy utility pages still share these */
 .hero-card{background:transparent}
 .target-title{font-family:var(--display);font-weight:800;font-size:clamp(2.2rem,9vw,4rem);line-height:.95;letter-spacing:-.035em;margin:10px 0}
@@ -276,7 +286,7 @@ dialog::backdrop{background:rgba(15,48,42,.55);backdrop-filter:blur(4px)}
 /* ---------- motion ---------- */
 .nc-in>*{animation:nc-rise .6s cubic-bezier(.2,.9,.3,1.15) both}
 .nc-in>*:nth-child(2){animation-delay:.08s}.nc-in>*:nth-child(3){animation-delay:.16s}.nc-in>*:nth-child(4){animation-delay:.24s}.nc-in>*:nth-child(5){animation-delay:.32s}
-.nc-object .nc-letter{animation:nc-drop-in .8s cubic-bezier(.2,.9,.25,1.12) both}
+.nc-object .nc-letter{animation:nc-drop-in .8s cubic-bezier(.2,.9,.25,1.12) backwards}
 @keyframes nc-rise{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
 @keyframes nc-drop-in{from{opacity:0;transform:translateY(-60px) rotate(calc(var(--tilt) - 14deg)) scale(.92)}to{opacity:1;transform:rotate(var(--tilt))}}
 @keyframes nc-slam{0%{opacity:0;transform:rotate(-14deg) scale(2.6)}60%{opacity:1;transform:rotate(-14deg) scale(.94)}100%{opacity:1;transform:rotate(-14deg) scale(1)}}

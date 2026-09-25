@@ -1,5 +1,6 @@
 import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType, isHtlcNimiqAccountType, nimiqAddressKey } from "/nimiq-provider.js";
 import { arrowSvg, bindDrop, confettiMarkup, dropMarkup, letterMarkup, phaseMarkup, referenceFor, setGround, setPhase } from "/nc-ui.js";
+import "/nc-wax.js";
 
 (() => {
   "use strict";

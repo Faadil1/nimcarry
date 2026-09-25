@@ -46,8 +46,8 @@ describe("NimCarry interruption and recovery states", () => {
   });
 
   it("keeps route recovery read-only and participant scoped", () => {
-    expect(recoveryPage).toContain("This restores access, not custody.");
-    expect(recoveryPage).toContain("No NIM is sent.");
+    expect(recoveryPage).toContain("This only lets you see it again.");
+    expect(recoveryPage).toContain("No NIM is sent");
     expect(recoveryPage).toContain('href="/nimcarry.css"');
     expect(recoveryUx).toContain("Private route access stays participant-scoped");
     expect(recoveryUx).toContain("It never sends NIM a second time.");

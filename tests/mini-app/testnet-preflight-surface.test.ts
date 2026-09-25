@@ -8,8 +8,8 @@ describe("live TESTNET preflight surface", () => {
   it("is explicitly read-only and requires a PASS before payment", () => {
     expect(html).toContain('name="robots" content="noindex,nofollow"');
     expect(html).toContain("Diagnostic only · no transaction writes");
-    expect(html).toContain("PASS → plain TESTNET canary → live baton test");
-    expect(html).toContain('class="hero-card clv2-utility-surface"');
+    expect(html).toContain("Passes → small test payment → real NimCarry payment");
+    expect(html).toContain('class="nc-scene hero-card nc-utility"');
     expect(html).toContain('href="/nimcarry.css"');
     expect(html).toContain("Check the network before the seal moves.");
     expect(js).toContain("assertTestnetPreflight");
