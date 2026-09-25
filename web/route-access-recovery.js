@@ -76,7 +76,7 @@ async function boot() {
         <span><strong>${esc(short(account))}</strong><small>Choose the human/basic mission identity, not the HTLC payment rail.</small></span>
       </label>`).join("");
     form.hidden = false;
-    setStatus("Choose the creator/basic identity that owns this mission. Recovery is read-only.");
+    setStatus("Choose the wallet you used for this payment. This only reopens it; nothing is sent.");
   } catch (error) {
     setStatus(error?.message || String(error), true);
   }
@@ -85,10 +85,10 @@ async function boot() {
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const wallet = new FormData(form).get("wallet");
-  if (!wallet) return setStatus("Choose a Nimiq Pay mission identity to continue.", true);
+  if (!wallet) return setStatus("Choose a wallet to continue.", true);
 
   restoreButton.disabled = true;
-  setStatus("Requesting a read-only VIEW_ROUTE signature…");
+  setStatus("Confirm it’s you in Nimiq Pay…");
   try {
     const challenge = await api("/auth/challenge", {
       method: "POST",
@@ -113,7 +113,7 @@ form.addEventListener("submit", async (event) => {
     if (!view?.view_token) throw new Error("VIEW_ROUTE_CAPABILITY_CONTRACT_MISMATCH");
 
     sessionStorage.setItem(`carryone.view.${missionId}`, view.view_token);
-    setStatus("Mission access restored. Returning to the same route…");
+    setStatus("Reopened. Taking you back to the payment…");
     location.replace(returnPath);
   } catch (error) {
     setStatus(error?.message || String(error), true);

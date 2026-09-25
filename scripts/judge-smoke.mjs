@@ -66,8 +66,8 @@ try {
   }
   record("root-http-200", Boolean(root?.response.ok), root ? `${root.response.status} in ${root.ms}ms (attempt ${rootAttempt})` : "no response");
   record("public-brand-visible", /NimCarry/.test(root.text), "NimCarry must be visible in served HTML");
-  record("final-human-craft-runtime-wired", /final-human-craft\.css/.test(root.text) && /final-human-craft-max\.css/.test(root.text), "approved runtime identity must be wired in production HTML");
-  record("recovery-ux-runtime-wired", /nimiq-recovery-ux\.css/.test(root.text) && /nimiq-recovery-ux\.js/.test(root.text), "fail-closed recovery guidance must be wired after promotion");
+  record("letter-runtime-wired", /nimcarry\.css/.test(root.text) && !/carried-letter-v2|final-human-craft/.test(root.text), "the single letter stylesheet must be wired and the removed layers gone");
+  record("recovery-ux-runtime-wired", /nimiq-recovery-ux\.js/.test(root.text), "fail-closed recovery guidance must be wired after promotion");
   record("send-to-person-copy", /Send NIM to a person, not an address\./.test(root.text), "payment-link promise must remain visible");
   record("payment-link-positioning-copy", /Send NIM with a private link/.test(root.text), "payment-link positioning must remain visible");
   record("privacy-link-visible", /privacy\.html/.test(root.text), "public UI must disclose the Privacy Notice");
@@ -260,7 +260,7 @@ try {
 
   const demo = await get("/?demo=1");
   record("guided-demo-http-200", demo.response.ok, `${demo.response.status} in ${demo.ms}ms`);
-  record("guided-demo-same-runtime", /final-human-craft\.css/.test(demo.text), "guided demo must use the same approved product runtime");
+  record("guided-demo-same-runtime", /nimcarry\.css/.test(demo.text), "practice mode must use the same product runtime");
 
   const testnetHead = await get("/network/testnet-head", { attempts: 3, delayMs: 1500 });
   let testnetHeadPayload = null;
@@ -313,9 +313,10 @@ try {
 
   for (const assetPath of [
     "/nimcarry-mark.svg",
-    "/final-human-craft.css",
-    "/final-human-craft-max.css",
-    "/nimiq-recovery-ux.css",
+    "/nimcarry.css",
+    "/nc-ui.js",
+    "/nc-wax.js",
+    "/fonts/fraunces.woff2",
     "/nimiq-recovery-ux.js",
   ]) {
     const asset = await get(assetPath);

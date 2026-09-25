@@ -116,7 +116,8 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType } from
     const screen = document.querySelector("#screen");
     if (!screen) return null;
     const path = location.pathname;
-    if (path === "/" || path === "/create" || /^\/i\/[A-Za-z0-9_-]+$/.test(path)) return screen;
+    // One folded account sheet under the home screen; never in practice mode.
+    if (path === "/" && new URLSearchParams(location.search).get("demo") !== "1") return screen;
     return null;
   }
 
@@ -127,10 +128,26 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType } from
     return "You’re signed in. You’ll only need Nimiq Pay when you send or receive.";
   }
 
-  function renderLoggedOut(host) {
+  function accountSheet(summaryTitle, summaryDetail) {
+    const sheet = document.createElement("details");
+    sheet.id = PROFILE_ID;
+    sheet.className = "nc-account";
+    const summary = document.createElement("summary");
+    const title = document.createElement("span");
+    title.textContent = summaryTitle;
+    const detail = document.createElement("small");
+    detail.textContent = summaryDetail;
+    title.appendChild(detail);
+    summary.appendChild(title);
+    sheet.appendChild(summary);
     const card = document.createElement("section");
-    card.id = PROFILE_ID;
     card.className = "card human-profile-card";
+    sheet.appendChild(card);
+    return { sheet, card };
+  }
+
+  function renderLoggedOut(host) {
+    const { sheet, card } = accountSheet("Your NimCarry account", "Sign in or create a profile. No wallet needed.");
     card.innerHTML = `
       <div class="kicker">Returning user</div>
       <h3>Already have a NimCarry profile?</h3>
@@ -139,18 +156,18 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType } from
         <label>Email<input name="email" maxlength="254" autocomplete="email" type="email" required placeholder="you@example.com" /></label>
         <button class="button secondary" type="submit">Send sign-in code</button>
       </form>
-      <form id="nimcarry-user-signin-verify" class="form-grid" hidden style="margin-top:12px">
+      <form id="nimcarry-user-signin-verify" class="form-grid" hidden>
         <label>6-digit code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="123456" /></label>
         <button class="button secondary" type="submit">Sign in to my profile</button>
       </form>
       <small id="nimcarry-signin-status" role="status" aria-live="polite">Returning users keep the same profile, history, and linked wallets.</small>
-      <div id="nimcarry-signin-help" class="warning" hidden style="margin-top:10px">
+      <div id="nimcarry-signin-help" class="warning" hidden>
         <strong>No code yet?</strong>
         Check inbox and spam, then make sure you used the exact email originally registered with NimCarry.
         If you never created a NimCarry profile, use “New to NimCarry?” below instead.
       </div>
 
-      <div style="margin:22px 0 18px;border-top:1px solid var(--line,#d8cbbb);padding-top:18px">
+      <div class="nc-account-split">
         <div class="kicker">New to NimCarry?</div>
         <h3>Create your profile without a wallet.</h3>
         <p>A name and email is enough to start. You’ll only need a Nimiq wallet when you send or receive NIM.</p>
@@ -166,33 +183,32 @@ import { classifyNimiqAccounts, getNimiqProvider, isBasicNimiqAccountType } from
       </form>
       <small id="nimcarry-user-status">No Nimiq wallet required to register.</small>
     `;
-    host.appendChild(card);
+    host.appendChild(sheet);
     card.querySelector("#nimcarry-user-signin-request")?.addEventListener("submit", requestSignIn);
     card.querySelector("#nimcarry-user-signin-verify")?.addEventListener("submit", verifySignIn);
     card.querySelector("#nimcarry-user-register")?.addEventListener("submit", registerUser);
     restoreSignInProgress(card);
+    if (card.querySelector("#nimcarry-user-signin-verify")?.hidden === false) sheet.open = true;
   }
 
   function renderProfile(host, profile) {
-    const card = document.createElement("section");
-    card.id = PROFILE_ID;
-    card.className = "card human-profile-card";
     const wallets = Array.isArray(profile.wallets) ? profile.wallets : [];
+    const { sheet, card } = accountSheet(`Signed in as ${profile.display_name || "you"}`, statusLine(profile));
     card.innerHTML = `
       <div class="kicker">Your NimCarry profile</div>
       <h3>${esc(profile.display_name)}</h3>
       <p>${esc(profile.email)}</p>
-      <div class="warning" style="margin-top:12px">${esc(statusLine(profile))}</div>
+      <div class="warning">${esc(statusLine(profile))}</div>
       ${wallets.length
-        ? `<div class="button-row" style="margin-top:10px">${wallets.map((wallet) => `<span class="button ghost" aria-disabled="true">Verified · ${esc(wallet.fingerprint || "NQ…")}</span>`).join("")}</div>`
+        ? `<div class="button-row">${wallets.map((wallet) => `<span class="button ghost" aria-disabled="true">Verified · ${esc(wallet.fingerprint || "NQ…")}</span>`).join("")}</div>`
         : ""}
-      <div class="button-row" style="margin-top:12px">
+      <div class="button-row">
         <button id="nimcarry-link-wallet" class="button secondary" type="button">${wallets.length ? "Add another Nimiq wallet" : "Connect Nimiq Pay when ready"}</button>
       </div>
       <small>${profile.email_verified ? "Email verified for profile recovery." : "Email not verified yet."} Your email is only used to sign in. Payments always need your Nimiq wallet’s approval. <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy Notice</a>.</small>
-      <div class="button-row" style="margin-top:10px"><button id="nimcarry-delete-profile" class="button ghost" type="button">Delete my profile</button></div>
+      <div class="button-row"><button id="nimcarry-delete-profile" class="button ghost" type="button">Delete my profile</button></div>
     `;
-    host.appendChild(card);
+    host.appendChild(sheet);
     card.querySelector("#nimcarry-link-wallet")?.addEventListener("click", linkWallet);
     card.querySelector("#nimcarry-delete-profile")?.addEventListener("click", deleteProfile);
   }

@@ -60,7 +60,7 @@ We count only activity that can be verified on Nimiq, and old test activity is e
 
 ## Try it
 
-- **[Practice mode](https://nimcarry.faadil-casecraft.workers.dev/?demo=1)** runs the real interface with simulated payments. No wallet needed, nothing is sent. It currently walks through the optional introduction flow.
+- **[Practice mode](https://nimcarry.faadil-casecraft.workers.dev/?demo=1&tour=1&reset=1)** runs the real interface with simulated payments: write the link, open it as the recipient, drag the seal to send, see it arrive. No wallet needed, nothing is sent.
 - **[Live app](https://nimcarry.faadil-casecraft.workers.dev)**: open it inside Nimiq Pay (Testnet) to send a real Testnet payment link.
 - **[84-second video](https://youtu.be/SAyv8hyZG6Q)**
 
@@ -79,7 +79,7 @@ flowchart TB
     B --> R[Nimiq network reads<br/>independent confirmation]
 ```
 
-- **Frontend** (`web/`): the Mini App, using the Nimiq Mini App SDK for wallet approvals.
+- **Frontend** (`web/`): the Mini App, using the Nimiq Mini App SDK for wallet approvals. One stylesheet (`nimcarry.css`), self-hosted fonts, and a shared UI module (`nc-ui.js`) for the letter, the wax seal and the drag-to-send gesture.
 - **Backend** (`src/`, TypeScript/Node): links, payment intents, retries and confirmation checks.
 - **Storage** (`migrations/`): PostgreSQL on Neon, with database-level guards against duplicate payments.
 - **Hosting** (`cloudflare/`): one Cloudflare Worker + Container origin.

@@ -16,7 +16,6 @@ on:
       - web/**
       - scripts/judge-flow-smoke.mjs
       - .github/workflows/judge-flow-smoke.yml
-      - tests/mini-app/approved-craft-fidelity.test.ts
       - tests/mini-app/route-access-recovery.test.ts
 
 permissions:

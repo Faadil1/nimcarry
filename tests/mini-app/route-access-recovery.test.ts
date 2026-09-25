@@ -17,17 +17,17 @@ describe("route access self-recovery", () => {
     expect(ux).toContain('const RECENT_MISSIONS_KEY = "nimcarry.recentMissions.v1"');
     expect(ux).toContain("persistentMissionIds");
     expect(ux).toContain("knownMissionIds");
-    expect(ux).toContain("Previous mission found on this device");
+    expect(ux).toContain("A payment in progress on this device");
     expect(ux).toContain("Resume without creating a new mission");
-    expect(ux).toContain("bearer capability itself remains session-only");
+    expect(ux).toContain("This only reads it. It never sends NIM a second time.");
     expect(ux).toContain("recoveryPathForMission(id)");
     expect(ux).not.toContain('localStorage.setItem(`carryone.view.');
   });
 
   it("uses a signed VIEW_ROUTE challenge and returns to the same mission", () => {
-    expect(page).toContain("The letter is still safe. Restore your view.");
-    expect(page).toContain("This restores access, not custody.");
-    expect(page).toContain('class="hero-card clv2-utility-surface"');
+    expect(page).toContain("The letter is still safe. Restore your view");
+    expect(page).toContain("No NIM is sent, no one is re-invited, and nothing about the payment changes.");
+    expect(page).toContain('class="nc-scene hero-card nc-utility"');
     expect(page).toContain("Restore the view. Never move the letter.");
     expect(recovery).toContain('action: "VIEW_ROUTE"');
     expect(recovery).toContain("/auth/challenge");

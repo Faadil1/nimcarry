@@ -1,3 +1,16 @@
+## 2026-09-25 — The letter, remastered (UI v3)
+
+- Rebuild the interface around one object: the payment link is a sealed letter that travels between screens. Same materials as before (paper, ink, forest, vermilion, ochre, wax, serif), pushed further.
+- Each state gets its own ground from the original palette: forest home, paper writing desk, vermilion when sealed, ochre for the recipient, night green while sending, paper with a postmark on arrival.
+- The letter fills in live as you type; the recipient sees it addressed to them; the 1 NIM is a gold wax seal you drag onto the recipient to send (the drag goes through the same `#send` click the duplicate-send guard intercepts; a tap fallback and Enter key remain).
+- Screen changes morph the letter with the View Transitions API where supported; all motion respects reduced-motion.
+- Desktop: copy and actions on the left, the letter on stage on the right. Tablet and phone stay single-column; the send gesture is visible without scrolling on a phone.
+- Practice mode now runs the payment-link journey: write, open it as the recipient, drag the seal, arrive. The introduction path still works in practice.
+- The recipient's link shows the sender's display name (`sender_label` on `GET /c/:token`).
+- Profile forms fold into one account sheet on home. The recipient's mission page updates live until the payment lands.
+- Replace 7 stylesheets and 12 cosmetic scripts with `nimcarry.css` and `nc-ui.js`; self-host Fraunces, Instrument Sans, Caveat and Space Mono (OFL).
+- Rewrite the full-flow smoke for the new journey, adding touch-target, fold and two-column checks; replace cosmetic-only tests with contract tests for the new interface.
+
 ## 2026-09-25 — Payment-link positioning
 
 - Reposition NimCarry around one job: send NIM to someone even without their wallet address, via a private link (Destination Claim). Introductions become an optional path.

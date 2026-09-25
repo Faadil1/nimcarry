@@ -7,50 +7,40 @@
   <meta name="theme-color" content="#183f36" />
   <title>NimCarry — TESTNET preflight</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="/styles.css" />
-  <link rel="stylesheet" href="/final-human-craft.css" />
-  <link rel="stylesheet" href="/carried-letter-v2.css" />
+  <link rel="stylesheet" href="/nimcarry.css" />
 </head>
-<body class="carried-letter-v2">
+<body data-ground="night" class="nimcarry">
   <div class="app-shell">
     <header class="brandbar">
       <a class="brand" href="/" aria-label="NimCarry home">
         <img class="brand-logo" src="/nimcarry-mark.svg" alt="" width="44" height="44" />
-        <span><strong>NimCarry</strong><small>Read-only TESTNET gate</small></span>
+        <span><strong>NimCarry</strong><small>Network check</small></span>
       </a>
       <div class="network-chip"><span class="pulse"></span><span>NO WRITES</span></div>
     </header>
-
     <main class="screen">
-      <section class="hero-card clv2-utility-surface">
-        <div class="clv2-utility-grid">
-          <div class="clv2-utility-copy">
-            <div class="kicker">Payment safety check</div>
-            <h1>Prove Nimiq Pay is on TESTNET before spending 1 NIM.</h1>
-            <p class="lede">This check reads consensus and block height, then compares Nimiq Pay with an independent TESTNET head. It does not sign, approve, send, or change a NimCarry route.</p>
-          </div>
-          <div class="clv2-utility-letter" aria-hidden="true">
-            <span class="clv2-utility-kicker">SAFETY GATE</span>
-            <strong>Check the network before the seal moves.</strong>
-            <span class="clv2-utility-note">Read-only · no signature · no NIM</span>
-            <span class="clv2-utility-seal"></span>
-          </div>
+      <section class="nc-scene hero-card nc-utility" data-utility="preflight">
+        <div class="nc-copy">
+          <p class="nc-kicker">Safety check</p>
+          <h1 class="nc-giant nc-giant--m">Right network<br><em>first.</em></h1>
+          <p class="nc-lede">Before any NIM moves, we check that Nimiq Pay is on the test network, by comparing it with an independent source. Nothing is signed or sent.</p>
         </div>
-        <div class="warning" style="margin-top:16px">If this fails, stop here. Do not retry a baton payment.</div>
-        <div class="button-row">
-          <button id="run-preflight" class="button primary" type="button">Run read-only TESTNET preflight</button>
+        <div class="nc-object" data-letter="incoming" data-to="You" data-note="checking before the seal moves"></div>
+        <div class="nc-actions">
+          <p class="nc-status"><span class="nc-dot"></span>Check the network before the seal moves.</p>
+          <div class="warning">If this fails, stop here and don’t send any NIM.</div>
+          <button id="run-preflight" class="button primary big" type="button">Run the check</button>
+          <section class="card" id="result-card" hidden>
+            <div class="kicker">Result</div>
+            <p id="preflight-status" role="status" aria-live="polite"></p>
+            <details class="nc-more"><summary>Technical detail</summary><div><pre id="preflight-json" class="nc-pre"></pre></div></details>
+          </section>
         </div>
-      </section>
-
-      <section class="card" id="result-card" hidden>
-        <div class="kicker">Result</div>
-        <p id="preflight-status" role="status" aria-live="polite"></p>
-        <pre id="preflight-json" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
       </section>
     </main>
-
-    <footer class="footer"><span>Diagnostic only · no transaction writes</span><span>PASS → plain TESTNET canary → live baton test</span></footer>
+    <footer class="footer"><span>Diagnostic only · no transaction writes</span><span>Passes → small test payment → real NimCarry payment</span></footer>
   </div>
   <script type="module" src="/testnet-preflight.js"></script>
+  <script type="module" src="/utility-letter.js"></script>
 </body>
 </html>

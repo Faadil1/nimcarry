@@ -3,11 +3,11 @@ import { describe, expect, it } from "vitest";
 
 const html = readFileSync("web/index.html", "utf8");
 const js = readFileSync("web/nimiq-recovery-ux.js", "utf8");
-const css = readFileSync("web/nimiq-recovery-ux.css", "utf8");
+const css = readFileSync("web/nimcarry.css", "utf8");
 
 describe("Nimiq Pay fail-closed recovery UX", () => {
   it("is wired into the approved runtime", () => {
-    expect(html).toContain('href="/nimiq-recovery-ux.css"');
+    expect(html).toContain('href="/nimcarry.css"');
     expect(html).toContain('src="/nimiq-recovery-ux.js"');
   });
 
@@ -52,8 +52,8 @@ describe("Nimiq Pay fail-closed recovery UX", () => {
   });
 
   it("stays responsive and reduced-motion safe", () => {
-    expect(css).toContain("@media (min-width: 768px)");
-    expect(css).toContain("@media (max-width: 520px)");
-    expect(css).toContain("prefers-reduced-motion: reduce");
+    expect(css).toContain(".nimiq-recovery-panel{");
+    expect(css).toContain("@media (min-width:640px)");
+    expect(css).toContain("@media (prefers-reduced-motion:reduce)");
   });
 });

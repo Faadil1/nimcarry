@@ -233,13 +233,18 @@ export class ReachMissionService {
     return this.createDestinationClaim({ missionId: mission.id, creatorWallet: creator, now });
   }
 
-  async getDestinationClaimByToken(token: string, now = Date.now()): Promise<{ claim: PublicDestinationClaim; mission: PublicMission }> {
+  async getDestinationClaimByToken(
+    token: string,
+    now = Date.now()
+  ): Promise<{ claim: PublicDestinationClaim; mission: PublicMission; senderLabel: string | null }> {
     const claim = await this.requireDestinationClaimToken(token);
     if (claim.status === "PENDING" && now >= claim.expiresAt) {
       await this.repository.expireDueDestinationClaims(now);
       throw new MissionValidationError("DESTINATION_CLAIM_EXPIRED", "Destination claim has expired");
     }
-    return { claim: toPublicDestinationClaim(claim), mission: toPublicMission(await this.requireMission(claim.missionId), now) };
+    const mission = await this.requireMission(claim.missionId);
+    // The sender chose this display label; the private claim link is meant for the recipient.
+    return { claim: toPublicDestinationClaim(claim), mission: toPublicMission(mission, now), senderLabel: mission.creatorDisplayLabel ?? null };
   }
 
   async getDestinationClaimForMission(missionId: string): Promise<DestinationClaimRecord | undefined> {
