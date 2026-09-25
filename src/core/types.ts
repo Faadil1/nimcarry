@@ -68,6 +68,10 @@ export interface NimiqTxLookup {
   value: number; // Luna
   blockNumber: number | null; // null while still in mempool
   confirmations: number; // 0 while unconfirmed
+  /** Account type carried by the historic transaction itself; survives later account deletion/consumption. */
+  senderType?: "basic" | "vesting" | "htlc" | "staking" | string;
+  /** Account type the transaction addressed/created; useful to prove historic HTLC creation. */
+  recipientType?: "basic" | "vesting" | "htlc" | "staking" | string;
   /** Recipient-data payload read back off-chain. Reach Mission canonical passes require it. */
   recipientData?: string;
 }
