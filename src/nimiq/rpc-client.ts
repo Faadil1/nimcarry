@@ -140,6 +140,8 @@ export class HttpNimiqRpcClient implements NimiqRpcClient {
       value: r.value,
       blockNumber: r.blockNumber ?? null,
       confirmations: r.confirmations ?? 0,
+      senderType: normalizeNimiqAccountType(r.fromType ?? r.senderType),
+      recipientType: normalizeNimiqAccountType(r.toType ?? r.recipientType),
       recipientData: rpcRecipientData(r),
     };
   }
@@ -166,6 +168,8 @@ export class HttpNimiqRpcClient implements NimiqRpcClient {
         value: Number(tx.value),
         blockNumber: tx.blockNumber ?? null,
         confirmations: Number(tx.confirmations ?? 0),
+        senderType: normalizeNimiqAccountType(tx.fromType ?? tx.senderType),
+        recipientType: normalizeNimiqAccountType(tx.toType ?? tx.recipientType),
         recipientData: rpcRecipientData(tx),
       }];
     });
