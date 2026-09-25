@@ -148,6 +148,48 @@ describe("Nimiq Pay verified multiwallet payment sources", () => {
 
 describe("Nimiq Pay HTLC payment-rail verification", () => {
 
+  it("can re-verify an exact hashed INVALID pass after a validator proof upgrade without resending", async () => {
+    const rpc = new HtlcRpc();
+    const service = new CanonicalRelayService(new RelayStore(), rpc);
+    const intent = service.initiatePass("mission-invalid-repair", HOLDER, BRIDGE, {
+      requireOpaqueTag: true,
+      authorizedPaymentWallets: [HOLDER],
+    });
+    const payment = paymentTx(intent);
+    service.recordBroadcast("mission-invalid-repair", payment.hash);
+
+    // First observation cannot prove the rail belongs to HOLDER, so the exact
+    // hash fails closed as INVALID.
+    rpc.accounts.set(HTLC, {
+      address: HTLC,
+      balance: HTLC_TOTAL - ONE_NIM_IN_LUNA,
+      type: "htlc",
+      sender: ATTACKER,
+      totalAmount: HTLC_TOTAL,
+    });
+    rpc.history = [fundingTx(), payment];
+
+    await expect(service.reconcile("mission-invalid-repair")).rejects.toMatchObject({
+      reason: "WRONG_SENDER",
+    });
+    expect(service.getRecoverableInvalidBroadcastBatonIds()).toContain("mission-invalid-repair");
+
+    // After the validator/runtime can correctly prove the same rail, re-check
+    // the existing hash. No second payment or new intent is created.
+    rpc.accounts.set(HTLC, {
+      address: HTLC,
+      balance: HTLC_TOTAL - ONE_NIM_IN_LUNA,
+      type: "htlc",
+      sender: HOLDER,
+      totalAmount: HTLC_TOTAL,
+    });
+    rpc.head = payment.blockNumber! + NIMIQ_POLICY.blocksPerBatch;
+
+    const repaired = await service.reconcile("mission-invalid-repair");
+    expect(repaired).toMatchObject({ txHash: payment.hash, status: "FINAL" });
+    expect(service.getRecoverableInvalidBroadcastBatonIds()).not.toContain("mission-invalid-repair");
+  });
+
   it("freezes a verified HTLC rail before payment and still validates after the live HTLC metadata changes", async () => {
     const rpc = new HtlcRpc();
     const service = new CanonicalRelayService(new RelayStore(), rpc);
