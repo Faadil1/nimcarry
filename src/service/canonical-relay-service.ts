@@ -1,7 +1,7 @@
 import type { Hop, HopStatus, NimiqTxLookup, PassIntent } from "../core/types.js";
 import { RelayStore, RelayValidationError, isDormant, isIntentStale, paymentRailAddress, validateTransactionAgainstIntent } from "../core/relay.js";
 import type { NimiqRpcClient } from "../nimiq/rpc-client.js";
-import { hasReachedFinality, isIncluded } from "../nimiq/rpc-client.js";
+import { hasReachedFinality, isIncluded, normalizeNimiqAccountType } from "../nimiq/rpc-client.js";
 
 export type PublicStatus = "READY" | "PENDING" | "CONFIRMED" | "CANCELLED" | "INVALID";
 
@@ -212,24 +212,69 @@ export class CanonicalRelayService {
     return { wallets, rails };
   }
 
-  private async independentlyVerifyHtlcRail(intent: PassIntent, railAddress: string): Promise<boolean> {
-    if (!this.rpc.getAccountByAddress || !this.rpc.getTransactionsByAddress) return false;
+  private async independentlyVerifyHtlcRail(
+    intent: PassIntent,
+    railAddress: string,
+    observedPayment?: NimiqTxLookup
+  ): Promise<boolean> {
+    if (!this.rpc.getTransactionsByAddress) return false;
     const { wallets } = this.paymentSourceSnapshot(intent);
     const rail = addressKey(railAddress);
     if (!rail) return false;
 
-    const account = await this.rpc.getAccountByAddress(railAddress);
-    if (!account || String(account.type).toLowerCase() !== "htlc") return false;
-    if (!account.sender || !wallets.has(addressKey(account.sender))) return false;
-    if (!Number.isFinite(account.totalAmount) || Number(account.totalAmount) <= 0) return false;
-
     const history = await this.rpc.getTransactionsByAddress(railAddress);
-    return history.some((candidate) =>
+
+    // Preferred proof for new sends: read the still-live HTLC metadata, then
+    // corroborate the exact funding transaction from an already-authorized
+    // wallet. This is the strongest pre-payment proof and is what we freeze.
+    if (this.rpc.getAccountByAddress) {
+      const account = await this.rpc.getAccountByAddress(railAddress);
+      if (
+        account
+        && normalizeNimiqAccountType(account.type) === "htlc"
+        && account.sender
+        && wallets.has(addressKey(account.sender))
+        && Number.isFinite(account.totalAmount)
+        && Number(account.totalAmount) > 0
+      ) {
+        const funding = history.find((candidate) =>
+          candidate.blockNumber !== null
+          && addressKey(candidate.to) === rail
+          && addressKey(candidate.from) === addressKey(account.sender!)
+          && candidate.value === Number(account.totalAmount)
+        );
+        if (funding) return true;
+      }
+    }
+
+    // Legacy recovery only: old intents predate the frozen rail snapshot. A
+    // consumed HTLC can disappear/change in current account state, but the
+    // historic transaction itself permanently carries its sender/recipient
+    // account types. Accept recovery only when BOTH:
+    //   1) the observed payment is itself from an HTLC, and
+    //   2) chain history contains the HTLC-creation/funding transaction from a
+    //      wallet already frozen at AUTHORIZE_PASS into this exact rail.
+    //
+    // This does not authorize an arbitrary transfer-to-address as a payment
+    // rail: the funding transaction must have recipientType=HTLC on-chain.
+    if (!observedPayment) return false;
+    if (addressKey(observedPayment.from) !== rail) return false;
+    if (normalizeNimiqAccountType(observedPayment.senderType) !== "htlc") return false;
+
+    const creationCandidates = history.filter((candidate) =>
       candidate.blockNumber !== null
       && addressKey(candidate.to) === rail
-      && addressKey(candidate.from) === addressKey(account.sender!)
-      && candidate.value === Number(account.totalAmount)
+      && wallets.has(addressKey(candidate.from))
+      && normalizeNimiqAccountType(candidate.recipientType) === "htlc"
+      && Number.isFinite(candidate.value)
+      && candidate.value > 0
+      && (
+        observedPayment.blockNumber === null
+        || candidate.blockNumber === null
+        || candidate.blockNumber <= observedPayment.blockNumber
+      )
     );
+    return creationCandidates.length === 1;
   }
 
   /**
@@ -289,7 +334,7 @@ export class CanonicalRelayService {
     }
     if (frozenRails.has(sender)) return tx.from;
 
-    return await this.independentlyVerifyHtlcRail(intent, tx.from) ? tx.from : null;
+    return await this.independentlyVerifyHtlcRail(intent, tx.from, tx) ? tx.from : null;
   }
 
   private async validateObservedTransaction(intent: PassIntent, tx: NimiqTxLookup): Promise<void> {
