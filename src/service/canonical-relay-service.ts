@@ -120,6 +120,26 @@ export class CanonicalRelayService {
     )];
   }
 
+  /**
+   * Active intents with an exact transaction hash that was previously marked
+   * INVALID are safe to re-verify after a validator/runtime upgrade.
+   *
+   * This is read-only chain recovery: it never authorizes, signs, or broadcasts
+   * another payment. The coordinator bounds attempts per process so a genuinely
+   * invalid transaction cannot create an endless reconciliation loop.
+   */
+  getRecoverableInvalidBroadcastBatonIds(): string[] {
+    const snapshot = this.store.snapshot();
+    return snapshot.intents
+      .filter((intent) => {
+        const hop = snapshot.hops.find(
+          (candidate) => candidate.batonId === intent.batonId && candidate.sequence === intent.sequence
+        );
+        return hop?.status === "INVALID" && Boolean(hop.txHash);
+      })
+      .map((intent) => intent.batonId);
+  }
+
   hasRecordedBroadcast(batonId: string): boolean {
     const intent = this.store.getActiveIntent(batonId);
     if (!intent) return false;
