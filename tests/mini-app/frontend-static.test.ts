@@ -52,6 +52,9 @@ describe("static Mini App skeleton", () => {
     expect(executePass).toContain('signedAuth("AUTHORIZE_PASS"');
     expect(executePass).toContain("walletKey(auth.wallet)");
     expect(executePass).toContain("assertAuthorizedPaymentAccounts(intent)");
+    expect(js).toContain("payment_rail_snapshot_requested");
+    expect(js).toContain("/pass-intent/payment-rails");
+    expect(js).toContain("FROZEN_BEFORE_PAYMENT");
     expect(html).toContain("already verified on the same NimCarry profile");
   });
 
